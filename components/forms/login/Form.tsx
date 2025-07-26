@@ -1,33 +1,44 @@
 'use client';
-
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import axios from 'axios';
 
 type LoginFormProps = {
   onRegisterClick: () => void;
   onForgotClick: () => void;
 };
 
-export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => {
+export const LoginForm = ({ onRegisterClick, onForgotClick }: LoginFormProps) => {
   const router = useRouter();
-
   const [formData, setFormData] = useState({
-    role: '',
     email: '',
     password: '',
   });
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      formData.email === 'admin' &&
-      formData.password === '1234' &&
-      formData.role !== ''
-    ) {
-      router.push('/home');
-    } else {
-      alert('Invalid credentials or missing role');
+    try {
+      const response = await axios.post('http://192.168.1.14:8000/api/v1/auth/login',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
+      const data = response.data;
+      console.log(data);
+      if (response.status === 200 && data.success) {
+        router.push('/home');
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
     }
   };
+
 
   return (
     <div className="flex items-center justify-center h-screen ">
@@ -39,7 +50,7 @@ export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => 
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
 
-          <div>
+          {/* <div>
          
             <select
               id="role"
@@ -53,10 +64,9 @@ export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => 
               <option value="manager" >Manager/Receptionist</option>
               <option value="employee">Employee</option>
             </select>
-          </div>
+          </div> */}
 
           <div>
-         
             <input
               id="email"
               type="text"
@@ -70,7 +80,7 @@ export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => 
 
 
           <div>
-           
+
             <input
               id="password"
               type="password"
@@ -87,7 +97,7 @@ export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => 
             <button
               type="button"
               className="text-sm text-blue-600 hover:underline"
-            onClick={onForgotClick} >
+              onClick={onForgotClick} >
               Forgot Password?
             </button>
           </div>
@@ -98,7 +108,7 @@ export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => 
             Login
           </button>
           <button
-            type="button"   onClick={onRegisterClick}
+            type="button" onClick={onRegisterClick}
             className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
           >
             Register
@@ -109,3 +119,10 @@ export const LoginForm = ({ onRegisterClick,onForgotClick }: LoginFormProps) => 
 
   );
 };
+function async(arg0: string, arg1: {
+  method: string; headers: { 'Content-Type': string; }; credentials: string; //  cookies
+  body: string;
+}) {
+  throw new Error('Function not implemented.');
+}
+

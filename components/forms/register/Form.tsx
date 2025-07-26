@@ -1,6 +1,6 @@
 'use client';
 
- 
+
 import { useState } from 'react';
 
 interface RegisterFormProps {
@@ -8,9 +8,6 @@ interface RegisterFormProps {
 }
 
 export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
-
- 
-
   const [formData, setFormData] = useState({
     role: '',
     name: '',
@@ -19,12 +16,34 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
     email: '',
     password: '',
   });
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    onLoginClick()
+    try {
+      const response = await fetch('http://192.168.1.14:8000/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Registration successful');
+        console.log(result);
+        onLoginClick();
+      } else {
+        alert(`Error: ${result.message || 'Registration failed'}`);
+        console.log(result.message);
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
+      alert('Something went wrong');
+    }
   };
+
 
   return (
     <div className="flex items-center justify-center h-screen ">
@@ -70,7 +89,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
 
             <input
               id="clientId"
-              type="number"
+              type="text"
               className="border p-2 rounded w-full"
               placeholder="Enter your client Id"
               value={formData.clientId}
@@ -84,7 +103,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
 
             <input
               id="propertyId"
-              type="number"
+              type="text"
               className="border p-2 rounded w-full"
               placeholder="Enter your property Id"
               value={formData.propertyId}
@@ -98,7 +117,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
 
             <input
               id="email"
-              type="text"
+              type="email"
               className="border p-2 rounded w-full"
               placeholder="Enter your email"
               value={formData.email}

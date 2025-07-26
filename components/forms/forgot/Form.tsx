@@ -70,45 +70,45 @@ export const ForgotForm = ({ onBackToLogin, onLoginClick }: ForgotFormProps) => 
 
         <form onSubmit={step === 1 ? handleGenerateOTP : handleResetPassword} className="flex flex-col gap-3">
           {step === 1 && (
-            <input
-              type="email"
-              placeholder="Enter your email"
+              <input
+                type="email"
+                placeholder="Enter your email"
               className="border p-2 rounded w-full"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
           )}
 
           {step === 2 && (
             <>
-              <input
-                type="text"
-                placeholder="Enter OTP"
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
                 className="border p-2 rounded w-full"
-                value={formData.otp}
-                onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Enter New Password"
+                  value={formData.otp}
+                  onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="Enter New Password"
                 className="border p-2 rounded w-full"
-                value={formData.newPassword}
-                onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                required
-              />
+                  value={formData.newPassword}
+                  onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                  required
+                />
               <div className="text-sm text-gray-600 text-center">
                 Time remaining: {formatTimer()}
               </div>
-              <button
-                type="button"
+                <button
+                  type="button"
                 disabled={timer > 0}
-                onClick={handleResendOTP}
+                  onClick={handleResendOTP}
                 className={`py-2 rounded text-white ${timer > 0 ? 'bg-gray-400' : 'bg-orange-500 hover:bg-orange-600'}`}
-              >
-                Resend OTP
-              </button>
+                >
+                  Resend OTP
+                </button>
             </>
           )}
 
