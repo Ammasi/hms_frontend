@@ -4,7 +4,7 @@ import "./globals.css";
  
 
 export const metadata: Metadata = {
-  title: " Hotel Rooms",
+  title: "Hotel Rooms",
   description: "",
 };
 
