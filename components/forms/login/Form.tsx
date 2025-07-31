@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 type Props = {
   onRegisterClick: () => void;
@@ -10,17 +11,26 @@ type Props = {
 
 export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
   const router = useRouter();
-  const [formData, setFormData] = useState({ email: '', password: '', role: '' });
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    role: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
     try {
       const response = await axios.post(
         'http://192.168.1.14:8000/api/v1/auth/login',
         {
           email: formData.email,
           password: formData.password,
-          role: formData.role,
+          // role: formData.role,
         },
         {
           withCredentials: true,
@@ -30,13 +40,20 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
         }
       );
 
+      
       if (response.data.success) {
+ 
+        Cookies.set('auth_token', response.data.token );
+
+        console.log('Login successful:', response.data);
         router.push('/home');
-      } else {
-        alert(response.data.message || 'Invalid credentials');
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Login failed');
+      const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
+      setError(errorMessage);
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -44,12 +61,17 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
     <div className="flex items-center justify-center h-screen">
       <div className="bg-white p-6 rounded shadow w-full max-w-sm">
         <h2 className="text-center font-bold mb-4">Hotel Management Software</h2>
+        {error && (
+          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <select
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             className="border p-2 rounded"
-            required
+
           >
             <option value="">Select Role</option>
             <option value="software">Software Supplier</option>
@@ -76,13 +98,21 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
           />
 
           <div className="text-right text-sm">
-            <button type="button" onClick={onForgotClick} className="text-blue-600 hover:underline">
+            <button
+              type="button"
+              onClick={onForgotClick}
+              className="text-blue-600 hover:underline"
+            >
               Forgot Password?
             </button>
           </div>
 
-          <button type="submit" className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-            Login
+          <button
+            type="submit"
+            className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
           <button
             type="button"

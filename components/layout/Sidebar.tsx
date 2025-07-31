@@ -11,9 +11,8 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`${
-        collapsed ? 'w-20' : 'w-80'
-      } bg-blue-800 text-white transition-all duration-300 ease-in-out min-h-screen p-4`}
+      className={`${collapsed ? 'w-20' : 'w-80'
+        } bg-blue-800 text-white transition-all duration-300 ease-in-out min-h-screen p-4`}
     >
       <div className="flex justify-end mb-4">
         <button
@@ -27,10 +26,10 @@ export default function Sidebar() {
         <li>
           <Link href="/hotelManagement" className="flex items-center p-2 rounded hover:bg-blue-700">
             <span className={`${collapsed ? 'text-xl' : ''}`}>
-              {collapsed ? 'Hotel ' : 'Hotel Management'}
+              {collapsed ? 'HM ' : 'Hotel Management'}
             </span>
           </Link>
-        </li>  
+        </li>
       </ul>
     </aside>
   );

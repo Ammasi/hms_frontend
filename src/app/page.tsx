@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { RegisterForm } from '../../components/forms/register/Form';
 import { LoginForm } from '../../components/forms/login/Form';
 import { ForgotForm } from '../../components/forms/forgot/Form';
- 
+
 export default function LoginPage() {
   const router = useRouter();
   const [formType, setFormType] = useState<'login' | 'register' | 'forgot'>('login');

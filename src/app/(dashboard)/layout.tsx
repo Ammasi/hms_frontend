@@ -1,38 +1,57 @@
 'use client';
-import { useEffect, useState } from 'react';
+import {  useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+// import axios from 'axios';
 import Sidebar from '../../../components/layout/Sidebar';
 import Navbar from '../../../components/layout/Navbar';
+// import Cookies from 'js-cookie';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  // const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const verifyUser = async () => {
-      try {
-        const res = await axios.get('http://192.168.1.14:8000/api/v1/auth/verify', {
-          withCredentials: true,
-        });
 
-        if (res.status === 200 || res.data.success) {
-          // setLoading(false);
-        } else {
-          router.push('/');
-        }
-      } catch (err: any) {
-        console.error('Auth verification error:', err);
-        // router.push('/');
-      }
-    };
+  // useEffect(() => {
+  //   const verifyUser = async () => {
 
-    verifyUser();
-  }, [router]);
+  //     const token = Cookies.get('auth_token') || localStorage.getItem('auth_token');
+  //     console.log('Verification token:', token);
 
-  // if (loading) {
-  //   return <div>Loading...</div>;
-  // }
+  //     if (!token) {
+  //       console.error('No token found in cookies or storage');
+  //       router.push('/');
+  //       return;
+  //     }
+
+  //     try {
+  //       const response = await axios.get(
+  //         'http://192.168.1.14:8000/api/v1/auth/verify',
+  //         {
+  //           withCredentials: true
+  //         }
+  //       );
+
+  //       console.log('Verification response:', response.data);
+
+  //       if (!response.data?.success) {
+  //         throw new Error('Verification failed');
+  //       }
+  //       setLoading(false);
+  //     } catch (error) {
+  //       console.error('Full verification error:', {
+
+  //       });
+
+  //       Cookies.remove('auth_token', { path: '/' });
+  //       localStorage.removeItem('auth_token');
+  //       router.push('/');
+  //     }
+  //   };
+
+  //   verifyUser();
+  // }, [router]);
+
+  // if (loading) return <div className="p-10 text-center">Loading...</div>;
 
   return (
     <div className="flex h-screen overflow-hidden">
