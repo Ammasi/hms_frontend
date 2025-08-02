@@ -30,6 +30,20 @@ export default function Sidebar() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link href="/customerManagement" className="flex items-center p-2 rounded hover:bg-blue-700">
+            <span className={`${collapsed ? 'text-xl' : ''}`}>
+              {collapsed ? 'CM ' : 'Customer Management'}
+            </span>
+          </Link>
+        </li>
+         <li>
+          <Link href="/taskSheet" className="flex items-center p-2 rounded hover:bg-blue-700">
+            <span className={`${collapsed ? 'text-xl' : ''}`}>
+              {collapsed ? 'TS ' : 'Task Sheet'}
+            </span>
+          </Link>
+        </li>
       </ul>
     </aside>
   );

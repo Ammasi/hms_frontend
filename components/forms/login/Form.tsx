@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import Cookies from 'js-cookie';
+
 
 type Props = {
   onRegisterClick: () => void;
@@ -16,12 +16,11 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
     password: '',
     role: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
+
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
     try {
@@ -30,7 +29,6 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
         {
           email: formData.email,
           password: formData.password,
-          // role: formData.role,
         },
         {
           withCredentials: true,
@@ -39,21 +37,17 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
           },
         }
       );
-
-      
       if (response.data.success) {
- 
-        Cookies.set('auth_token', response.data.token );
-
+        const token = response.data.token; // ← Add this line
         console.log('Login successful:', response.data);
+        console.log('TOKEN:', response.data.token ?? 'No token, using cookie-based auth');
         router.push('/home');
       }
+
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
       setError(errorMessage);
       console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -71,7 +65,6 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             className="border p-2 rounded"
-
           >
             <option value="">Select Role</option>
             <option value="software">Software Supplier</option>
@@ -79,7 +72,6 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
             <option value="manager">Manager/Receptionist</option>
             <option value="employee">Employee</option>
           </select>
-
           <input
             type="email"
             placeholder="Enter your email"
@@ -96,7 +88,6 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required
           />
-
           <div className="text-right text-sm">
             <button
               type="button"
@@ -106,19 +97,15 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
               Forgot Password?
             </button>
           </div>
-
           <button
             type="submit"
-            className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
+            className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-400">
+            Login
           </button>
           <button
             type="button"
             onClick={onRegisterClick}
-            className="bg-gray-500 text-white py-2 rounded hover:bg-gray-600"
-          >
+            className="bg-gray-500 text-white py-2 rounded hover:bg-gray-600">
             Register
           </button>
         </form>
