@@ -109,7 +109,7 @@ export default function CustomerManagement() {
                                 onClick={() => setView('grid')}
                                 className={`px-4 py-2 rounded-lg ${view === 'grid' ? 'bg-blue-700 text-white' : 'bg-blue-900 text-white'}`}
                             >
-                                Grid View
+                                    Grid
                             </button>
                         </div>
                         {/* Popup Modal */}
@@ -137,7 +137,7 @@ export default function CustomerManagement() {
                 ) : error ? (
                     <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
                 ) : data.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">No hotel owners found.</div>
+      <div className="text-center py-8 text-gray-500">No customers found.</div>
                 ) : view === 'table' ? (
                     <div className="overflow-x-auto  shadow bg-white p-4 mt-2">
                         <table className="min-w-full text-sm text-left">
