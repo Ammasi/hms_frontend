@@ -19,8 +19,6 @@ type CustomerData = {
   idProof: string;
   address: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 };
 
 type CustomerAddProps = {

@@ -65,6 +65,13 @@ export default function Sidebar() {
             </span>
           </Link>
         </li>
+         <li>
+          <Link href="/gstRegister" className="flex items-center p-2 rounded hover:bg-blue-700">
+            <span className={`${collapsed ? 'text-xl' : ''}`}>
+              {collapsed ? 'GST' : 'GST Registration'}
+            </span>
+          </Link>
+        </li>
       </ul>
     </aside>
   );

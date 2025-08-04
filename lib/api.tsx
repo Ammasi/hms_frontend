@@ -177,3 +177,28 @@ export const deleteCheckInMode = (id: string) =>
 
 export const fetchCheckInModeById = (id: string) =>
   api.get(`/checkin-mode/${id}`).then(res => res.data);
+
+
+// ----------------- GSTRegister APIs -----------------
+
+export const fetchGSTRegister = () => api.get('/gst');
+
+export const createGSTRegister = (formData: any, payload: { clientId: string; propertyId: string; legalName: string; tradeName: string; gstNumber: string; panNumber: string; gstType: string; businessType: string; email: string; phoneNo: string; gstStateCode: string; cgst: string; sgst: string; igst: number; registrationDate: string; taxJurisdiction: number; propertyAddress: boolean; gstCertificateUrl: string | undefined; isActive: boolean; }) =>
+  api.post('/gst/create', {
+    ...formData
+    
+  });
+
+export const updateGSTRegister = (id: string, data: any) =>
+  api.put(`/gst/update/${id}`, {
+    ...data
+    
+  });
+
+export const deleteGSTRegister = (id: string) =>
+  api.delete(`/gst/delete/${id}`);
+
+export const fetchGSTRegisterById = (id: string) =>
+  api.get(`/gst/${id}`).then(res => res.data);
+
+ 
