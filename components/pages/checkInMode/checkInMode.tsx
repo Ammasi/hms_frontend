@@ -1,33 +1,23 @@
 'use client';
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
-
+ 
 import { useEffect, useState } from 'react';
-import { deleteTaskSheet, fetchTaskSheetById, fetchTaskSheet } from '../../../lib/api';
-import TaskSheetAdd from "../../forms/taskSheetAdd/Form";
+import { deleteCheckInMode, fetchCheckInModeById, fetchCheckInMode } from '../../../lib/api';
+import CheckInModeForm from "../../forms/checkInModeAdd/Form";
 
-type taskSheetData = {
-
+type checkInModeData = {
   id: string;
   clientId: string;
   propertyId: string;
-  taskType: string;
-  taskMessage: string;
-  roomNo: string;
-  houseKeeper: string;
-  taskGivenBy: string;
-  taskCompletedBy: string;
-  taskStatus: string;
-  taskAssignDate: string;
-  taskCompletionDate: string;
-  deadline: string;
-  priority: string;
+  checkInMode: string;
+  description: string; 
 };
 
-export default function TaskSheet() {
-  const [data, setData] = useState<taskSheetData[]>([]);
+export default function CheckInMode() {
+  const [data, setData] = useState<checkInModeData[]>([]);
   const [view, setView] = useState<'table' | 'grid'>('table');
-  const [editingData, setEditingData] = useState<taskSheetData | null>(null);
+  const [editingData, setEditingData] = useState<checkInModeData | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +30,10 @@ export default function TaskSheet() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetchTaskSheet();
+      const res = await fetchCheckInMode();
       setData(res.data);
     } catch (err) {
-      console.error('Error fetching task sheets:', err);
+      console.error('Error fetching check-in modes:', err);
       setError('Failed to fetch data');
     } finally {
       setIsLoading(false);
@@ -56,7 +46,7 @@ export default function TaskSheet() {
 
   const handleEdit = async (id: string) => {
     try {
-      const res = await fetchTaskSheetById(id);
+      const res = await fetchCheckInModeById(id);
       setEditingData(res);
       setShowModal(true);   // open after data is set
     } catch (error) {
@@ -68,7 +58,7 @@ export default function TaskSheet() {
     if (!deleteTarget) return;
 
     try {
-      await deleteTaskSheet(deleteTarget);
+      await deleteCheckInMode(deleteTarget);
       setData(prev => prev.filter(item => item.id !== deleteTarget));
       setDeleteTarget(null);
     } catch (error) {
@@ -85,7 +75,7 @@ export default function TaskSheet() {
             <div className="w-1/3"></div>
 
             <div className="w-1/3 text-center">
-              <h1 className="text-xl font-bold"> Task Management </h1>
+              <h1 className="text-xl font-bold"> Check-In Mode  </h1>
             </div>
 
             <div className="w-1/3 flex justify-end gap-2">
@@ -93,7 +83,7 @@ export default function TaskSheet() {
                 onClick={handleOpen}
                 className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow"
               >
-                Add Task
+                Add Check-In Mode
               </button>
               <button
                 onClick={() => setView('table')}
@@ -111,7 +101,7 @@ export default function TaskSheet() {
             {/* Popup Modal */}
             {showModal && (
               <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                <TaskSheetAdd
+                <CheckInModeForm
                   setShowModal={(val) => {
                     setShowModal(val);
                     if (!val) setEditingData(null); // clear editing data on close
@@ -127,13 +117,13 @@ export default function TaskSheet() {
             )}
           </div>
         </div>
-        <h1 className="text-2xl ms-2 font-bold"> Task Sheets</h1>
+        <h1 className="text-2xl ms-2 font-bold">Check-In Modes</h1>
         {isLoading ? (
           <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
         ) : error ? (
           <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
         ) : data.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No task sheets found.</div>
+          <div className="text-center py-8 text-gray-500">No hotel owners found.</div>
         ) : view === 'table' ? (
           <div className="overflow-x-auto  shadow bg-white p-4 mt-2">
             <table className="min-w-full text-sm text-left">
@@ -141,17 +131,8 @@ export default function TaskSheet() {
                 <tr>
                   <th className="px-6 py-4">clientId</th>
                   <th className="px-6 py-4">propertyId</th>
-                  <th className="px-6 py-4">taskType</th>
-                  <th className="px-6 py-4">taskMessage</th>
-                  <th className="px-6 py-4">roomNo</th>
-                  <th className="px-6 py-4">houseKeeper</th>
-                  <th className="px-6 py-4">taskGivenBy</th>
-                  <th className="px-6 py-4">taskCompletedBy</th>
-                  <th className="px-6 py-4">taskStatus</th>
-                  <th className="px-6 py-4">taskAssignDate</th>
-                  <th className="px-6 py-4">taskCompletionDate</th>
-                  <th className="px-6 py-4">priority</th>
-                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">checkInMode</th>
+                  <th className="px-6 py-4">description</th> 
                   <th className="px-6 py-4">Actions</th>
                 </tr>
               </thead>
@@ -161,17 +142,8 @@ export default function TaskSheet() {
 
                     <td className="px-6 py-3">{item.clientId}</td>
                     <td className="px-6 py-3">{item.propertyId}</td>
-                    <td className="px-6 py-3">{item.taskType}</td>
-                    <td className="px-6 py-3">{item.taskMessage}</td>
-                    <td className="px-6 py-3">{item.roomNo}</td>
-                    <td className="px-6 py-3">{item.houseKeeper}</td>
-                    <td className="px-6 py-3">{item.taskGivenBy}</td>
-                    <td className="px-6 py-3">{item.taskCompletedBy}</td>
-                    <td className="px-6 py-3">{item.taskStatus}</td>
-                    <td className="px-6 py-3">{item.taskAssignDate?.split('T')[0]}</td>
-                    <td className="px-6 py-3">{item.taskCompletionDate?.split('T')[0]}</td>
-                    <td className="px-6 py-3">{item.deadline?.split('T')[0]}</td>
-                    <td className="px-6 py-3">{item.priority}</td>
+                    <td className="px-6 py-3">{item.checkInMode}</td>
+                    <td className="px-6 py-3">{item.description}</td> 
                     <td className="px-6 py-3 flex rounded-b-2xl items-center gap-2">
                       <button
                         onClick={() => handleEdit(item.id)}
@@ -204,29 +176,14 @@ export default function TaskSheet() {
               >
 
                 <div className=" text-center items-center space-y-2">
-                  <h2 className="text-2xl font-semibold text-blue-700">{item.taskType}</h2>
-                  <p className="text-lg text-gray-600">{item.roomNo}</p>
+                  <h2 className="text-2xl font-semibold text-blue-700">{item.clientId}</h2>
+                  <p className="text-lg text-gray-600">{item.propertyId}</p>
                 </div>
 
 
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">clientId:</span> {item.clientId}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">propertyId:</span> {item.propertyId}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">taskMessage:</span> {item.taskMessage}</p>
-                </div>
-
-                <div className="border-t border-gray-200 pt-2 space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">houseKeeper:</span> {item.houseKeeper}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">taskGivenBy:</span> {item.taskGivenBy}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">taskCompletedBy:</span> {item.taskCompletedBy}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">taskStatus:</span> {item.taskStatus}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">taskAssignDate:</span> {item.taskAssignDate?.split('T')[0]}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">taskCompletionDate:</span> {item.taskCompletionDate?.split('T')[0]}</p>
-                </div>
-
-                <div className="border-t border-gray-200 pt-2 space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">deadline:</span> {item.deadline?.split('T')[0]}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">priority:</span> {item.priority}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">checkInMode :</span> {item.checkInMode}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">description :</span> {item.description}</p> 
                 </div>
               </div>
             ))}

@@ -156,3 +156,24 @@ export const deleteHotelFacility = (id: string) =>
 
 export const fetchHotelFacilityById = (id: string) =>
   api.get(`/hotel-facility/${id}`).then(res => res.data);
+// ----------------- CheckInMode APIs -----------------
+
+export const fetchCheckInMode = () => api.get('/checkin-mode');
+
+export const createCheckInMode = (formData: any) =>
+  api.post('/checkin-mode/create', {
+    ...formData
+    
+  });
+
+export const updateCheckInMode = (id: string, data: any) =>
+  api.put(`/checkin-mode/update/${id}`, {
+    ...data
+    
+  });
+
+export const deleteCheckInMode = (id: string) =>
+  api.delete(`/checkin-mode/delete/${id}`);
+
+export const fetchCheckInModeById = (id: string) =>
+  api.get(`/checkin-mode/${id}`).then(res => res.data);

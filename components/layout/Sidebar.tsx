@@ -58,6 +58,13 @@ export default function Sidebar() {
             </span>
           </Link>
         </li>
+         <li>
+          <Link href="/checkInMode" className="flex items-center p-2 rounded hover:bg-blue-700">
+            <span className={`${collapsed ? 'text-xl' : ''}`}>
+              {collapsed ? 'CM ' : 'Check In Mode'}
+            </span>
+          </Link>
+        </li>
       </ul>
     </aside>
   );
