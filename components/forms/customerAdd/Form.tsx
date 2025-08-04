@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type CustomerData = {
   id: string;
@@ -31,23 +31,7 @@ type CustomerAddProps = {
 
 const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) => {
   const initialFormData = {
-    // Old fields (if needed elsewhere)
-    companyName: '',
-    clientName: '',
-    clientEmail: '',
-    clientMobileNo: '',
-    gst: '',
-    currency: 'INR',
-    subscription: 'Premium',
-    subscriptionStatus: 'Active',
-    subscriptionStartDate: '',
-    subscriptionEndDate: '',
-    clientAddress: '',
-    clientDocuments: '',
-    status: 'active',
-    noOfHotels: 0,
-    subscriptionDuration: 'yearly',
-    propertyCount: 0,
+
     // Add required customer fields
     id: '',
     clientId: '',
@@ -69,13 +53,34 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
 
   const [formData, setFormData] = useState(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const idProofInputRef = useRef<HTMLInputElement>(null);
 
-  // Format date for input fields
-  const formatDateForInput = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'idProof') => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        // only preview locally — do not update formData
+        if (type === 'image') {
+          setImageFile(file);
+        } else {
+          setIdProofFile(file);
+        }
+      };
+
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        reader.readAsDataURL(file);
+        if (type === 'image') setImageFile(file);
+        else setIdProofFile(file);
+      }
+    }
   };
+
 
   useEffect(() => {
     if (editingData) {
@@ -117,56 +122,47 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
     e.preventDefault();
     setIsLoading(true);
 
-    const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/customer/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/customer/create`;
-
-    const method = editingData ? 'PUT' : 'POST';
-
     try {
+      const baseUrl = 'http://192.168.1.14:8000/api/v1/customers';
+      const url = editingData
+        ? `${baseUrl}/update/${editingData.id}`
+        : `${baseUrl}/create`;
+
+      console.log('Making request to:', url);
+
+      const formDataToSend = new FormData();
+
+      formDataToSend.append('isActive', formData.isActive ? 'true' : 'false');
+
+      if (imageFile) formDataToSend.append('image', imageFile);
+      if (idProofFile) formDataToSend.append('idproof', idProofFile);
+
       const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        method: editingData ? 'PUT' : 'POST',
+        body: formDataToSend,
         credentials: 'include',
-        body: JSON.stringify({
-
-          clientId: formData.clientId,
-          propertyId: formData.propertyId,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          mrOrMrs: formData.mrOrMrs,
-          email: formData.email,
-          gender: formData.gender,
-          mobileNo: formData.mobileNo,
-          nationality: formData.nationality,
-          idType: formData.idType,
-          idNumber: formData.idNumber,
-          image: formData.image,
-          idProof: formData.idProof,
-          address: formData.address,
-          isActive: formData.isActive,
-        }),
-
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save customer');
       }
 
       const result = await response.json();
-      alert(editingData ? 'Hotel owner updated successfully!' : 'Hotel owner added successfully!');
+      console.log('Success:', result);
+
+      alert(editingData ? 'Customer updated successfully!' : 'Customer added successfully!');
       onSaved?.();
       setShowModal(false);
     } catch (error) {
       console.error('Error:', error);
-      alert(`Failed to save data. ${error instanceof Error ? error.message : 'Please try again.'}`);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     } finally {
       setIsLoading(false);
     }
   };
+
+
 
   return (
     <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
@@ -331,43 +327,51 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
             />
           </div>
 
-          {/* Image URL */}
           <div>
-            <label className="block text-sm font-medium">Image URL</label>
+            <label className="block text-sm font-medium">Profile Image</label>
             <input
-              type="text"
+              type="file"
               name="image"
-              value={formData.image}
-              onChange={handleChange}
+              ref={imageInputRef}
+              onChange={(e) => handleFileChange(e, 'image')}
+              accept="image/*"
               className="w-full p-2 border border-gray-300 rounded"
-              required
             />
             {formData.image && (
               <img
                 src={formData.image}
-                alt="Customer"
+                alt="Customer Preview"
                 className="mt-2 w-24 h-24 object-cover rounded"
               />
             )}
           </div>
 
-          {/* ID Proof URL */}
+
           <div>
-            <label className="block text-sm font-medium">ID Proof URL</label>
+            <label className="block text-sm font-medium">ID Proof</label>
             <input
-              type="text"
-              name="idProof"
-              value={formData.idProof}
-              onChange={handleChange}
+              type="file"
+              name="idproof"
+              ref={idProofInputRef}
+              onChange={(e) => handleFileChange(e, 'idProof')}
+              accept="image/*,application/pdf"
               className="w-full p-2 border border-gray-300 rounded"
-              required
             />
-            {formData.idProof && (
+
+
+            {formData.idProof && formData.idProof.startsWith('data:image') && (
               <img
                 src={formData.idProof}
-                alt="ID Proof"
+                alt="ID Proof Preview"
                 className="mt-2 w-24 h-24 object-cover rounded"
               />
+            )}
+
+
+            {formData.idProof && formData.idProof.startsWith('data:application/pdf') && (
+              <div className="mt-2 text-sm text-gray-700">
+                ID Proof uploaded
+              </div>
             )}
           </div>
 
@@ -384,12 +388,15 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">  Active</label>
+            <label className="block text-sm font-medium">Active</label>
             <select
               name="isActive"
               value={formData.isActive ? 'true' : 'false'}
               onChange={(e) =>
-                setFormData(prev => ({ ...prev, isActive: e.target.value === 'true' }))
+                setFormData(prev => ({
+                  ...prev,
+                  isActive: e.target.value === 'true',
+                }))
               }
               className="w-full p-2 border border-gray-300 rounded"
               required
@@ -398,6 +405,8 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               <option value="false">No</option>
             </select>
           </div>
+
+
 
           <div className="md:col-span-2 flex justify-end pt-4 space-x-3">
             <button

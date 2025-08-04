@@ -44,6 +44,20 @@ export default function Sidebar() {
             </span>
           </Link>
         </li>
+         <li>
+          <Link href="/subscriptionLimit" className="flex items-center p-2 rounded hover:bg-blue-700">
+            <span className={`${collapsed ? 'text-xl' : ''}`}>
+              {collapsed ? 'SL ' : 'Subscription Limit'}
+            </span>
+          </Link>
+        </li>
+         <li>
+          <Link href="/hotelFacility" className="flex items-center p-2 rounded hover:bg-blue-700">
+            <span className={`${collapsed ? 'text-xl' : ''}`}>
+              {collapsed ? 'HF ' : 'Hotel Facility'}
+            </span>
+          </Link>
+        </li>
       </ul>
     </aside>
   );

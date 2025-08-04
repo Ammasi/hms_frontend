@@ -112,3 +112,47 @@ export const deleteTaskSheet = (id: string) =>
 
 export const fetchTaskSheetById = (id: string) =>
   api.get(`/task-sheet/${id}`).then(res => res.data);
+
+
+// ----------------- SubscriptionLimit APIs -----------------
+ 
+export const fetchSubscriptionLimit = () => api.get('/subscription-limits'); //http://192.168.1.14:8000/api/v1/subscription-limits/create
+
+export const createSubscriptionLimit = (formData: any) =>
+  api.post('/subscription-limits/create', {
+    ...formData,
+  });
+
+export const updateSubscriptionLimit = (id: string, data: any) =>
+  api.put(`/subscription-limits/update/${id}`, {
+    ...data,
+ 
+  });
+
+export const deleteSubscriptionLimit = (id: string) =>
+  api.delete(`/subscription-limits/delete/${id}`);
+
+export const fetchSubscriptionLimitById = (id: string) =>
+  api.get(`/subscription-limits/${id}`).then(res => res.data); 
+
+// ----------------- HotelFacilit APIs -----------------
+
+export const fetchHotelFacility = () => api.get('/hotel-facility');
+
+export const createHotelFacilit = (formData: any) =>
+  api.post('/hotel-facility/create', {
+    ...formData
+    
+  });
+
+export const updateHotelFacility = (id: string, data: any) =>
+  api.put(`/hotel-facility/update/${id}`, {
+    ...data
+    
+  });
+
+export const deleteHotelFacility = (id: string) =>
+  api.delete(`/hotel-facility/delete/${id}`);
+
+export const fetchHotelFacilityById = (id: string) =>
+  api.get(`/hotel-facility/${id}`).then(res => res.data);
