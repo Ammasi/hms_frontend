@@ -1,5 +1,6 @@
 'use client';
 
+import { get } from 'lodash';
 import { useEffect, useState } from 'react';
 
 // Types
@@ -33,9 +34,13 @@ const CheckInModeForm = ({ setShowModal, editingData, onSaved }: CheckInModeForm
   useEffect(() => {
     if (editingData) {
       setFormData({
-        ...initialFormData,
-        ...editingData,
+        id: get(editingData, 'id', ''),
+        clientId: get(editingData, 'clientId', ''),
+        propertyId: get(editingData, 'propertyId', ''),
+        checkInMode: get(editingData, 'checkInMode', ''),
+        description: get(editingData, 'description', ''),
       });
+
     } else {
       setFormData(initialFormData);
     }
@@ -54,8 +59,9 @@ const CheckInModeForm = ({ setShowModal, editingData, onSaved }: CheckInModeForm
     setIsLoading(true);
 
     try {
-      const url = editingData
-        ? `http://192.168.1.14:8000/api/v1/checkin-mode/update/${editingData.id}`
+      const id = get(editingData, 'id', '');
+      const url = id
+        ? `http://192.168.1.14:8000/api/v1/checkin-mode/update/${id}`
         : `http://192.168.1.14:8000/api/v1/checkin-mode/create`;
 
       const response = await fetch(url, {

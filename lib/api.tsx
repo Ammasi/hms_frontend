@@ -200,5 +200,26 @@ export const deleteGSTRegister = (id: string) =>
 
 export const fetchGSTRegisterById = (id: string) =>
   api.get(`/gst/${id}`).then(res => res.data);
+// ----------------- Employee APIs -----------------
+
+export const fetchEmployee = () => api.get('/employee');
+
+export const createEmployee = (formData: any, payload: { clientId: string; propertyId: string; legalName: string; tradeName: string; gstNumber: string; panNumber: string; gstType: string; businessType: string; email: string; phoneNo: string; gstStateCode: string; cgst: string; sgst: string; igst: number; registrationDate: string; taxJurisdiction: number; propertyAddress: boolean; gstCertificateUrl: string | undefined; isActive: boolean; }) =>
+  api.post('/employee/create', { //http://192.168.1.14:8000/api/v1/employee/update/
+    ...formData
+    
+  });
+
+export const updateEmployee = (id: string, data: any) =>
+  api.put(`/employee/update/${id}`, {
+    ...data
+    
+  });
+
+export const deleteEmployee = (id: string) =>
+  api.delete(`/employee/delete/${id}`);
+
+export const fetchEmployeeById = (id: string) =>
+  api.get(`/employee/${id}`).then(res => res.data);
 
  

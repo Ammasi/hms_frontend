@@ -1,24 +1,31 @@
 'use client';
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
-
 import { useEffect, useState } from 'react';
-import { deleteCheckInMode, fetchCheckInModeById, fetchCheckInMode } from '../../../lib/api';
-import CheckInModeForm from "../../forms/checkInModeAdd/Form";
+import { deleteEmployee, fetchEmployeeById, fetchEmployee } from '../../../lib/api';
+import EmployeeAdd from "../../forms/employeeAdd/Form";
 import { get } from "lodash";
 
-type checkInModeData = {
+type EmployeeData = {
   id: string;
   clientId: string;
   propertyId: string;
-  checkInMode: string;
-  description: string;
+  name: string;
+  email: string;
+  mobileNo: string;
+  gender: string;
+  department: string;
+  maritalstatus: string;
+  address: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
-export default function CheckInMode() {
-  const [data, setData] = useState<checkInModeData[]>([]);
+export default function Employee() {
+  const [data, setData] = useState<EmployeeData[]>([]);
   const [view, setView] = useState<'table' | 'grid'>('table');
-  const [editingData, setEditingData] = useState<checkInModeData | null>(null);
+  const [editingData, setEditingData] = useState<EmployeeData | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,10 +38,11 @@ export default function CheckInMode() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetchCheckInMode();
-      setData(res.data);
+      const res = await fetchEmployee();
+      const employees = get(res, 'data', []);
+      setData(employees);
     } catch (err) {
-      console.error('Error fetching check-in modes:', err);
+      console.error('Error fetching employees:', err);
       setError('Failed to fetch data');
     } finally {
       setIsLoading(false);
@@ -47,22 +55,35 @@ export default function CheckInMode() {
 
   const handleEdit = async (id: string) => {
     try {
-      const res = await fetchCheckInModeById(id);
-      const item = get(res, 'data', null);
-      if (item) {
-        setEditingData(item);
-        setShowModal(true);
-      }
+      const res = await fetchEmployeeById(id);
+      const safeEmployee = {
+        id: get(res, 'id', ''),
+        clientId: get(res, 'clientId', ''),
+        propertyId: get(res, 'propertyId', ''),
+        name: get(res, 'name', ''),
+        email: get(res, 'email', ''),
+        mobileNo: get(res, 'mobileNo', ''),
+        gender: get(res, 'gender', ''),
+        department: get(res, 'department', ''),
+        maritalstatus: get(res, 'maritalstatus', ''),
+        address: get(res, 'address', ''),
+        isActive: get(res, 'isActive', true),
+        createdAt: get(res, 'createdAt', ''),
+        updatedAt: get(res, 'updatedAt', ''),
+      };
+      setEditingData(safeEmployee);
+      setShowModal(true);
     } catch (error) {
       console.error('Failed to fetch for edit', error);
     }
   };
+
   // Delete handler
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
     try {
-      await deleteCheckInMode(deleteTarget);
+      await deleteEmployee(deleteTarget);
       setData(prev => prev.filter(item => item.id !== deleteTarget));
       setDeleteTarget(null);
     } catch (error) {
@@ -79,7 +100,7 @@ export default function CheckInMode() {
             <div className="w-1/3"></div>
 
             <div className="w-1/3 text-center">
-              <h1 className="text-xl font-bold"> Check-In Mode  </h1>
+              <h1 className="text-xl font-bold">Employee Management </h1>
             </div>
 
             <div className="w-1/3 flex justify-end gap-2">
@@ -87,7 +108,7 @@ export default function CheckInMode() {
                 onClick={handleOpen}
                 className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow"
               >
-                Add Check-In Mode
+                Add
               </button>
               <button
                 onClick={() => setView('table')}
@@ -105,29 +126,30 @@ export default function CheckInMode() {
             {/* Popup Modal */}
             {showModal && (
               <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                <CheckInModeForm
+                <EmployeeAdd
                   setShowModal={(val) => {
                     setShowModal(val);
-                    if (!val) setEditingData(null); // clear editing data on close
+                    if (!val) setEditingData(null);
                   }}
                   editingData={editingData}
                   onSaved={() => {
                     setShowModal(false);
                     setEditingData(null);
-                    load();
                   }}
+                  load={load} 
                 />
+
               </div>
             )}
           </div>
         </div>
-        <h1 className="text-2xl ms-2 font-bold">Check-In Modes</h1>
+        <h1 className="text-2xl ms-2 font-bold">Employees</h1>
         {isLoading ? (
           <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
         ) : error ? (
           <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
         ) : data.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No hotel owners found.</div>
+          <div className="text-center py-8 text-gray-500">No  Employee found.</div>
         ) : view === 'table' ? (
           <div className="overflow-x-auto  shadow bg-white p-4 mt-2">
             <table className="min-w-full text-sm text-left">
@@ -135,8 +157,14 @@ export default function CheckInMode() {
                 <tr>
                   <th className="px-6 py-4">clientId</th>
                   <th className="px-6 py-4">propertyId</th>
-                  <th className="px-6 py-4">checkInMode</th>
-                  <th className="px-6 py-4">description</th>
+                  <th className="px-6 py-4">name</th>
+                  <th className="px-6 py-4">email</th>
+                  <th className="px-6 py-4">mobileNo</th>
+                  <th className="px-6 py-4">gender</th>
+                  <th className="px-6 py-4">department</th>
+                  <th className="px-6 py-4">maritalstatus</th>
+                  <th className="px-6 py-4">address</th>
+                  <th className="px-6 py-4">Active</th>
                   <th className="px-6 py-4">Actions</th>
                 </tr>
               </thead>
@@ -146,8 +174,14 @@ export default function CheckInMode() {
 
                     <td className="px-6 py-3">{item.clientId}</td>
                     <td className="px-6 py-3">{item.propertyId}</td>
-                    <td className="px-6 py-3">{item.checkInMode}</td>
-                    <td className="px-6 py-3">{item.description}</td>
+                    <td className="px-6 py-3">{item.name}</td>
+                    <td className="px-6 py-3">{item.email}</td>
+                    <td className="px-6 py-3">{item.mobileNo}</td>
+                    <td className="px-6 py-3">{item.gender}</td>
+                    <td className="px-6 py-3">{item.department}</td>
+                    <td className="px-6 py-3">{item.maritalstatus}</td>
+                    <td className="px-6 py-3">{item.address}</td>
+                    <td className="px-6 py-3">{item.isActive ? 'Yes' : 'No'}</td>
                     <td className="px-6 py-3 flex rounded-b-2xl items-center gap-2">
                       <button
                         onClick={() => handleEdit(item.id)}
@@ -181,13 +215,22 @@ export default function CheckInMode() {
 
                 <div className=" text-center items-center space-y-2">
                   <h2 className="text-2xl font-semibold text-blue-700">{item.clientId}</h2>
-                  <p className="text-lg text-gray-600">{item.propertyId}</p>
+                  <p className="text-lg text-gray-600">{item.name}</p>
                 </div>
 
 
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">checkInMode :</span> {item.checkInMode}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">description :</span> {item.description}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">propertyId:</span> {item.propertyId}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">Mobile:</span> {item.mobileNo}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">Address:</span> {item.address}</p>
+                </div>
+
+                <div className="border-t border-gray-200 pt-2 space-y-1">
+                  <p className="text-sm text-gray-700"><span className="font-medium">gender:</span> {item.gender}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">department:</span> {item.department}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">maritalstatus:</span> {item.maritalstatus}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">address:</span> {item.address}</p>
+                  <p className="text-sm text-gray-700"><span className="font-medium">Active:</span> {item.isActive ? 'Yes' : 'No'}</p>
                 </div>
               </div>
             ))}

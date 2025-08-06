@@ -1,9 +1,29 @@
 'use client';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { FaUserCircle } from 'react-icons/fa';
+
+type User = {
+  name: string;
+  email: string;
+  role: string;
+  clientId: string;
+  propertyId: string;
+};
 
 export default function Navbar() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -20,7 +40,8 @@ export default function Navbar() {
       );
 
       if (res.data.success) {
-        router.push('/');  
+        localStorage.removeItem('user'); // Remove user info
+        router.push('/');
       } else {
         alert('Logout failed');
       }
@@ -30,15 +51,43 @@ export default function Navbar() {
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <nav className="w-full bg-blue-800 text-white p-4 flex justify-between items-center">
+    <nav className="w-full bg-blue-800 text-white p-4 flex justify-between items-center relative">
       <h1 className="text-xl font-bold">Hotel Management</h1>
-      <button
-        onClick={handleLogout}
-        className="bg-white text-blue-600 px-3 py-1 rounded hover:bg-gray-100"
-      >
-        Logout
-      </button>
+
+      <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+        {/* User Icon */}
+        <button onClick={() => setShowDropdown(!showDropdown)}>
+          <FaUserCircle size={28} className="text-white hover:text-gray-300" />
+        </button>
+
+        {/* Dropdown */}
+        {showDropdown && user && (
+          <div className="absolute right-0 top-12 w-64 bg-white text-black rounded shadow-md p-4 z-50">
+            <div className="mb-2">
+              <p className="font-semibold">{user.name}</p>
+              <p className="text-sm text-gray-600">{user.email}</p>
+              <p className="text-sm text-blue-600 font-medium capitalize">{user.role}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
     </nav>
   );
 }

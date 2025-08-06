@@ -41,6 +41,14 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
         const token = response.data.token; // ← Add this line
         console.log('Login successful:', response.data);
         console.log('TOKEN:', response.data.token ?? 'No token, using cookie-based auth');
+
+        const { user } = response.data;
+        // Store user info in localStorage (or context if preferred)
+        localStorage.setItem('user', JSON.stringify(user));
+
+        router.push('/home');
+
+
         router.push('/home');
       }
 
