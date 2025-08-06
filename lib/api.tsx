@@ -179,6 +179,8 @@ export const fetchCheckInModeById = (id: string) =>
   api.get(`/checkin-mode/${id}`).then(res => res.data);
 
 
+
+
 // ----------------- GSTRegister APIs -----------------
 
 export const fetchGSTRegister = () => api.get('/gst');
@@ -222,4 +224,24 @@ export const deleteEmployee = (id: string) =>
 export const fetchEmployeeById = (id: string) =>
   api.get(`/employee/${id}`).then(res => res.data);
 
- 
+ // ----------------- ChargesRegister APIs -----------------
+
+export const fetchChargesRegister = () => api.get('/manage-charge');
+
+export const createChargesRegister = (formData: any) =>
+  api.post('/manage-charge/create', {
+    ...formData
+    
+  });
+
+export const updateChargesRegister = (id: string, data: any) =>
+  api.put(`/manage-charge/update/${id}`, {
+    ...data
+    
+  });
+
+export const deleteChargesRegister = (id: string) =>
+  api.delete(`/manage-charge/delete/${id}`);
+
+export const fetchChargesRegisterById = (id: string) =>
+  api.get(`/manage-charge/${id}`).then(res => res.data);

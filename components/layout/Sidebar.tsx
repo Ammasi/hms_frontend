@@ -9,9 +9,11 @@ import {
   FaStream,
   FaConciergeBell,
   FaClipboardCheck,
-  FaFileInvoice,
-  FaUserTie
+  FaFileInvoice, 
+  FaUserTie,
+  FaFileInvoiceDollar,
 } from 'react-icons/fa';
+
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(true);
@@ -97,6 +99,13 @@ export default function Sidebar() {
           <Link href="/employee" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
             <FaUserTie className="text-xl" />
             <span className={collapsed ? 'hidden' : ''}>Employee Management</span>
+          </Link>
+        </li>
+        {/*  Charges Register */}
+        <li>
+          <Link href="/chargesRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+            <FaFileInvoiceDollar className="text-xl" />
+            <span className={collapsed ? 'hidden' : ''}>Charges Register</span>
           </Link>
         </li>
       </ul>
