@@ -76,13 +76,13 @@ export const fetchCustomer = () => api.get('/customers');
 export const createCustomer = (formData: any) =>
   api.post('/customers/create', {
     ...formData
-    
+
   });
 
 export const updateCustomer = (id: string, data: any) =>
   api.put(`/customers/update/${id}`, {
     ...data
-    
+
   });
 
 export const deleteCustomer = (id: string) =>
@@ -104,7 +104,7 @@ export const createTaskSheet = (formData: any) =>
 export const updateTaskSheet = (id: string, data: any) =>
   api.put(`/task-sheet/update/${id}`, {
     ...data,
- 
+
   });
 
 export const deleteTaskSheet = (id: string) =>
@@ -115,7 +115,7 @@ export const fetchTaskSheetById = (id: string) =>
 
 
 // ----------------- SubscriptionLimit APIs -----------------
- 
+
 export const fetchSubscriptionLimit = () => api.get('/subscription-limits'); //http://192.168.1.14:8000/api/v1/subscription-limits/create
 
 export const createSubscriptionLimit = (formData: any) =>
@@ -126,14 +126,14 @@ export const createSubscriptionLimit = (formData: any) =>
 export const updateSubscriptionLimit = (id: string, data: any) =>
   api.put(`/subscription-limits/update/${id}`, {
     ...data,
- 
+
   });
 
 export const deleteSubscriptionLimit = (id: string) =>
   api.delete(`/subscription-limits/delete/${id}`);
 
 export const fetchSubscriptionLimitById = (id: string) =>
-  api.get(`/subscription-limits/${id}`).then(res => res.data); 
+  api.get(`/subscription-limits/${id}`).then(res => res.data);
 
 // ----------------- HotelFacilit APIs -----------------
 
@@ -142,13 +142,13 @@ export const fetchHotelFacility = () => api.get('/hotel-facility');
 export const createHotelFacilit = (formData: any) =>
   api.post('/hotel-facility/create', {
     ...formData
-    
+
   });
 
 export const updateHotelFacility = (id: string, data: any) =>
   api.put(`/hotel-facility/update/${id}`, {
     ...data
-    
+
   });
 
 export const deleteHotelFacility = (id: string) =>
@@ -163,13 +163,13 @@ export const fetchCheckInMode = () => api.get('/checkin-mode');
 export const createCheckInMode = (formData: any) =>
   api.post('/checkin-mode/create', {
     ...formData
-    
+
   });
 
 export const updateCheckInMode = (id: string, data: any) =>
   api.put(`/checkin-mode/update/${id}`, {
     ...data
-    
+
   });
 
 export const deleteCheckInMode = (id: string) =>
@@ -188,13 +188,13 @@ export const fetchGSTRegister = () => api.get('/gst');
 export const createGSTRegister = (formData: any, payload: { clientId: string; propertyId: string; legalName: string; tradeName: string; gstNumber: string; panNumber: string; gstType: string; businessType: string; email: string; phoneNo: string; gstStateCode: string; cgst: string; sgst: string; igst: number; registrationDate: string; taxJurisdiction: number; propertyAddress: boolean; gstCertificateUrl: string | undefined; isActive: boolean; }) =>
   api.post('/gst/create', {
     ...formData
-    
+
   });
 
 export const updateGSTRegister = (id: string, data: any) =>
   api.put(`/gst/update/${id}`, {
     ...data
-    
+
   });
 
 export const deleteGSTRegister = (id: string) =>
@@ -209,13 +209,13 @@ export const fetchEmployee = () => api.get('/employee');
 export const createEmployee = (formData: any, payload: { clientId: string; propertyId: string; legalName: string; tradeName: string; gstNumber: string; panNumber: string; gstType: string; businessType: string; email: string; phoneNo: string; gstStateCode: string; cgst: string; sgst: string; igst: number; registrationDate: string; taxJurisdiction: number; propertyAddress: boolean; gstCertificateUrl: string | undefined; isActive: boolean; }) =>
   api.post('/employee/create', { //http://192.168.1.14:8000/api/v1/employee/update/
     ...formData
-    
+
   });
 
 export const updateEmployee = (id: string, data: any) =>
   api.put(`/employee/update/${id}`, {
     ...data
-    
+
   });
 
 export const deleteEmployee = (id: string) =>
@@ -224,20 +224,20 @@ export const deleteEmployee = (id: string) =>
 export const fetchEmployeeById = (id: string) =>
   api.get(`/employee/${id}`).then(res => res.data);
 
- // ----------------- ChargesRegister APIs -----------------
+// ----------------- ChargesRegister APIs -----------------
 
 export const fetchChargesRegister = () => api.get('/manage-charge');
 
 export const createChargesRegister = (formData: any) =>
   api.post('/manage-charge/create', {
     ...formData
-    
+
   });
 
 export const updateChargesRegister = (id: string, data: any) =>
   api.put(`/manage-charge/update/${id}`, {
     ...data
-    
+
   });
 
 export const deleteChargesRegister = (id: string) =>
@@ -245,3 +245,26 @@ export const deleteChargesRegister = (id: string) =>
 
 export const fetchChargesRegisterById = (id: string) =>
   api.get(`/manage-charge/${id}`).then(res => res.data);
+
+
+// ----------------- Property APIs -----------------
+
+export const fetchProperty = () => api.get('/property');
+
+export const createProperty = (formData: any) =>
+  api.post('/property/create', {
+    ...formData
+
+  });
+
+export const updateProperty = (id: string, data: any) =>
+  api.put(`/property/update/${id}`, {
+    ...data
+
+  });
+
+export const deleteProperty = (id: string) =>
+  api.delete(`/property/delete/${id}`);
+
+export const fetchPropertyById = (id: string) =>
+  api.get(`/property/${id}`).then(res => res.data);

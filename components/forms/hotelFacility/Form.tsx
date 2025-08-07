@@ -120,7 +120,7 @@ const HotelFacilityForm = ({ setShowModal, editingData, onSaved }: HotelFacility
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 overflow-y-auto">
+    <div className="fixed inset-0    flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
         <div className="relative mb-4">
           <h2 className="text-xl font-bold text-center text-blue-900">

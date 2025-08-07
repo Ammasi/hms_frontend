@@ -18,8 +18,8 @@ type CustomerData = {
   image: string;
   idProof: string;
   address: string;
-  isActive: boolean;
-};
+  isActive: boolean;  
+}; 
 
 type CustomerAddProps = {
   setShowModal: (value: boolean) => void;

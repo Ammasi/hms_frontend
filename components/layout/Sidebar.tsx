@@ -12,6 +12,7 @@ import {
   FaFileInvoice, 
   FaUserTie,
   FaFileInvoiceDollar,
+  FaBuilding,
 } from 'react-icons/fa';
 
 
@@ -106,6 +107,13 @@ export default function Sidebar() {
           <Link href="/chargesRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
             <FaFileInvoiceDollar className="text-xl" />
             <span className={collapsed ? 'hidden' : ''}>Charges Register</span>
+          </Link>
+        </li>
+        {/*  Property Management */}
+        <li>
+          <Link href="/propertyManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+            <FaBuilding className="text-xl" />
+            <span className={collapsed ? 'hidden' : ''}>Property Management</span>
           </Link>
         </li>
       </ul>

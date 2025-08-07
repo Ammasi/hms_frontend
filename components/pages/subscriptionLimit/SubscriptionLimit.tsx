@@ -14,7 +14,6 @@ type subscriptionData = {
   managerLimit: number;
   employeeLimit: number;
   isActive: boolean;
-
 };
 
 export default function SubscriptionLimit() {

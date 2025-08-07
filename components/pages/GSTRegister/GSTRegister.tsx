@@ -7,26 +7,26 @@ import GSTRegisterAdd from "../../forms/GSTRegisterAdd/Form";
 
 
 type GSTRegisterData = {
-  id?: string;
-  clientId: string;
-  propertyId: string;
-  legalName: string;
-  tradeName: string;
-  gstNumber: string;
-  panNumber: string;
-  gstType: string;
-  businessType: string;
-  email: string;
-  phoneNo: string;
-  gstStateCode: string;
-  cgst: string;
-  sgst: string;
-  igst: string;                 // ✅ change to string
-  registrationDate: string;
-  taxJurisdiction: string;     // ✅ change to string
-  propertyAddress: string;     // ✅ change to string
-  gstCertificateUrl?: string;
-  isActive: boolean;
+    id?: string;
+    clientId: string;
+    propertyId: string;
+    legalName: string;
+    tradeName: string;
+    gstNumber: string;
+    panNumber: string;
+    gstType: string;
+    businessType: string;
+    email: string;
+    phoneNo: string;
+    gstStateCode: string;
+    cgst: string;
+    sgst: string;
+    igst: string;
+    registrationDate: string;
+    taxJurisdiction: string;
+    propertyAddress: string;
+    gstCertificateUrl?: string;
+    isActive: boolean;
 };
 
 export default function GSTRegister() {
