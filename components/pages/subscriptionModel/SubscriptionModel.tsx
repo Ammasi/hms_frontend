@@ -1,21 +1,18 @@
 'use client';
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
-
 import { ReactNode, useEffect, useState } from 'react';
 import { deleteSubscriptioModel, fetchSubscriptioModelById, fetchSubscriptioModel } from '../../../lib/api';
 
-type Floor = { floors: string };
-type Room = { rooms: string };
-type RoomType = { types: string };
-type ReportType = { reports: string };
-type Status = { status: string };
-type Call = { call: string };
-type Notification = { notification: string };
+type Floor = { propertyId: string; floors: number };
+type Room = { propertyId: string; rooms: number };
+type RoomType = { propertyId: string; types: number };
+type ReportType = { propertyId: string; reports: number };
+type Status = { propertyId: string; status: number };
+type Call = { propertyId: string; call: number };
+type Notification = { propertyId: string; notification: number };
 
 type SubscriptionModelData = {
-  priority: ReactNode;
-  deadline: any;
   id: string;
   clientId: string;
   planDefaultName: string;
@@ -30,6 +27,8 @@ type SubscriptionModelData = {
   noOfStatus: Status[];
   noOfCall: Call[];
   noOfNotification: Notification[];
+  priority?: ReactNode;
+  deadline?: string;
 };
 
 export default function SubscriptionModel() {
@@ -40,36 +39,26 @@ export default function SubscriptionModel() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const handleOpen = () => setShowModal(true);
 
-const load = async () => {
-  setIsLoading(true);
-  setError(null);
-  try {
-    const res = await fetch("http://192.168.1.14:8000/api/v1/subscription-model/", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", 
-    });
+  const load = async () => {
+    setIsLoading(true);
+    setError(null);
 
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+    try {
+      const res = await fetchSubscriptioModel();
+      // If API returns `res.data` directly as array
+      setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
+    } catch (err) {
+      console.error("Error fetching subscription model:", err);
+      setError("Failed to fetch data");
+      setData([]);
+    } finally {
+      setIsLoading(false);
     }
-
-    const json = await res.json();
-    setData(json.data);
-  } catch (err) {
-    console.error("Error fetching subscription model:", err);
-    setError("Failed to fetch data");
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
+  };
   useEffect(() => {
     load();
   }, []);
@@ -83,7 +72,7 @@ const load = async () => {
       console.error('Failed to fetch for edit', error);
     }
   };
-  // Delete handler
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
@@ -92,22 +81,52 @@ const load = async () => {
       setData(prev => prev.filter(item => item.id !== deleteTarget));
       setDeleteTarget(null);
     } catch (error) {
-
       setError('Failed to delete the record');
     }
   };
 
+  const toggleRow = (id: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  const renderPropertyDetails = (item: SubscriptionModelData) => {
+    return item.noOfFloors?.map((floor, index) => (
+      <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
+        <h4 className="font-medium text-gray-800 mb-2">
+          Property ID: {floor.propertyId || `Property ${index + 1}`}
+        </h4>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div><span className="font-medium">Floors:</span> {floor.floors}</div>
+          <div><span className="font-medium">Rooms:</span> {item.noOfRooms?.[index]?.rooms || 'N/A'}</div>
+          <div><span className="font-medium">Room Types:</span> {item.noOfRoomTypes?.[index]?.types || 'N/A'}</div>
+          <div><span className="font-medium">Reports:</span> {item.noOfReportTypes?.[index]?.reports || 'N/A'}</div>
+          {index === 0 && (
+            <>
+              <div><span className="font-medium">Status Types:</span> {item.noOfStatus?.[0]?.status || 'N/A'}</div>
+              <div><span className="font-medium">Call Types:</span> {item.noOfCall?.[0]?.call || 'N/A'}</div>
+              <div><span className="font-medium">Notifications:</span> {item.noOfNotification?.[0]?.notification || 'N/A'}</div>
+            </>
+          )}
+        </div>
+      </div>
+    ));
+  };
+
   return (
     <div className="p-6 flex flex-col items-center">
-      <div className="bg-white  rounded-t-2xl shadow-lg  w-full max-w-7xl">
+      <div className="bg-white rounded-t-2xl shadow-lg w-full max-w-7xl">
         <div className="mb-6 bg-blue-800 p-4 rounded-t-2xl text-white relative">
           <div className="flex items-center justify-between">
             <div className="w-1/3"></div>
-
             <div className="w-1/3 text-center">
-              <h1 className="text-xl font-bold"> subscription Model </h1>
+              <h1 className="text-xl font-bold">Subscription Model</h1>
             </div>
-
             <div className="w-1/3 flex justify-end gap-2">
               <button
                 onClick={handleOpen}
@@ -128,104 +147,80 @@ const load = async () => {
                 Grid View
               </button>
             </div>
-            {/* Popup Modal */}
-            {showModal && (
-              <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                {/* <subscriptionModelAdd
-                  setShowModal={(val) => {
-                    setShowModal(val);
-                    if (!val) setEditingData(null); // clear editing data on close
-                  }}
-                  editingData={editingData}
-                  onSaved={() => {
-                    setShowModal(false);
-                    setEditingData(null);
-                    load();
-                  }}
-                /> */}
-              </div>
-            )}
           </div>
         </div>
-        <h1 className="text-2xl ms-2 font-bold"> subscription Model</h1>
+
+        <h1 className="text-2xl ms-2 font-bold">Subscription Model</h1>
+
         {isLoading ? (
           <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
         ) : error ? (
           <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
         ) : data.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No subscription Model found.</div>
+          <div className="text-center py-8 text-gray-500">No subscription models found.</div>
         ) : view === 'table' ? (
-          <div className="overflow-x-auto  shadow bg-white p-4 mt-2">
+          <div className="overflow-x-auto shadow bg-white p-4 mt-2 w-full">
             <table className="min-w-full text-sm text-left">
               <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                  <th className="px-6 py-4">clientId</th>
-                  <th className="px-6 py-4">planDefaultName</th>
-                  <th className="px-6 py-4">planCustomName</th>
-                  <th className="px-6 py-4">price</th>
-                  <th className="px-6 py-4">duration</th>
-                  <th className="px-6 py-4">noOfProperty</th>
-                  <th className="px-6 py-4">noOfFloors</th>
-                  <th className="px-6 py-4">noOfRooms</th>
-                  <th className="px-6 py-4">noOfRoomTypes</th>
-                  <th className="px-6 py-4">noOfReportTypes</th>
-                  <th className="px-6 py-4">noOfStatus</th>
-                  <th className="px-6 py-4">noOfCall</th>
-                  <th className="px-6 py-4">noOfNotification</th>
+                  <th className="px-6 py-4">Plan Name</th>
+                  <th className="px-6 py-4">Client ID</th>
+                  <th className="px-6 py-4">Price</th>
+                  <th className="px-6 py-4">Duration</th>
+                  <th className="px-6 py-4">Properties</th>
+                  <th className="px-6 py-4">View</th>
                   <th className="px-6 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="text-gray-700">
                 {data.map((item) => (
-                  <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
+                  <>
+                    <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
+                      <td className="px-6 py-3">
+                        <div className="font-medium">{item.planDefaultName}</div>
+                        <div className="text-xs text-gray-500">{item.planCustomName}</div>
+                      </td>
+                      <td className="px-6 py-3">{item.clientId}</td>
+                      <td className="px-6 py-3">₹{item.price}</td>
+                      <td className="px-6 py-3">{item.duration}</td>
+                      <td className="px-6 py-3">{item.noOfProperty}</td>
+                      <td className="px-6 py-3">
+                        <button
+                          onClick={() => toggleRow(item.id)}
+                          className="font-bold text-blue-600 hover:text-blue-800 mr-2"
+                        >
+                          {expandedRows.has(item.id) ? 'Hide Details' : 'View Details'}
+                        </button></td>
 
-                    <td className="px-6 py-3">{item.clientId}</td>
-                    <td className="px-6 py-3">{item.planDefaultName}</td>
-                    <td className="px-6 py-3">{item.planCustomName}</td>
-                    <td className="px-6 py-3">{item.price}</td>
-                    <td className="px-6 py-3">{item.duration}</td>
-                    <td className="px-6 py-3">{item.noOfProperty}</td>
-                    <td className="px-6 py-3">
-                      {item.noOfFloors?.map(f => f.floors).join(', ')}
-                    </td>
-                    <td className="px-6 py-3">
-                      {item.noOfRooms?.map(r => r.rooms).join(', ')}
-                    </td>
-                    <td className="px-6 py-3">
-                      {item.noOfRoomTypes?.map(t => t.types).join(', ')}
-                    </td>
-                    <td className="px-6 py-3">
-                      {item.noOfReportTypes?.map(rt => rt.reports).join(', ')}
-                    </td>
-                    <td className="px-6 py-3">
-                      {item.noOfStatus?.map(s => s.status).join(', ')}
-                    </td>
-                    <td className="px-6 py-3">
-                      {item.noOfCall?.map(c => c.call).join(', ')}
-                    </td>
-                    <td className="px-6 py-3">
-                      {item.noOfNotification?.map(n => n.notification).join(', ')}
-                    </td>
 
-                    <td className="px-6 py-3 flex rounded-b-2xl items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow transition duration-200"
-                        title="Edit"
-                      >
-                        <FaEdit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(item.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow transition duration-200"
-                        title="Delete"
-                      >
-                        <MdDelete className="h-5 w-5" />
-                      </button>
-
-                    </td>
-
-                  </tr>
+                      <td className="px-6 py-3 flex items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(item.id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow"
+                          title="Edit"
+                        >
+                          <FaEdit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(item.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow"
+                          title="Delete"
+                        >
+                          <MdDelete className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                    {expandedRows.has(item.id) && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={6} className="px-6 py-4">
+                          <div className="space-y-3">
+                            <h3 className="font-medium text-gray-800">Property Details</h3>
+                            {renderPropertyDetails(item)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
@@ -235,63 +230,53 @@ const load = async () => {
             {data.map((item) => (
               <div
                 key={item.id}
-                className="p-5 border rounded-lg shadow-md bg-white flex flex-col justify-between space-y-4"
+                className="p-5 border rounded-lg shadow-md bg-white flex flex-col"
               >
-
-                <div className=" text-center items-center space-y-2">
+                <div className="text-center space-y-2 mb-4">
                   <h2 className="text-2xl font-semibold text-blue-700">{item.planDefaultName}</h2>
                   <p className="text-lg text-gray-600">{item.planCustomName}</p>
+                  <div className="flex justify-center gap-4">
+                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      ₹{item.price}
+                    </span>
+                    <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                      {item.duration}
+                    </span>
+                  </div>
                 </div>
 
-
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">clientId:</span> {item.clientId}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">price:</span> {item.price}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">duration:</span> {item.duration}</p>
+                <div className="mb-4">
+                  <h3 className="font-medium text-gray-800 mb-2">Client ID</h3>
+                  <p className="text-sm">{item.clientId}</p>
                 </div>
 
-                <div className="border-t border-gray-200 pt-2 space-y-1">
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Property:</span> {item.noOfProperty}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Floors:</span> {item.noOfFloors?.map(f => f.floors).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Rooms:</span> {item.noOfRooms?.map(r => r.rooms).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Room Types:</span> {item.noOfRoomTypes?.map(t => t.types).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Report Types:</span> {item.noOfReportTypes?.map(rt => rt.reports).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Status:</span> {item.noOfStatus?.map(s => s.status).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Calls:</span> {item.noOfCall?.map(c => c.call).join(', ')}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">No. of Notifications:</span> {item.noOfNotification?.map(n => n.notification).join(', ')}
-                  </p>
+                <div className="mb-4">
+                  <h3 className="font-medium text-gray-800 mb-2">Property Details</h3>
+                  {renderPropertyDetails(item)}
                 </div>
 
-                <div className="border-t border-gray-200 pt-2 space-y-1">
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">Deadline:</span> {item.deadline?.split('T')[0]}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">Priority:</span> {item.priority}
-                  </p>
+                <div className="mt-auto pt-3 border-t">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => handleEdit(item.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(item.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-
               </div>
             ))}
           </div>
-
         )}
       </div>
+
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
@@ -313,7 +298,6 @@ const load = async () => {
           </div>
         </div>
       )}
-
     </div>
   );
 }
