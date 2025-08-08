@@ -268,3 +268,25 @@ export const deleteProperty = (id: string) =>
 
 export const fetchPropertyById = (id: string) =>
   api.get(`/property/${id}`).then(res => res.data);
+
+// ----------------- subscriptiomodel APIs -----------------
+ 
+export const fetchSubscriptioModel = () => api.get('/subscription-model');
+
+export const createSubscriptioModel = (formData: any) =>
+  api.post('/subscription-model/create', {
+    ...formData
+
+  });
+
+export const updateSubscriptioModel = (id: string, data: any) =>
+  api.put(`/subscription-model/update/${id}`, {
+    ...data
+
+  });
+
+export const deleteSubscriptioModel = (id: string) =>
+  api.delete(`/subscription-model/delete/${id}`);
+
+export const fetchSubscriptioModelById = (id: string) =>
+  api.get(`/subscription-model/${id}`).then(res => res.data);

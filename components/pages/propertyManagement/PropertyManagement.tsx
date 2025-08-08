@@ -4,16 +4,6 @@ import { FaEdit } from 'react-icons/fa';
 import { MdDelete } from 'react-icons/md';
 import { deleteProperty, fetchPropertyById, fetchProperty } from '../../../lib/api';
 import PropertyAdd from '../../forms/propertyManagementAdd/Form';
-interface Floor {
-  defaultName: string;
-  customName: string;
-  roomCount: number;
-}
-
-interface RoomType {
-  defaultName: string;
-  isDefault: boolean;
-}
 
 interface PropertyData {
   id: string;
@@ -39,9 +29,9 @@ interface PropertyData {
   status: string;
   commonId: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt: string; 
 }
-
+ 
 export default function PropertyManagement() {
   const [data, setData] = useState<PropertyData[]>([]);
   const [view, setView] = useState<'table' | 'grid'>('table');
@@ -217,8 +207,8 @@ export default function PropertyManagement() {
                   <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">Image</th>
                   <th className="px-6 py-4">Address</th>
-                  <th className="px-6 py-4">Ground Floor</th>    
-                   <th className="px-6 py-4">No Of Floors</th>
+                  <th className="px-6 py-4">Ground Floor</th>
+                  <th className="px-6 py-4">No Of Floors</th>
                   <th className="px-6 py-4">Room Type Count</th>
                   <th className="px-6 py-4">Floors</th>
                   <th className="px-6 py-4">roomTypes</th>

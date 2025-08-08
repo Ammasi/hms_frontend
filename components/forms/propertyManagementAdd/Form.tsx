@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useRef, useState } from 'react';
 
 interface PropertyData {
@@ -16,8 +15,6 @@ interface PropertyData {
   noOfFloors: number;
   roomTypeCount: number;
   floors: string[];
-  roomTypes: string[];
-  roomCounts: number[];
   city: string;
   pinCode: string;
   starRating: string;
@@ -37,7 +34,7 @@ type PropertyAddProps = {
 };
 
 const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<PropertyData, 'id' | 'createdAt' | 'updatedAt' | 'floors' | 'roomTypes' | 'propertyImage'>>({
     clientId: '',
     propertyName: '',
     propertyType: '',
@@ -47,11 +44,11 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     propertyAddress: '',
     includeGroundFloor: true,
     noOfFloors: 0,
-    roomTypeCount: 0, 
+    roomTypeCount: 0,
     city: '',
     pinCode: '',
-    starRating: '0',
-    totalRooms: '0',
+    starRating: '',
+    totalRooms: '',
     facility: '',
     policies: '',
     status: '',
@@ -61,7 +58,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
   const [roomCounts, setRoomCounts] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [propertyImageFile, setPropertyImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const propertyImageRef = useRef<HTMLInputElement>(null);
+  const [floors, setFloors] = useState<string[]>([]);
+
 
   useEffect(() => {
     if (editingData) {
@@ -85,9 +85,17 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
         status: editingData.status,
         commonId: editingData.commonId,
       });
-      setRoomCounts(editingData.roomCounts || []);
+
+      if (editingData.propertyImage) {
+        setImagePreview(editingData.propertyImage);
+      }
+
+      if (Array.isArray(editingData.floors)) {
+        setFloors(editingData.floors);
+        const restoredCounts = editingData.floors.map(floor => parseInt(floor) || 0);
+        setRoomCounts(restoredCounts);
+      }
     } else {
-      // Initialize roomCounts for new property
       const initialCounts = Array(formData.noOfFloors + (formData.includeGroundFloor ? 1 : 0)).fill(0);
       setRoomCounts(initialCounts);
     }
@@ -95,8 +103,19 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-                    type === 'number' ? parseInt(value) || 0 : value;
+
+    let newValue: string | number | boolean;
+
+    if (type === 'checkbox') {
+      newValue = (e.target as HTMLInputElement).checked;
+    }
+    // Force numeric conversion for number fields & roomTypeCount
+    else if (type === 'number' || name === 'roomTypeCount') {
+      newValue = parseInt(value) || 0;
+    }
+    else {
+      newValue = value;
+    }
 
     setFormData(prev => {
       const newFormData = {
@@ -104,16 +123,15 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
         [name]: newValue
       };
 
-      // When noOfFloors or includeGroundFloor changes, update roomCounts
+
       if (name === 'noOfFloors' || name === 'includeGroundFloor') {
-        const floorCount = name === 'noOfFloors' ? newValue as number : prev.noOfFloors;
-        const includeGround = name === 'includeGroundFloor' ? newValue as boolean : prev.includeGroundFloor;
-        
+        const floorCount = name === 'noOfFloors' ? (newValue as number) : prev.noOfFloors;
+        const includeGround = name === 'includeGroundFloor' ? (newValue as boolean) : prev.includeGroundFloor;
+
         const totalFloors = floorCount + (includeGround ? 1 : 0);
         const newRoomCounts = Array(totalFloors).fill(0);
         setRoomCounts(newRoomCounts);
-        
-        // Update total rooms
+
         newFormData.totalRooms = '0';
       }
 
@@ -121,13 +139,20 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     });
   };
 
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type.startsWith('image/')) {
-        setPropertyImageFile(file);
-      }
-    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+
+
+    setPropertyImageFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRoomCountChange = (index: number, value: number) => {
@@ -135,7 +160,6 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     newRoomCounts[index] = value;
     setRoomCounts(newRoomCounts);
 
-    // Update total rooms
     const total = newRoomCounts.reduce((sum, count) => sum + count, 0);
     setFormData(prev => ({
       ...prev,
@@ -154,18 +178,19 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
       return (
         <div key={index} className="mb-2">
-          <label className="block text-sm font-medium">{floorLabel} Rooms</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{floorLabel}</label>
           <input
             type="number"
             value={count}
             onChange={(e) => handleRoomCountChange(index, parseInt(e.target.value) || 0)}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min="0"
           />
         </div>
       );
     });
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,22 +204,15 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
         formDataToSend.append(key, String(value));
       }
     });
+    formDataToSend.append("roomCounts", JSON.stringify(roomCounts));
 
-    // Append arrays
-    // Create roomTypes array based on roomTypeCount
-    const roomTypes = Array(formData.roomTypeCount).fill('').map((_, i) => `Room Type ${i + 1}`);
-    roomTypes.forEach(roomType => formDataToSend.append('roomTypes', roomType));
-    
-    roomCounts.forEach(count => formDataToSend.append('roomCounts', count.toString()));
-
-    // Append image file if exists
     if (propertyImageFile) {
-      formDataToSend.append('propertyImage', propertyImageFile);
+      formDataToSend.append('file', propertyImageFile);
     }
 
     try {
       const baseUrl = 'http://192.168.1.14:8000/api/v1/property';
-      const url = editingData 
+      const url = editingData
         ? `${baseUrl}/update/${editingData.id}`
         : `${baseUrl}/create`;
 
@@ -207,132 +225,151 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit form');
       }
 
-      const result = await response.json();
-      alert(editingData ? 'Property updated successfully' : 'Property added successfully');
+      alert(editingData ? 'Property updated successfully' : 'Property created successfully');
       setShowModal(false);
       onSaved?.();
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Something went wrong. Please try again.');
+      alert(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
-        <div className="relative mb-4">
-          <h2 className="text-xl font-bold text-center text-blue-900">
-            {editingData ? 'Edit Property' : 'Add Property'}
+    <div className="fixed inset-0  not-even: bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-6 my-10">
+        <div className="relative mb-6">
+          <h2 className="text-2xl font-bold text-center text-blue-900">
+            {editingData ? 'Edit Property' : 'Add New Property'}
           </h2>
-          <div className="absolute top-0 right-0">
-            <button
-              onClick={() => {
-                setShowModal(false);
-                onSaved?.();
-              }}
-              className="text-gray-900 hover:text-red-500 text-2xl font-bold"
-              disabled={isLoading}
-            >
-              &times;
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setShowModal(false);
+              onSaved?.();
+            }}
+            className="absolute top-0 right-0 text-gray-500 hover:text-red-600 text-3xl font-bold transition-colors"
+            disabled={isLoading}
+            aria-label="Close modal"
+          >
+            &times;
+          </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Basic Information */}
           <div>
-            <label className="block text-sm font-medium">Client ID</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Client ID*</label>
             <input
               type="text"
               name="clientId"
               value={formData.clientId}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Property Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Property Name*</label>
             <input
               type="text"
               name="propertyName"
               value={formData.propertyName}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Property Type</label>
-            <select
+            <label className="block text-sm font-medium text-gray-700 mb-1">property Type*</label>
+            <input
+              type="text"
               name="propertyType"
               value={formData.propertyType}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
-            >
-              <option value="Hotel">Hotel</option>
-              <option value="Resort">Resort</option>
-              <option value="Motel">Motel</option>
-            </select>
-          </div>
 
+            />
+          </div>
           <div>
-            <label className="block text-sm font-medium">Property Contact</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">property Create Count*</label>
+            <input
+              type="text"
+              name="propertyCreateCount"
+              value={formData.propertyCreateCount}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">property Contact*</label>
             <input
               type="text"
               name="propertyContact"
               value={formData.propertyContact}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium">Property Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email*</label>
             <input
               type="email"
               name="propertyEmail"
               value={formData.propertyEmail}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium">Property Image</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Property Image</label>
             <input
               type="file"
               ref={propertyImageRef}
               onChange={handleFileChange}
               accept="image/*"
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-          </div>
+            {imagePreview && (
+              <div className="mt-2">
+                <img
+                  src={imagePreview}
+                  alt="Property preview"
+                  className="h-20 w-20 object-cover rounded"
+                />
+              </div>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium">Property Address</label>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address*</label>
             <input
               type="text"
               name="propertyAddress"
               value={formData.propertyAddress}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Include Ground Floor</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Include Ground Floor*</label>
             <select
               name="includeGroundFloor"
               value={formData.includeGroundFloor.toString()}
@@ -340,7 +377,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
                 ...prev,
                 includeGroundFloor: e.target.value === 'true'
               }))}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             >
               <option value="true">Yes</option>
@@ -348,82 +385,77 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
             </select>
           </div>
 
+
           <div>
-            <label className="block text-sm font-medium">Number of Floors</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Number of Floors*</label>
             <input
               type="number"
               name="noOfFloors"
               value={formData.noOfFloors}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               min="1"
+              max="20"
               required
             />
           </div>
 
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rooms per Floor*</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {renderRoomCountInputs()}
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium">Room Type Count</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Room Types*</label>
             <input
-              type="number"
+              type="text"
               name="roomTypeCount"
               value={formData.roomTypeCount}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              min="1"
-              max="3"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-2">Room Counts by Floor</label>
-            {renderRoomCountInputs()}
-          </div>
-
           <div>
-            <label className="block text-sm font-medium">Total Rooms</label>
-            <input
-              type="text"
-              name="totalRooms"
-              value={formData.totalRooms}
-              readOnly
-              className="w-full p-2 border border-gray-300 rounded bg-gray-100"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">City</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">City*</label>
             <input
               type="text"
               name="city"
               value={formData.city}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Pin Code</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pin Code*</label>
             <input
               type="text"
               name="pinCode"
               value={formData.pinCode}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
 
+
+
           <div>
-            <label className="block text-sm font-medium">Star Rating</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Star Rating*</label>
             <select
               name="starRating"
               value={formData.starRating}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             >
+              <option value="">Select rating</option>
               <option value="1">1 Star</option>
               <option value="2">2 Stars</option>
               <option value="3">3 Stars</option>
@@ -432,45 +464,55 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
             </select>
           </div>
 
+          <div className="w-full md:w-1/3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Total Rooms</label>
+            <input
+              type="text"
+              name="totalRooms"
+              value={formData.totalRooms}
+              readOnly
+              className="w-full p-2 border border-gray-300 rounded bg-gray-100 font-medium"
+            />
+          </div>
+
           <div>
-            <label className="block text-sm font-medium">Facilities</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Facilities</label>
             <input
               type="text"
               name="facility"
               value={formData.facility}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="Pool,Gym,Spa"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+
             />
+
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Policies</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Policies</label>
             <input
               type="text"
               name="policies"
               value={formData.policies}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="No pets; Check-in after 2 PM"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+
             />
+
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Status</label>
-            <select
+            <label className="block text-sm font-medium text-gray-700 mb-1">status</label>
+            <input
+              type="text"
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              required
-            >
-              <option value="Open">Open</option>
-              <option value="Closed">Closed</option>
-              <option value="Under Maintenance">Under Maintenance</option>
-            </select>
-          </div>
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 
+            />
+
+          </div>
           <div className="md:col-span-2 flex justify-end pt-4 space-x-3">
             <button
               type="button"
@@ -491,10 +533,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               {isLoading ? 'Processing...' : editingData ? 'Update' : 'Submit'}
             </button>
           </div>
+
+
         </form>
       </div>
     </div>
   );
-};
-
-export default PropertyAdd;
+}; export default PropertyAdd;

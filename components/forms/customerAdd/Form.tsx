@@ -8,7 +8,9 @@ type CustomerData = {
   propertyId: string;
   firstName: string;
   lastName: string;
-  mrOrMrs: string;
+  title: string;
+  isVIP: boolean;
+  isForeignCustomer: boolean;
   email: string;
   gender: string;
   mobileNo: string;
@@ -18,8 +20,8 @@ type CustomerData = {
   image: string;
   idProof: string;
   address: string;
-  isActive: boolean;  
-}; 
+  isActive: boolean;
+};
 
 type CustomerAddProps = {
   setShowModal: (value: boolean) => void;
@@ -36,7 +38,9 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
     propertyId: '',
     firstName: '',
     lastName: '',
-    mrOrMrs: '',
+    title: '',
+    isVIP: true,
+    isForeignCustomer: true,
     email: '',
     gender: '',
     mobileNo: '',
@@ -90,7 +94,9 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
         propertyId: editingData.propertyId || '',
         firstName: editingData.firstName || '',
         lastName: editingData.lastName || '',
-        mrOrMrs: editingData.mrOrMrs || '',
+        title: editingData.title || '',
+        isVIP: editingData.isVIP || true,
+        isForeignCustomer: editingData.isForeignCustomer || true,
         email: editingData.email || '',
         gender: editingData.gender || '',
         mobileNo: editingData.mobileNo || '',
@@ -235,18 +241,63 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               required
             />
           </div>
-
-
-          <div>
-            <label className="block text-sm font-medium">mrOrMrs</label>
-            <input
-              type="text"
-              name="mrOrMrs"
-              value={formData.mrOrMrs}
+          <div >
+            <label className="block text-sm font-medium">Title</label>
+            <select
+              name="title"
+              value={formData.title}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded"
-            />
+              required
+            >
+              <option value="choose">choose</option>
+              <option value="Mr">Mr</option>
+              <option value="Dr">Dr</option>
+              <option value="Ms">Ms</option>
+              <option value="Captain">Captain</option>
+              <option value="Miss">Miss</option>
+              <option value="Master">Master</option>
+              <option value="Others">Others</option>
+            </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium">VIP</label>
+            <select
+              name="isVIP"
+              value={formData.isVIP ? 'true' : 'false'}
+              onChange={(e) =>
+                setFormData(prev => ({
+                  ...prev,
+                  isActive: e.target.value === 'true',
+                }))
+              }
+              className="w-full p-2 border border-gray-300 rounded"
+              required
+            >
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Foreign Customer</label>
+            <select
+              name="isForeignCustomer"
+              value={formData.isForeignCustomer ? 'true' : 'false'}
+              onChange={(e) =>
+                setFormData(prev => ({
+                  ...prev,
+                  isActive: e.target.value === 'true',
+                }))
+              }
+              className="w-full p-2 border border-gray-300 rounded"
+              required
+            >
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium">email</label>
             <input
