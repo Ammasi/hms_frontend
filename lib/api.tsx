@@ -312,3 +312,25 @@ export const deleteStatusMessage = (id: string) =>
 
 export const fetchStatusMessageById = (id: string) =>
   api.get(`/status-message/${id}`).then(res => res.data);
+
+// ----------------- Call Message APIs -----------------
+ 
+export const fetchCallMessage = () => api.get('/call-message');
+
+export const createCallMessage = (formData: any) =>
+  api.post('/call-message/create', {
+    ...formData
+
+  });
+
+export const updateCallMessage = (id: string, data: any) =>
+  api.put(`/call-message/update/${id}`, {
+    ...data
+
+  });
+
+export const deleteCallMessage = (id: string) =>
+  api.delete(`/call-message/delete/${id}`);
+
+export const fetchCallMessageById = (id: string) =>
+  api.get(`/call-message/${id}`).then(res => res.data);
