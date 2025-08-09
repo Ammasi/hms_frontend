@@ -1,6 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
+interface Floor {
+  defaultName: string;
+  customName?: string;
+  roomCount: number;
+}
+
 interface PropertyData {
   id: string;
   clientId: string;
@@ -14,7 +20,7 @@ interface PropertyData {
   includeGroundFloor: boolean;
   noOfFloors: number;
   roomTypeCount: number;
-  floors: string[];
+  floors: Floor[];
   city: string;
   pinCode: string;
   starRating: string;
@@ -34,7 +40,7 @@ type PropertyAddProps = {
 };
 
 const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) => {
-  const [formData, setFormData] = useState<Omit<PropertyData, 'id' | 'createdAt' | 'updatedAt' | 'floors' | 'roomTypes' | 'propertyImage'>>({
+  const [formData, setFormData] = useState<Omit<PropertyData, 'id' | 'createdAt' | 'updatedAt' | 'floors' | 'propertyImage'>>({
     clientId: '',
     propertyName: '',
     propertyType: '',
@@ -55,16 +61,15 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     commonId: '',
   });
 
-  const [roomCounts, setRoomCounts] = useState<number[]>([]);
+  const [floors, setFloors] = useState<Floor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [propertyImageFile, setPropertyImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const propertyImageRef = useRef<HTMLInputElement>(null);
-  const [floors, setFloors] = useState<string[]>([]);
-
 
   useEffect(() => {
     if (editingData) {
+      // Restore basic property details
       setFormData({
         clientId: editingData.clientId,
         propertyName: editingData.propertyName,
@@ -86,68 +91,67 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
         commonId: editingData.commonId,
       });
 
+      // Set image preview
       if (editingData.propertyImage) {
         setImagePreview(editingData.propertyImage);
       }
 
+      // Restore floors with room counts
       if (Array.isArray(editingData.floors)) {
         setFloors(editingData.floors);
-        const restoredCounts = editingData.floors.map(floor => parseInt(floor) || 0);
-        setRoomCounts(restoredCounts);
       }
     } else {
-      const initialCounts = Array(formData.noOfFloors + (formData.includeGroundFloor ? 1 : 0)).fill(0);
-      setRoomCounts(initialCounts);
+      // Default empty floors when creating
+      const initialFloors: Floor[] = [];
+      if (formData.includeGroundFloor) {
+        initialFloors.push({ defaultName: 'GroundFloor', customName: '', roomCount: 0 });
+      }
+      for (let i = 1; i <= formData.noOfFloors; i++) {
+        initialFloors.push({ defaultName: `Floor${i}`, customName: '', roomCount: 0 });
+      }
+      setFloors(initialFloors);
     }
   }, [editingData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-
     let newValue: string | number | boolean;
 
     if (type === 'checkbox') {
       newValue = (e.target as HTMLInputElement).checked;
-    }
-    // Force numeric conversion for number fields & roomTypeCount
-    else if (type === 'number' || name === 'roomTypeCount') {
+    } else if (type === 'number') {
       newValue = parseInt(value) || 0;
-    }
-    else {
+    } else {
       newValue = value;
     }
 
     setFormData(prev => {
-      const newFormData = {
-        ...prev,
-        [name]: newValue
-      };
+      const updated = { ...prev, [name]: newValue };
 
-
+      // Adjust floor list when number of floors or ground floor option changes
       if (name === 'noOfFloors' || name === 'includeGroundFloor') {
-        const floorCount = name === 'noOfFloors' ? (newValue as number) : prev.noOfFloors;
-        const includeGround = name === 'includeGroundFloor' ? (newValue as boolean) : prev.includeGroundFloor;
+        const includeGF = name === 'includeGroundFloor' ? (newValue as boolean) : prev.includeGroundFloor;
+        const numFloors = name === 'noOfFloors' ? (newValue as number) : prev.noOfFloors;
 
-        const totalFloors = floorCount + (includeGround ? 1 : 0);
-        const newRoomCounts = Array(totalFloors).fill(0);
-        setRoomCounts(newRoomCounts);
-
-        newFormData.totalRooms = '0';
+        const newFloors: Floor[] = [];
+        if (includeGF) {
+          newFloors.push({ defaultName: 'GroundFloor', customName: '', roomCount: 0 });
+        }
+        for (let i = 1; i <= numFloors; i++) {
+          newFloors.push({ defaultName: `Floor${i}`, customName: '', roomCount: 0 });
+        }
+        setFloors(newFloors);
       }
 
-      return newFormData;
+      return updated;
     });
   };
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-
-
     setPropertyImageFile(file);
-
     const reader = new FileReader();
     reader.onload = (event) => {
       setImagePreview(event.target?.result as string);
@@ -156,41 +160,39 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
   };
 
   const handleRoomCountChange = (index: number, value: number) => {
-    const newRoomCounts = [...roomCounts];
-    newRoomCounts[index] = value;
-    setRoomCounts(newRoomCounts);
+    const updatedFloors = [...floors];
+    updatedFloors[index].roomCount = value;
+    setFloors(updatedFloors);
 
-    const total = newRoomCounts.reduce((sum, count) => sum + count, 0);
-    setFormData(prev => ({
-      ...prev,
-      totalRooms: total.toString()
-    }));
+    // Update total rooms
+    const total = updatedFloors.reduce((sum, f) => sum + (f.roomCount || 0), 0);
+    setFormData(prev => ({ ...prev, totalRooms: total.toString() }));
   };
 
   const renderRoomCountInputs = () => {
-    return roomCounts.map((count, index) => {
-      let floorLabel = '';
-      if (formData.includeGroundFloor) {
-        floorLabel = index === 0 ? 'Ground Floor' : `Floor ${index}`;
-      } else {
-        floorLabel = `Floor ${index + 1}`;
-      }
-
+    return floors.map((floor, index) => {
+      const label =
+        floor.defaultName === 'GroundFloor'
+          ? 'Ground Floor'
+          : floor.defaultName.replace('Floor', 'Floor ');
       return (
         <div key={index} className="mb-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">{floorLabel}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
           <input
             type="number"
-            value={count}
+            value={floor.roomCount}
             onChange={(e) => handleRoomCountChange(index, parseInt(e.target.value) || 0)}
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min="0"
+            onInput={(e) => {
+              const target = e.target as HTMLInputElement;
+              target.value = target.value.replace(/^0+(?=\d)/, '');
+            }}
           />
         </div>
       );
     });
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,11 +202,11 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
     // Append all form data
     Object.entries(formData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        formDataToSend.append(key, String(value));
-      }
+      formDataToSend.append(key, String(value));
     });
-    formDataToSend.append("roomCounts", JSON.stringify(roomCounts));
+
+    // Append floors as JSON
+    formDataToSend.append('floors', JSON.stringify(floors));
 
     if (propertyImageFile) {
       formDataToSend.append('file', propertyImageFile);
@@ -215,7 +217,6 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
       const url = editingData
         ? `${baseUrl}/update/${editingData.id}`
         : `${baseUrl}/create`;
-
       const method = editingData ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -239,7 +240,6 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
       setIsLoading(false);
     }
   };
-
   return (
     <div className="fixed inset-0  not-even: bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-6 my-10">
@@ -396,6 +396,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               min="1"
               max="20"
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement;
+                target.value = target.value.replace(/^0+(?=\d)/, '');
+              }}
               required
             />
           </div>
@@ -413,7 +417,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               type="text"
               name="roomTypeCount"
               value={formData.roomTypeCount}
-              onChange={handleChange}
+              onChange={handleChange} onInput={(e) => {
+                const target = e.target as HTMLInputElement;
+                target.value = target.value.replace(/^0+(?=\d)/, '');
+              }}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />

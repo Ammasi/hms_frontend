@@ -2,40 +2,25 @@
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
 import { ReactNode, useEffect, useState } from 'react';
-import { deleteSubscriptioModel, fetchSubscriptioModelById, fetchSubscriptioModel } from '../../../lib/api';
-import SubscriptionModelAdd from "../../forms/subscriptionModelAdd/Form";
+import { deleteStatusMessage, fetchStatusMessageById, fetchStatusMessage } from '../../../lib/api';
+ 
+import StatusMessageAdd from "../../forms/statusMessageAdd/Form";
 
-type Floor = { propertyId: string; floors: number };
-type Room = { propertyId: string; rooms: number };
-type RoomType = { propertyId: string; types: number };
-type ReportType = { propertyId: string; reports: number };
-type Status = { propertyId: string; status: number };
-type Call = { propertyId: string; call: number };
-type Notification = { propertyId: string; notification: number };
+type Message = { propertyId: string; Message: string };
 
-type SubscriptionModelData = {
+type StatusMessageData = {
   id: string;
   clientId: string;
-  planDefaultName: string;
-  planCustomName: string;
-  price: number;
-  duration: string;
-  noOfProperty: number;
-  noOfFloors: Floor[];
-  noOfRooms: Room[];
-  noOfRoomTypes: RoomType[];
-  noOfReportTypes: ReportType[];
-  noOfStatus: Status[];
-  noOfCall: Call[];
-  noOfNotification: Notification[];
-  priority?: ReactNode;
-  deadline?: string;
+  propertyId: string;
+  noOfTypes: number;
+  statusMessage: Message[];
+  
 };
 
-export default function SubscriptionModel() {
-  const [data, setData] = useState<SubscriptionModelData[]>([]);
+export default function StatusMessage() {
+  const [data, setData] = useState<StatusMessageData[]>([]);
   const [view, setView] = useState<'table' | 'grid'>('table');
-  const [editingData, setEditingData] = useState<SubscriptionModelData | null>(null);
+  const [editingData, setEditingData] = useState<StatusMessageData | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +34,7 @@ export default function SubscriptionModel() {
     setError(null);
 
     try {
-      const res = await fetchSubscriptioModel();
+      const res = await fetchStatusMessage();
       // If API returns `res.data` directly as array
       setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
@@ -66,7 +51,7 @@ export default function SubscriptionModel() {
 
   const handleEdit = async (id: string) => {
     try {
-      const res = await fetchSubscriptioModelById(id);
+      const res = await fetchStatusMessageById(id);
       setEditingData(res);
       setShowModal(true);
     } catch (error) {
@@ -78,7 +63,7 @@ export default function SubscriptionModel() {
     if (!deleteTarget) return;
 
     try {
-      await deleteSubscriptioModel(deleteTarget);
+      await deleteStatusMessage(deleteTarget);
       setData(prev => prev.filter(item => item.id !== deleteTarget));
       setDeleteTarget(null);
     } catch (error) {
@@ -96,7 +81,7 @@ export default function SubscriptionModel() {
     setExpandedRows(newExpanded);
   };
 
-  const renderPropertyDetails = (item: SubscriptionModelData) => {
+  const renderPropertyDetails = (item: StatusMessageData) => {
     return item.noOfFloors?.map((floor, index) => (
       <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
         <h4 className="font-medium text-gray-800 mb-2">
@@ -126,7 +111,7 @@ export default function SubscriptionModel() {
           <div className="flex items-center justify-between">
             <div className="w-1/3"></div>
             <div className="w-1/3 text-center">
-              <h1 className="text-xl font-bold">Subscription Model</h1>
+              <h1 className="text-xl font-bold">Status Message</h1>
             </div>
             <div className="w-1/3 flex justify-end gap-2">
               <button
@@ -151,7 +136,7 @@ export default function SubscriptionModel() {
             {/* Popup Modal */}
             {showModal && (
               <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                <SubscriptionModelAdd
+                <StatusMessageAdd
                   setShowModal={(val) => {
                     setShowModal(val);
                     if (!val) setEditingData(null);
@@ -168,14 +153,14 @@ export default function SubscriptionModel() {
           </div>
         </div>
 
-        <h1 className="text-2xl ms-2 font-bold">Subscription Model</h1>
+        <h1 className="text-2xl ms-2 font-bold">Status Message</h1>
 
         {isLoading ? (
           <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
         ) : error ? (
           <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
         ) : data.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No subscription models found.</div>
+          <div className="text-center py-8 text-gray-500">No Status Message found.</div>
         ) : view === 'table' ? (
           <div className="overflow-x-auto shadow bg-white p-4 mt-2 w-full">
             <table className="min-w-full text-sm text-left">

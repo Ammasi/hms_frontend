@@ -290,3 +290,25 @@ export const deleteSubscriptioModel = (id: string) =>
 
 export const fetchSubscriptioModelById = (id: string) =>
   api.get(`/subscription-model/${id}`).then(res => res.data);
+
+// ----------------- Status Message APIs -----------------
+ 
+export const fetchStatusMessage = () => api.get('/status-message');
+
+export const createStatusMessage = (formData: any) =>
+  api.post('/status-message/create', {
+    ...formData
+
+  });
+
+export const updateStatusMessage = (id: string, data: any) =>
+  api.put(`/status-message/update/${id}`, {
+    ...data
+
+  });
+
+export const deleteStatusMessage = (id: string) =>
+  api.delete(`/status-message/delete/${id}`);
+
+export const fetchStatusMessageById = (id: string) =>
+  api.get(`/status-message/${id}`).then(res => res.data);

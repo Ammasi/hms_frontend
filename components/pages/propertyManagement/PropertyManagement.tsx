@@ -5,6 +5,17 @@ import { MdDelete } from 'react-icons/md';
 import { deleteProperty, fetchPropertyById, fetchProperty } from '../../../lib/api';
 import PropertyAdd from '../../forms/propertyManagementAdd/Form';
 
+interface Floor {
+  defaultName: string;
+  customName?: string;
+  roomCount: number;
+}
+
+interface RoomType {
+  defaultName: string;
+  customName?: string;
+}
+
 interface PropertyData {
   id: string;
   clientId: string;
@@ -29,9 +40,9 @@ interface PropertyData {
   status: string;
   commonId: string;
   createdAt: string;
-  updatedAt: string; 
+  updatedAt: string;
 }
- 
+
 export default function PropertyManagement() {
   const [data, setData] = useState<PropertyData[]>([]);
   const [view, setView] = useState<'table' | 'grid'>('table');
@@ -251,11 +262,19 @@ export default function PropertyManagement() {
                     <td className="px-6 py-3">{item.noOfFloors}</td>
                     <td className="px-6 py-3">{item.roomTypeCount}</td>
                     <td className="px-6 py-3">
-                      {item.floors.map(f => f.customName || f.defaultName).join(', ')}
+                      {item.floors.map((f, i) => (
+                        <div key={i}>
+                          {f.customName || f.defaultName} ({f.roomCount})
+                        </div>
+                      ))}
                     </td>
+
                     <td className="px-6 py-3">
-                      {item.roomTypes.map(r => r.defaultName).join(', ')}
+                      {Array.isArray(item.roomTypes) && item.roomTypes.length > 0
+                        ? item.roomTypes.map((r, i) => <div key={i}>{r.defaultName}</div>)
+                        : '-'}
                     </td>
+
                     <td className="px-6 py-3">{item.city}</td>
                     <td className="px-6 py-3">{item.pinCode}</td>
                     <td className="px-6 py-3">{item.starRating}</td>
