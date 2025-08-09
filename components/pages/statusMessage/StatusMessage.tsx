@@ -138,7 +138,7 @@ export default function StatusMessage() {
                     setShowModal(val);
                     if (!val) setEditingData(null);
                   }}
-                  // editingData={editingData}
+                  editingData={editingData}
                   onSaved={() => {
                     setShowModal(false);
                     setEditingData(null);

@@ -1,4 +1,4 @@
-'use client';
+'use client'; 
 import { ReactNode, useEffect, useState } from 'react';
 
 interface StatusMessageItem {
@@ -21,24 +21,12 @@ type StatusMessageAddProps = {
   onSaved?: () => void;
 };
 
-const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessageAddProps) => {
+const StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessageAddProps) => {
   const initialFormData = {
     clientId: '',
-    planDefaultName: '',
-    planCustomName: '',
-    price: '',
-    duration: '',
-    noOfProperty: '',
-    properties: [] as Array<{
-      propertyId: string;
-      floors: string;
-      rooms: string;
-      types: string;
-      reports: string;
-      status: string;
-      call: string;
-      notification: string;
-    }>
+    propertyId: '',
+    noOfTypes: '',
+    statusMessage: [] as StatusMessageItem[]
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -46,69 +34,11 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
 
   useEffect(() => {
     if (editingData) {
-       
-      const propertyMap = new Map<string, any>();
-      
-    
-      editingData.noOfFloors?.forEach(floor => {
-        if (!propertyMap.has(floor.propertyId)) {
-          propertyMap.set(floor.propertyId, { propertyId: floor.propertyId });
-        }
-        propertyMap.get(floor.propertyId).floors = floor.floors.toString();
-      });
-
-      editingData.noOfRooms?.forEach(room => {
-        if (!propertyMap.has(room.propertyId)) {
-          propertyMap.set(room.propertyId, { propertyId: room.propertyId });
-        }
-        propertyMap.get(room.propertyId).rooms = room.rooms.toString();
-      });
-
-      editingData.noOfRoomTypes?.forEach(type => {
-        if (!propertyMap.has(type.propertyId)) {
-          propertyMap.set(type.propertyId, { propertyId: type.propertyId });
-        }
-        propertyMap.get(type.propertyId).types = type.types.toString();
-      });
-
-      editingData.noOfReportTypes?.forEach(report => {
-        if (!propertyMap.has(report.propertyId)) {
-          propertyMap.set(report.propertyId, { propertyId: report.propertyId });
-        }
-        propertyMap.get(report.propertyId).reports = report.reports.toString();
-      });
-
-      editingData.noOfStatus?.forEach(status => {
-        if (!propertyMap.has(status.propertyId)) {
-          propertyMap.set(status.propertyId, { propertyId: status.propertyId });
-        }
-        propertyMap.get(status.propertyId).status = status.status.toString();
-      });
-
-      editingData.noOfCall?.forEach(call => {
-        if (!propertyMap.has(call.propertyId)) {
-          propertyMap.set(call.propertyId, { propertyId: call.propertyId });
-        }
-        propertyMap.get(call.propertyId).call = call.call.toString();
-      });
-
-      editingData.noOfNotification?.forEach(notification => {
-        if (!propertyMap.has(notification.propertyId)) {
-          propertyMap.set(notification.propertyId, { propertyId: notification.propertyId });
-        }
-        propertyMap.get(notification.propertyId).notification = notification.notification.toString();
-      });
-
-      const properties = Array.from(propertyMap.values());
-
       setFormData({
         clientId: editingData.clientId || '',
-        planDefaultName: editingData.planDefaultName || '',
-        planCustomName: editingData.planCustomName || '',
-        price: editingData.price.toString() || '',
-        duration: editingData.duration || '',
-        noOfProperty: editingData.noOfProperty.toString() || '',
-        properties
+        propertyId: editingData.propertyId || '',
+        noOfTypes: editingData.noOfTypes.toString() || '',
+        statusMessage: editingData.statusMessage || []
       });
     } else {
       setFormData(initialFormData);
@@ -123,43 +53,38 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
     }));
   };
 
-  const handlePropertyChange = (index: number, field: string, value: string) => {
-    const updatedProperties = [...formData.properties];
-    updatedProperties[index] = {
-      ...updatedProperties[index],
+  const handleStatusMessageChange = (index: number, field: keyof StatusMessageItem, value: string | boolean) => {
+    const updatedStatusMessage = [...formData.statusMessage];
+    updatedStatusMessage[index] = {
+      ...updatedStatusMessage[index],
       [field]: value
     };
     setFormData(prev => ({
       ...prev,
-      properties: updatedProperties
+      statusMessage: updatedStatusMessage
     }));
   };
 
-  const addProperty = () => {
+  const addStatusMessage = () => {
     setFormData(prev => ({
       ...prev,
-      properties: [
-        ...prev.properties,
+      statusMessage: [
+        ...prev.statusMessage,
         {
-          propertyId: '',
-          floors: '',
-          rooms: '',
-          types: '',
-          reports: '',
-          status: '',
-          call: '',
-          notification: ''
+          defaultStatusName: '',
+          customStatusName: '',
+          isEnableOrDisable: true
         }
       ]
     }));
   };
 
-  const removeProperty = (index: number) => {
-    const updatedProperties = [...formData.properties];
-    updatedProperties.splice(index, 1);
+  const removeStatusMessage = (index: number) => {
+    const updatedStatusMessage = [...formData.statusMessage];
+    updatedStatusMessage.splice(index, 1);
     setFormData(prev => ({
       ...prev,
-      properties: updatedProperties
+      statusMessage: updatedStatusMessage
     }));
   };
 
@@ -174,42 +99,11 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
     const method = editingData ? 'PUT' : 'POST';
 
     try {
-    
       const requestData = {
         clientId: formData.clientId,
-        planDefaultName: formData.planDefaultName,
-        planCustomName: formData.planCustomName,
-        price: Number(formData.price),
-        duration: formData.duration,
-        noOfProperty: Number(formData.noOfProperty),
-        noOfFloors: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          floors: Number(p.floors)
-        })),
-        noOfRooms: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          rooms: Number(p.rooms)
-        })),
-        noOfRoomTypes: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          types: Number(p.types)
-        })),
-        noOfReportTypes: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          reports: Number(p.reports)
-        })),
-        noOfStatus: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          status: Number(p.status)
-        })),
-        noOfCall: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          call: Number(p.call)
-        })),
-        noOfNotification: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          notification: Number(p.notification)
-        }))
+        propertyId: formData.propertyId,
+        noOfTypes: parseInt(formData.noOfTypes),
+        statusMessage: formData.statusMessage
       };
 
       const response = await fetch(url, {
@@ -273,11 +167,11 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Plan Default Name</label>
+              <label className="block text-sm font-medium">Property Id</label>
               <input
                 type="text"
-                name="planDefaultName"
-                value={formData.planDefaultName}
+                name="propertyId"
+                value={formData.propertyId}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
                 required
@@ -285,47 +179,11 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Plan Custom Name</label>
-              <input
-                type="text"
-                name="planCustomName"
-                value={formData.planCustomName}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Price</label>
+              <label className="block text-sm font-medium">No Of Types</label>
               <input
                 type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Duration</label>
-              <input
-                type="text"
-                name="duration"
-                value={formData.duration}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Number of Properties</label>
-              <input
-                type="number"
-                name="noOfProperty"
-                value={formData.noOfProperty}
+                name="noOfTypes"
+                value={formData.noOfTypes}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
                 required
@@ -334,109 +192,61 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
           </div>
 
           <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Properties</h3>
-            {formData.properties.map((property, index) => (
+            <h3 className="text-lg font-medium mb-2">Status Messages</h3>
+            {formData.statusMessage.map((message, index) => (
               <div key={index} className="border rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">Property {index + 1}</h4>
+                  <h4 className="font-medium">Status Message {index + 1}</h4>
                   <button
                     type="button"
-                    onClick={() => removeProperty(index)}
+                    onClick={() => removeStatusMessage(index)}
                     className="text-red-500 hover:text-red-700"
                   >
                     Remove
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium">Property ID</label>
+                    <label className="block text-sm font-medium">Default Status Name</label>
                     <input
                       type="text"
-                      value={property.propertyId}
-                      onChange={(e) => handlePropertyChange(index, 'propertyId', e.target.value)}
+                      value={message.defaultStatusName}
+                      onChange={(e) => handleStatusMessageChange(index, 'defaultStatusName', e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Floors</label>
+                    <label className="block text-sm font-medium">Custom Status Name</label>
                     <input
-                      type="number"
-                      value={property.floors}
-                      onChange={(e) => handlePropertyChange(index, 'floors', e.target.value)}
+                      type="text"
+                      value={message.customStatusName}
+                      onChange={(e) => handleStatusMessageChange(index, 'customStatusName', e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Rooms</label>
-                    <input
-                      type="number"
-                      value={property.rooms}
-                      onChange={(e) => handlePropertyChange(index, 'rooms', e.target.value)}
+                    <label className="block text-sm font-medium">Enable/Disable</label>
+                    <select
+                      value={message.isEnableOrDisable ? 'true' : 'false'}
+                      onChange={(e) => handleStatusMessageChange(index, 'isEnableOrDisable', e.target.value === 'true')}
                       className="w-full p-2 border border-gray-300 rounded"
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Room Types</label>
-                    <input
-                      type="number"
-                      value={property.types}
-                      onChange={(e) => handlePropertyChange(index, 'types', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Reports</label>
-                    <input
-                      type="number"
-                      value={property.reports}
-                      onChange={(e) => handlePropertyChange(index, 'reports', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Status</label>
-                    <input
-                      type="number"
-                      value={property.status}
-                      onChange={(e) => handlePropertyChange(index, 'status', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Call</label>
-                    <input
-                      type="number"
-                      value={property.call}
-                      onChange={(e) => handlePropertyChange(index, 'call', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Notification</label>
-                    <input
-                      type="number"
-                      value={property.notification}
-                      onChange={(e) => handlePropertyChange(index, 'notification', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
+                    >
+                      <option value="true">Enable</option>
+                      <option value="false">Disable</option>
+                    </select>
                   </div>
                 </div>
               </div>
             ))}
             <button
               type="button"
-              onClick={addProperty}
+              onClick={addStatusMessage}
               className="mt-2 bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200"
             >
-              Add Property
+              Add Status Message
             </button>
           </div>
 
