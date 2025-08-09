@@ -1,21 +1,23 @@
 'use client';
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deleteStatusMessage, fetchStatusMessageById, fetchStatusMessage } from '../../../lib/api';
- 
 import StatusMessageAdd from "../../forms/statusMessageAdd/Form";
 
-type Message = { propertyId: string; Message: string };
+interface StatusMessageItem {
+  defaultStatusName: string;
+  customStatusName: string;
+  isEnableOrDisable: boolean;
+}
 
-type StatusMessageData = {
+interface StatusMessageData {
   id: string;
   clientId: string;
   propertyId: string;
   noOfTypes: number;
-  statusMessage: Message[];
-  
-};
+  statusMessage: StatusMessageItem[];
+}
 
 export default function StatusMessage() {
   const [data, setData] = useState<StatusMessageData[]>([]);
@@ -35,16 +37,16 @@ export default function StatusMessage() {
 
     try {
       const res = await fetchStatusMessage();
-      // If API returns `res.data` directly as array
       setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
-      console.error("Error fetching subscription model:", err);
+      console.error("Error fetching status messages:", err);
       setError("Failed to fetch data");
       setData([]);
     } finally {
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     load();
   }, []);
@@ -81,24 +83,20 @@ export default function StatusMessage() {
     setExpandedRows(newExpanded);
   };
 
-  const renderPropertyDetails = (item: StatusMessageData) => {
-    return item.noOfFloors?.map((floor, index) => (
+  const renderStatusMessages = (statusMessages: StatusMessageItem[]) => {
+    return statusMessages.map((message, index) => (
       <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
-        <h4 className="font-medium text-gray-800 mb-2">
-          Property ID: {floor.propertyId || `Property ${index + 1}`}
-        </h4>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div><span className="font-medium">Floors:</span> {floor.floors}</div>
-          <div><span className="font-medium">Rooms:</span> {item.noOfRooms?.[index]?.rooms || 'N/A'}</div>
-          <div><span className="font-medium">Room Types:</span> {item.noOfRoomTypes?.[index]?.types || 'N/A'}</div>
-          <div><span className="font-medium">Reports:</span> {item.noOfReportTypes?.[index]?.reports || 'N/A'}</div>
-          {index === 0 && (
-            <>
-              <div><span className="font-medium">Status Types:</span> {item.noOfStatus?.[0]?.status || 'N/A'}</div>
-              <div><span className="font-medium">Call Types:</span> {item.noOfCall?.[0]?.call || 'N/A'}</div>
-              <div><span className="font-medium">Notifications:</span> {item.noOfNotification?.[0]?.notification || 'N/A'}</div>
-            </>
-          )}
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          <div>
+            <span className="font-medium">Default Name:</span> {message.defaultStatusName}
+          </div>
+          <div>
+            <span className="font-medium">Custom Name:</span> {message.customStatusName}
+          </div>
+          <div>
+            <span className="font-medium">Status:</span> 
+            {message.isEnableOrDisable ? ' Disabled' : ' Enabled'}
+          </div>
         </div>
       </div>
     ));
@@ -133,7 +131,6 @@ export default function StatusMessage() {
                 Grid View
               </button>
             </div>
-            {/* Popup Modal */}
             {showModal && (
               <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
                 <StatusMessageAdd
@@ -141,7 +138,7 @@ export default function StatusMessage() {
                     setShowModal(val);
                     if (!val) setEditingData(null);
                   }}
-                  editingData={editingData}
+                  // editingData={editingData}
                   onSaved={() => {
                     setShowModal(false);
                     setEditingData(null);
@@ -166,11 +163,9 @@ export default function StatusMessage() {
             <table className="min-w-full text-sm text-left">
               <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                  <th className="px-6 py-4">Plan Name</th>
-                  <th className="px-6 py-4">Client ID</th>
-                  <th className="px-6 py-4">Price</th>
-                  <th className="px-6 py-4">Duration</th>
-                  <th className="px-6 py-4">Properties</th>
+                  <th className="px-6 py-4">Client Id</th>
+                  <th className="px-6 py-4">Property Id</th>
+                  <th className="px-6 py-4">No Of Types</th>
                   <th className="px-6 py-4">View</th>
                   <th className="px-6 py-4">Actions</th>
                 </tr>
@@ -180,22 +175,19 @@ export default function StatusMessage() {
                   <>
                     <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
                       <td className="px-6 py-3">
-                        <div className="font-medium">{item.planDefaultName}</div>
-                        <div className="text-xs text-gray-500">{item.planCustomName}</div>
+                        <div className="font-medium">{item.clientId}</div>
+                        
                       </td>
-                      <td className="px-6 py-3">{item.clientId}</td>
-                      <td className="px-6 py-3">₹{item.price}</td>
-                      <td className="px-6 py-3">{item.duration}</td>
-                      <td className="px-6 py-3">{item.noOfProperty}</td>
+                      <td className="px-6 py-3">{item.propertyId}</td>
+                      <td className="px-6 py-3">{item.noOfTypes}</td>
                       <td className="px-6 py-3">
                         <button
                           onClick={() => toggleRow(item.id)}
                           className="font-bold text-blue-600 hover:text-blue-800 mr-2"
                         >
                           {expandedRows.has(item.id) ? 'Hide Details' : 'View Details'}
-                        </button></td>
-
-
+                        </button>
+                      </td>
                       <td className="px-6 py-3 flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(item.id)}
@@ -217,8 +209,8 @@ export default function StatusMessage() {
                       <tr className="bg-gray-50">
                         <td colSpan={6} className="px-6 py-4">
                           <div className="space-y-3">
-                            <h3 className="font-medium text-gray-800">Property Details</h3>
-                            {renderPropertyDetails(item)}
+                            <h3 className="font-medium text-gray-800">Status Messages</h3>
+                            {renderStatusMessages(item.statusMessage)}
                           </div>
                         </td>
                       </tr>
@@ -236,14 +228,10 @@ export default function StatusMessage() {
                 className="p-5 border rounded-lg shadow-md bg-white flex flex-col"
               >
                 <div className="text-center space-y-2 mb-4">
-                  <h2 className="text-2xl font-semibold text-blue-700">{item.planDefaultName}</h2>
-                  <p className="text-lg text-gray-600">{item.planCustomName}</p>
+                  <h2 className="text-xl font-semibold text-blue-700">Status Messages</h2>
                   <div className="flex justify-center gap-4">
                     <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      ₹{item.price}
-                    </span>
-                    <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                      {item.duration}
+                      Types: {item.noOfTypes}
                     </span>
                   </div>
                 </div>
@@ -254,8 +242,13 @@ export default function StatusMessage() {
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="font-medium text-gray-800 mb-2">Property Details</h3>
-                  {renderPropertyDetails(item)}
+                  <h3 className="font-medium text-gray-800 mb-2">Property ID</h3>
+                  <p className="text-sm">{item.propertyId}</p>
+                </div>
+
+                <div className="mb-4">
+                  <h3 className="font-medium text-gray-800 mb-2">Status Messages</h3>
+                  {renderStatusMessages(item.statusMessage)}
                 </div>
 
                 <div className="mt-auto pt-3 border-t">

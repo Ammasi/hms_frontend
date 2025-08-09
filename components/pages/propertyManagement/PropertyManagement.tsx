@@ -12,6 +12,7 @@ interface Floor {
 }
 
 interface RoomType {
+  isDefault(isDefault: any): import("react").ReactNode;
   defaultName: string;
   customName?: string;
 }
@@ -271,9 +272,15 @@ export default function PropertyManagement() {
 
                     <td className="px-6 py-3">
                       {Array.isArray(item.roomTypes) && item.roomTypes.length > 0
-                        ? item.roomTypes.map((r, i) => <div key={i}>{r.defaultName}</div>)
+                        ? item.roomTypes.map((r, i) => (
+                          <div key={i}>
+                            <div>{r.defaultName}</div>
+                            <div>{String(r.isDefault)}</div>
+                          </div>
+                        ))
                         : '-'}
                     </td>
+
 
                     <td className="px-6 py-3">{item.city}</td>
                     <td className="px-6 py-3">{item.pinCode}</td>

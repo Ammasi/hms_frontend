@@ -1,32 +1,19 @@
 'use client';
 import { ReactNode, useEffect, useState } from 'react';
 
-type Floor = { propertyId: string; floors: number };
-type Room = { propertyId: string; rooms: number };
-type RoomType = { propertyId: string; types: number };
-type ReportType = { propertyId: string; reports: number };
-type Status = { propertyId: string; status: number };
-type Call = { propertyId: string; call: number };
-type Notification = { propertyId: string; notification: number };
+interface StatusMessageItem {
+  defaultStatusName: string;
+  customStatusName: string;
+  isEnableOrDisable: boolean;
+}
 
-type StatusMessageData = {
+interface StatusMessageData {
   id: string;
   clientId: string;
-  planDefaultName: string;
-  planCustomName: string;
-  price: number;
-  duration: string;
-  noOfProperty: number;
-  noOfFloors: Floor[];
-  noOfRooms: Room[];
-  noOfRoomTypes: RoomType[];
-  noOfReportTypes: ReportType[];
-  noOfStatus: Status[];
-  noOfCall: Call[];
-  noOfNotification: Notification[];
-  priority?: ReactNode;
-  deadline?: string;
-};
+  propertyId: string;
+  noOfTypes: number;
+  statusMessage: StatusMessageItem[];
+}
 
 type StatusMessageAddProps = {
   setShowModal: (value: boolean) => void;
@@ -181,8 +168,8 @@ const  StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessage
     setIsLoading(true);
 
     const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/subscription-model/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/subscription-model/create`;
+      ? `http://192.168.1.14:8000/api/v1/status-message/update/${editingData.id}`
+      : `http://192.168.1.14:8000/api/v1/status-message/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 
