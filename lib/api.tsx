@@ -334,3 +334,25 @@ export const deleteCallMessage = (id: string) =>
 
 export const fetchCallMessageById = (id: string) =>
   api.get(`/call-message/${id}`).then(res => res.data);
+
+// ----------------- Notification APIs -----------------
+ 
+export const fetchNotification = () => api.get('/notification');
+
+export const createNotification = (formData: any) =>
+  api.post('/notification/create', {
+    ...formData
+
+  });
+
+export const updateNotification = (id: string, data: any) =>
+  api.put(`/notification/update/${id}`, {
+    ...data
+
+  });
+
+export const deleteNotification = (id: string) =>
+  api.delete(`/notification/delete/${id}`);
+
+export const fetchNotificationById = (id: string) =>
+  api.get(`/notification/${id}`).then(res => res.data);

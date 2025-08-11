@@ -16,6 +16,7 @@ import {
   FaCreditCard,
   FaEnvelope,
   FaPhoneAlt,
+  FaBell,
 } from 'react-icons/fa';
 
 export default function Sidebar() {
@@ -140,6 +141,13 @@ export default function Sidebar() {
             <Link href="/callMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaPhoneAlt className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Call Message</span>
+            </Link>
+          </li>
+           {/*  Notification */}
+        <li>
+            <Link href="/notification" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaBell className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>Notification</span>
             </Link>
           </li>
       </ul>
