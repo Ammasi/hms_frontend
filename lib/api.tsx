@@ -356,3 +356,25 @@ export const deleteNotification = (id: string) =>
 
 export const fetchNotificationById = (id: string) =>
   api.get(`/notification/${id}`).then(res => res.data);
+
+// ----------------- CustomerInfo APIs -----------------
+ 
+export const fetchCustomerInfo = () => api.get('/customer-info');
+
+export const createCustomerInfo = (formData: any) =>
+  api.post('/customer-info/create', {
+    ...formData
+
+  });
+
+export const updateCustomerInfo = (id: string, data: any) =>
+  api.put(`/customer-info/update/${id}`, {
+    ...data
+
+  });
+
+export const deleteCustomerInfo = (id: string) =>
+  api.delete(`/customer-info/delete/${id}`);
+
+export const fetchCustomerInfoById = (id: string) =>
+  api.get(`/customer-info/${id}`).then(res => res.data);

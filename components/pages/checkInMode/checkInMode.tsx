@@ -1,7 +1,6 @@
 'use client';
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
-
 import { useEffect, useState } from 'react';
 import { deleteCheckInMode, fetchCheckInModeById, fetchCheckInMode } from '../../../lib/api';
 import CheckInModeForm from "../../forms/checkInModeAdd/Form";
