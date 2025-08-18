@@ -270,7 +270,7 @@ export const fetchPropertyById = (id: string) =>
   api.get(`/property/${id}`).then(res => res.data);
 
 // ----------------- subscriptiomodel APIs -----------------
- 
+
 export const fetchSubscriptioModel = () => api.get('/subscription-model');
 
 export const createSubscriptioModel = (formData: any) =>
@@ -292,7 +292,7 @@ export const fetchSubscriptioModelById = (id: string) =>
   api.get(`/subscription-model/${id}`).then(res => res.data);
 
 // ----------------- Status Message APIs -----------------
- 
+
 export const fetchStatusMessage = () => api.get('/status-message');
 
 export const createStatusMessage = (formData: any) =>
@@ -314,7 +314,7 @@ export const fetchStatusMessageById = (id: string) =>
   api.get(`/status-message/${id}`).then(res => res.data);
 
 // ----------------- Call Message APIs -----------------
- 
+
 export const fetchCallMessage = () => api.get('/call-message');
 
 export const createCallMessage = (formData: any) =>
@@ -336,7 +336,7 @@ export const fetchCallMessageById = (id: string) =>
   api.get(`/call-message/${id}`).then(res => res.data);
 
 // ----------------- Notification APIs -----------------
- 
+
 export const fetchNotification = () => api.get('/notification');
 
 export const createNotification = (formData: any) =>
@@ -358,7 +358,7 @@ export const fetchNotificationById = (id: string) =>
   api.get(`/notification/${id}`).then(res => res.data);
 
 // ----------------- CustomerInfo APIs -----------------
- 
+
 export const fetchCustomerInfo = () => api.get('/customer-info');
 
 export const createCustomerInfo = (formData: any) =>
@@ -378,3 +378,34 @@ export const deleteCustomerInfo = (id: string) =>
 
 export const fetchCustomerInfoById = (id: string) =>
   api.get(`/customer-info/${id}`).then(res => res.data);
+// ----------------- Rooms APIs -----------------
+
+export const fetchRoomsByCommonId = async (commonId: string) => {
+  const res = await api.get(`/room/property/${commonId}`);
+  return res.data;
+};
+export const fetchRoomsNumber = (number: number) => {
+  api.get(`/room/${number}`).then(res => res.data)
+}
+
+export const createRooms = (formData: any) =>
+  api.post('/room/create', {
+    ...formData
+
+  });
+
+export const updateRooms = async (id: string, data: FormData) => {
+  const response = await axios.put(`${API_BASE_URL}/room/update/${id}`, data, {
+    withCredentials: true,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+export const deleteRooms = (id: string) =>
+  api.delete(`/room/delete/${id}`);
+
+export const fetchRoomsById = (id: string) =>
+  api.get(`/room/${id}`).then(res => res.data);

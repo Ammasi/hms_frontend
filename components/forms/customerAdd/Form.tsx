@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {    useEffect, useRef, useState } from 'react';
 
 type CustomerData = {
   id: string;
@@ -59,7 +59,7 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const idProofInputRef = useRef<HTMLInputElement>(null);
-
+const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'idProof') => {
     if (e.target.files && e.target.files[0]) {
@@ -95,8 +95,8 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
         firstName: editingData.firstName || '',
         lastName: editingData.lastName || '',
         title: editingData.title || '',
-        isVIP: editingData.isVIP || true,
-        isForeignCustomer: editingData.isForeignCustomer || true,
+        isVIP: editingData.isVIP !== undefined ? editingData.isVIP : true,
+        isForeignCustomer: editingData.isForeignCustomer !== undefined ? editingData.isForeignCustomer : true,
         email: editingData.email || '',
         gender: editingData.gender || '',
         mobileNo: editingData.mobileNo || '',
@@ -121,7 +121,6 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
       [name]: name === 'noOfCustomers' || name === 'propertyCount' ? parseInt(value) || 0 : value,
     }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -132,14 +131,28 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
         ? `${baseUrl}/update/${editingData.id}`
         : `${baseUrl}/create`;
 
-      console.log('Making request to:', url);
-
       const formDataToSend = new FormData();
 
-      formDataToSend.append('isActive', formData.isActive ? 'true' : 'false');
 
-      if (imageFile) formDataToSend.append('image', imageFile);
-      if (idProofFile) formDataToSend.append('idproof', idProofFile);
+      formDataToSend.append('clientId', formData.clientId);
+      formDataToSend.append('propertyId', formData.propertyId);
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('isVIP', String(formData.isVIP));
+      formDataToSend.append('isForeignCustomer', String(formData.isForeignCustomer));
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('gender', formData.gender);
+      formDataToSend.append('mobileNo', formData.mobileNo);
+      formDataToSend.append('nationality', formData.nationality);
+      formDataToSend.append('idType', formData.idType);
+      formDataToSend.append('idNumber', formData.idNumber);
+      formDataToSend.append('address', formData.address);
+      formDataToSend.append('isActive', String(formData.isActive));
+
+
+      if (imageFile) formDataToSend.append('image', imageFile); // Must be 'image'
+      if (idProofFile) formDataToSend.append('idproof', idProofFile); // Must be 'idproof' (lowercase
 
       const response = await fetch(url, {
         method: editingData ? 'PUT' : 'POST',
@@ -149,12 +162,13 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Server validation errors:', errorData.errors);
         throw new Error(errorData.message || 'Failed to save customer');
       }
 
-      const result = await response.json();
-      console.log('Success:', result);
 
+      const result = await response.json();
+       setNewCustomerId(result.id); 
       alert(editingData ? 'Customer updated successfully!' : 'Customer added successfully!');
       onSaved?.();
       setShowModal(false);
@@ -165,9 +179,7 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
       setIsLoading(false);
     }
   };
-
-
-
+// customerId={newCustomerId}
   return (
     <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
@@ -260,6 +272,8 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               <option value="Others">Others</option>
             </select>
           </div>
+
+
           <div>
             <label className="block text-sm font-medium">VIP</label>
             <select
@@ -268,7 +282,7 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               onChange={(e) =>
                 setFormData(prev => ({
                   ...prev,
-                  isActive: e.target.value === 'true',
+                  isVIP: e.target.value === 'true',
                 }))
               }
               className="w-full p-2 border border-gray-300 rounded"
@@ -287,7 +301,7 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               onChange={(e) =>
                 setFormData(prev => ({
                   ...prev,
-                  isActive: e.target.value === 'true',
+                  isForeignCustomer: e.target.value === 'true',
                 }))
               }
               className="w-full p-2 border border-gray-300 rounded"
@@ -309,9 +323,8 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               required
             />
           </div>
-
-          <div >
-            <label className="block text-sm font-medium">gender</label>
+          <div>
+            <label className="block text-sm font-medium">Gender *</label>
             <select
               name="gender"
               value={formData.gender}
@@ -319,9 +332,9 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               className="w-full p-2 border border-gray-300 rounded"
               required
             >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -337,8 +350,10 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               required
             />
           </div>
+
+
           <div>
-            <label className="block text-sm font-medium">nationality</label>
+            <label className="block text-sm font-medium">Nationality *</label>
             <select
               name="nationality"
               value={formData.nationality}
@@ -346,10 +361,11 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               className="w-full p-2 border border-gray-300 rounded"
               required
             >
-              <option value="hindu">Hindu</option>
-              <option value="muslim">Muslim</option>
-              <option value="christian">Christian</option>
-              <option value="other">Other</option>
+              <option value="">Select religion</option>
+              <option value="Hindu">Hindu</option>
+              <option value="Muslim">Muslim</option>
+              <option value="Christian">Christian</option>
+              <option value="Other">Other</option>
             </select>
           </div>
           <div>
@@ -393,6 +409,12 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
                 className="mt-2 w-24 h-24 object-cover rounded"
               />
             )}
+
+            {formData.image && formData.image.startsWith('data:application/pdf') && (
+              <div className="mt-2 text-sm text-gray-700">
+                image uploaded
+              </div>
+            )}
           </div>
 
 
@@ -403,12 +425,12 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
               name="idproof"
               ref={idProofInputRef}
               onChange={(e) => handleFileChange(e, 'idProof')}
-              accept="image/*,application/pdf"
+              accept="image/*"
               className="w-full p-2 border border-gray-300 rounded"
             />
 
 
-            {formData.idProof && formData.idProof.startsWith('data:image') && (
+            {formData.idProof && (
               <img
                 src={formData.idProof}
                 alt="ID Proof Preview"

@@ -13,7 +13,9 @@ type CustomerData = {
     propertyId: string;
     firstName: string;
     lastName: string;
-    mrOrMrs: string;
+    title :string;
+    isVIP:boolean;
+    isForeignCustomer:boolean;
     email: string;
     gender: string;
     mobileNo: string;
@@ -147,7 +149,8 @@ export default function CustomerManagement() {
                                     <th className="px-6 py-4">propertyId</th>
                                     <th className="px-6 py-4">firstName</th>
                                     <th className="px-6 py-4">lastName</th>
-                                    <th className="px-6 py-4">mrOrMrs</th>
+                                    <th className="px-6 py-4">VIP</th>
+                                    <th className="px-6 py-4">Foreign Customer</th>
                                     <th className="px-6 py-4">email</th>
                                     <th className="px-6 py-4">gender</th>
                                     <th className="px-6 py-4">mobileNo</th>
@@ -157,7 +160,6 @@ export default function CustomerManagement() {
                                     <th className="px-6 py-4">image</th>
                                     <th className="px-6 py-4">idProof</th>
                                     <th className="px-6 py-4">address</th>
-
                                     <th className="px-6 py-4">createdAt</th>
                                     <th className="px-6 py-4">updatedAt</th>
                                     <th className="px-6 py-4">isActive</th>
@@ -172,7 +174,8 @@ export default function CustomerManagement() {
                                         <td className="px-6 py-3">{item.propertyId}</td>
                                         <td className="px-6 py-3">{item.firstName}</td>
                                         <td className="px-6 py-3">{item.lastName}</td>
-                                        <td className="px-6 py-3">{item.mrOrMrs}</td>
+                                        <td className="px-6 py-3">{item.isVIP ? 'Yes' : 'No'}</td>
+                                        <td className="px-6 py-3">{item.isForeignCustomer ? 'Yes' : 'No'}</td>
                                         <td className="px-6 py-3">{item.email}</td>
                                         <td className="px-6 py-3">{item.gender}</td>
                                         <td className="px-6 py-3">{item.mobileNo}</td>
@@ -225,7 +228,6 @@ export default function CustomerManagement() {
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-700"><span className="font-medium">clientId:</span> {item.clientId}</p>
                                     <p className="text-sm text-gray-700"><span className="font-medium">propertyId:</span> {item.propertyId}</p>
-                                    <p className="text-sm text-gray-700"><span className="font-medium">mrOrMrs:</span> {item.mrOrMrs}</p>
 
                                 </div>
                                 <div className="border-t border-gray-200 pt-2 space-y-1">
