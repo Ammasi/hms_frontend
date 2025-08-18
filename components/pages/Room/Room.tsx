@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchRoomsByCommonId, updateRooms, deleteRooms } from "../../../lib/api";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -195,31 +195,31 @@ export default function RoomDetailsPage() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
 
-      <div className="mb-8">
 
-        <div className="flex gap-8 mb-6 items-center">
-          <p className="text-sm text-gray-600">Total Floors : {floors.length}</p>
-          <p className="text-sm text-gray-600">Total Rooms : {rooms.length}</p>
-        </div>
-      </div>
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter by Floor</h2>
-        <div className="flex flex-wrap gap-3">
+      <div className="bg-white rounded-xl shadow-sm p-2 mb-4 border border-gray-200">
+        <div className="flex items-center flex-wrap gap-2 text-sm">
+          <span className="text-gray-700 font-medium mr-2">
+            Floors: {floors.length} | Rooms: {rooms.length}
+          </span>
+
+          {/* All Floors Button */}
           <button
             onClick={() => setSelectedFloor("All")}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${selectedFloor === "All"
-              ? "bg-blue-600 text-white shadow-md"
+            className={`px-2 py-1 rounded-full text-xs font-medium transition-all ${selectedFloor === "All"
+              ? "bg-blue-600 text-white shadow-sm"
               : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
           >
-            All Floors
+            All
           </button>
+
+          {/* Floor Buttons */}
           {floors.map((floor) => (
             <button
               key={floor}
               onClick={() => setSelectedFloor(floor)}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${selectedFloor === floor
-                ? "bg-blue-600 text-white shadow-md"
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all ${selectedFloor === floor
+                ? "bg-blue-600 text-white shadow-sm"
                 : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                 }`}
             >
@@ -228,6 +228,7 @@ export default function RoomDetailsPage() {
           ))}
         </div>
       </div>
+
       {filteredRooms.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-8 text-center border border-gray-200">
           <h3 className="mt-4 text-lg font-medium text-gray-900">No rooms found</h3>
@@ -235,31 +236,35 @@ export default function RoomDetailsPage() {
         </div>
       ) : (
         <div className="overflow-x-auto bg-white shadow rounded-2xl">
-          <table className="w-full text-sm text-left text-gray-700 border-collapse">
-            <thead className="bg-gray-100 text-gray-800 text-sm font-semibold">
+          <table className="w-full text-xs text-gray-700 border-collapse">
+            {/* HEADER */}
+            <thead className="bg-gray-100 text-gray-800 font-semibold text-[11px]">
               <tr>
-                <th className="px-4 py-3 border-b">Images</th>
-                <th className="px-4 py-3 border-b">Floor Room</th>
-                <th className="px-4 py-3 border-b">Status</th>
-                <th className="px-4 py-3 border-b">Room Type</th>
-                <th className="px-4 py-3 border-b">Custom Name</th>
-                <th className="px-4 py-3 border-b">Default Type</th>
-                <th className="px-4 py-3 border-b">Smoking</th>
-                <th className="px-4 py-3 border-b">Occupancy</th>
-                <th className="px-4 py-3 border-b">Bed Type</th>
-                <th className="px-4 py-3 border-b">Category</th>
-                <th className="px-4 py-3 border-b">Offer</th>
-                <th className="px-4 py-3 border-b">Facilities</th>
-                <th className="px-4 py-3 border-b">Amenities</th>
-                <th className="px-4 py-3 border-b">Price</th>
-                <th className="px-4 py-3 border-b text-center">Actions</th>
+                <th className="px-2 py-2 border-b w-[90px] text-center whitespace-nowrap">Images</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Floor Room</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Active Status</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Room Type</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Custom Name</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Default Type</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Smoking</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Occupancy</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Bed Type</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Category</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Offer</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Facilities</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Amenities</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Hour Price</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Day Price</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody>
+
+            {/* BODY */}
+            <tbody className="text-[11px]">
               {filteredRooms.map((room) => (
                 <tr key={room.id} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3 border-b">
-                    <div className="w-[100px] h-[80px] rounded-lg overflow-hidden border">
+                  <td className="px-2 py-2 border-b text-center">
+                    <div className="w-[70px] h-[55px] rounded-md overflow-hidden border mx-auto">
                       <Slider
                         autoplay
                         autoplaySpeed={2000}
@@ -271,28 +276,33 @@ export default function RoomDetailsPage() {
                         dots={false}
                       >
                         {room.roomImage?.map((img, index) => (
-                          <div key={index}>
+                          <div key={index} className="w-[70px] h-[55px]">
                             <img
                               src={img}
                               alt={`Room ${room.roomNumber} - ${index + 1}`}
                               className="w-full h-full object-cover"
+                              draggable={false}
                             />
                           </div>
                         ))}
                       </Slider>
                     </div>
                   </td>
-                  <td className="px-4 py-3 border-b font-medium text-gray-800">
+
+                  <td className="px-2 py-2 border-b text-center font-medium text-gray-800">
                     {room.floorName} {room.roomNumber}
                   </td>
-                  <td className="px-4 py-3 border-b">
+
+                  <td className="px-2 py-2 border-b text-center">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${room.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${room.isActive
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-600"
                         }`}
                     >
                       {room.isActive ? "Active" : "Inactive"}
                     </span>
-                    <div className="text-xs mt-1">
+                    <div className="text-[10px] mt-0.5">
                       {room.roomStatus === "available" ? (
                         <span className="text-green-600 font-medium">Available</span>
                       ) : (
@@ -301,44 +311,51 @@ export default function RoomDetailsPage() {
                     </div>
                   </td>
 
-                  <td className="px-4 py-3 border-b">{room.roomType || "-"}</td>
-                  <td className="px-4 py-3 border-b">{room.roomTypeCustomName || "-"}</td>
-                  <td className="px-4 py-3 border-b">{room.isDefaultRoomType ? "Yes" : "No"}</td>
-                  <td className="px-4 py-3 border-b">
+                  <td className="px-2 py-2 border-b text-center">{room.roomType || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center">{room.roomTypeCustomName || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center">{room.isDefaultRoomType ? "Yes" : "No"}</td>
+                  <td className="px-2 py-2 border-b text-center">
                     {room.isSmokingAllowed ? "Allowed" : "Not Allowed"}
                   </td>
-                  <td className="px-4 py-3 border-b">{room.maxOccupancy || "-"}</td>
-                  <td className="px-4 py-3 border-b">{room.bedType || "-"}</td>
-                  <td className="px-4 py-3 border-b">{room.category || "-"}</td>
-                  <td className="px-4 py-3 border-b text-green-600 font-medium">
+                  <td className="px-2 py-2 border-b text-center">{room.maxOccupancy || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center">{room.bedType || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center">{room.category || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center text-green-600 font-medium">
                     {room.discounts || "-"}
                   </td>
-
-                  <td className="px-4 py-3 border-b">{room.roomFacility || "-"}</td>
-                  <td className="px-4 py-3 border-b">{room.amenities || "-"}</td>
-                  <td className="px-4 py-3 border-b font-bold text-blue-600">
+                  <td className="px-2 py-2 border-b text-center">{room.roomFacility || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center">{room.amenities || "-"}</td>
+                  <td className="px-2 py-2 border-b text-center font-bold text-blue-600">
+                    ₹{room.roomRentPerHour || "0"}
+                  </td>
+                  <td className="px-2 py-2 border-b text-center font-bold text-blue-600">
                     ₹{room.roomRentPerDay || "0"}
                   </td>
-                  <td className="px-4 py-3 border-b text-center">
-                    <div className="flex justify-center gap-2">
+
+                  <td className="px-2 py-2 border-b text-center">
+                    <div className="flex justify-center gap-1">
                       <button
                         onClick={() => handleEditClick(room)}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
+                        className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-[10px] font-medium"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => setDeleteRoom(room.id)}
-                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-medium"
+                        className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-[10px] font-medium"
                       >
                         Delete
                       </button>
                     </div>
                     {deleteRoom === room.id && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center   bg-opacity-40">
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40">
                         <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
-                          <h2 className="text-lg font-semibold text-gray-800 mb-4">Confirm Deletion</h2>
-                          <p className="text-gray-600 mb-6">Are you sure you want to delete this room?</p>
+                          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                            Confirm Deletion
+                          </h2>
+                          <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this room?
+                          </p>
                           <div className="flex justify-center gap-4">
                             <button
                               onClick={confirmDelete}
