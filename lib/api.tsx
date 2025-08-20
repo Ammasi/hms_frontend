@@ -21,32 +21,23 @@ export const verifyUser = () => api.get('/auth/verify');
 export const logout = () => api.post('/auth/logout');
 
 // ----------------- Subscription APIs -----------------
-
 export const fetchSubscriptions = () => api.get('/product-subscription');
 
-export const createHotelOwner = (formData: any) =>
-  api.post('/product-subscription/create', {
-    ...formData,
-    subscripton: formData.subscription,
-    subscriptonStatus: formData.subscriptionStatus,
-    subscriptonEndDate: formData.subscriptionEndDate,
-    subscriptonDuration: formData.subscriptionDuration,
+export const createHotelOwner = (fd: FormData) =>
+  api.post('/product-subscription/create', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 
-export const updateHotelOwner = (id: string, data: any) =>
-  api.put(`/product-subscription/update/${id}`, {
-    ...data,
-    subscripton: data.subscription,
-    subscriptonStatus: data.subscriptionStatus,
-    subscriptonEndDate: data.subscriptionEndDate,
-    subscriptonDuration: data.subscriptionDuration,
+export const updateHotelOwner = (id: string, fd: FormData) =>
+  api.put(`/product-subscription/update/${id}`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 
 export const deleteHotelOwner = (id: string) =>
   api.delete(`/product-subscription/delete/${id}`);
 
 export const fetchHotelOwnerById = (id: string) =>
-  api.get(`/product-subscription/${id}`).then(res => res.data);
+  api.get(`/product-subscription/${id}`).then((res) => res.data);
 
 // ----------------- Dynamic URL & Method Helper -----------------
 

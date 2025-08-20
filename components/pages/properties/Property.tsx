@@ -4,76 +4,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { deleteProperty, fetchHotelOwnerById, fetchProperty, fetchPropertyById } from "../../../lib/api";
 import { MdDelete } from "react-icons/md";
-import {  FaBed, FaBuilding, FaCheckCircle, FaDoorOpen, FaEdit, FaEnvelope, FaFileAlt, FaMapMarkerAlt, FaPhone, FaStar } from "react-icons/fa";
-import PropertyAdd from "../../forms/propertyManagementAdd/Form";
-import { get } from 'lodash'; 
-
-type ClientDetails = {
-    id: string;
-    companyName: string;
-    clientName: string;
-    clientEmail: string;
-    clientMobileNo: string;
-    gst: string;
-    currency: string;
-    subscription: string;
-    subscriptionStatus: string;
-    subscriptionStartDate: string;
-    subscriptionEndDate: string;
-    clientAddress: string;
-    clientDocuments: string;
-    status: string;
-    noOfHotels: number;
-    subscriptionDuration: string;
-    propertyCount: number;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-};
-
-
-interface Floor {
-    defaultName: string;
-    customName?: string;
-    roomCount: number;
-}
-
-interface RoomType {
-    isDefault(isDefault: any): import("react").ReactNode;
-    defaultName: string;
-    customName?: string;
-}
-
-interface PropertyData {
-    id: string;
-    clientId: string;
-    propertyName: string;
-    propertyType: string;
-    propertyCreateCount: string;
-    propertyContact: string;
-    propertyEmail: string;
-    propertyImage: string;
-    propertyAddress: string;
-    includeGroundFloor: boolean;
-    noOfFloors: number;
-    roomTypeCount: number;
-    floors: Floor[];
-    roomTypes: RoomType[];
-    city: string;
-    pinCode: string;
-    starRating: string;
-    totalRooms: string;
-    facility: string;
-    policies: string;
-    status: string;
-    commonId: string;
-    createdAt: string;
-    updatedAt: string;
-}
+import { FaBed, FaBuilding, FaCheckCircle, FaDoorOpen, FaEdit, FaEnvelope, FaFileAlt, FaMapMarkerAlt, FaPhone, FaStar } from "react-icons/fa";
+import PropertyAdd from "../../forms/propertyAdd/Form";
+import { get } from 'lodash';
+import { ClientList } from "../../interface/Client";
+import { PropertyData } from "../../interface/property";
 
 export default function PropertyDetails() {
     const { propertyId } = useParams<{ propertyId: string }>();
-    const [client, setClient] = useState<ClientDetails | null>(null);
+    const [client, setClient] = useState<ClientList | null>(null);
     const [loading, setLoading] = useState(true);
 
 
@@ -144,8 +83,6 @@ export default function PropertyDetails() {
             setIsLoading(false);
         }
     };
-
-
     useEffect(() => {
         load();
     }, []);
@@ -182,7 +119,7 @@ export default function PropertyDetails() {
 
     return (
         <div className="bg-gray-50 p-2 min-h-screen">
-            <div className="shadow-lg rounded-xl">
+            <div className="shadow-lg rounded-xl m-2">
                 <div className="text-center border-b mb-5 rounded-t-2xl bg-gradient-to-r from-blue-800 to-blue-600 text-white">
                     <h2 className="text-base font-semibold">Client Details</h2>
                     <h1 className="text-2xl font-bold mt-1">{client.companyName}</h1>
@@ -199,7 +136,6 @@ export default function PropertyDetails() {
                     <p><span className="font-semibold text-gray-800">Subscription:</span> {client.subscription}</p>
                     <p><span className="font-semibold text-gray-800">Subscription Status:</span> {client.subscriptionStatus}</p>
                     <p><span className="font-semibold text-gray-800">Duration:</span> {client.subscriptionDuration}</p>
-                    <p><span className="font-semibold text-gray-800">Documents:</span> {client.clientDocuments}</p>
                 </div>
             </div>
             {/* Property Section */}
@@ -263,83 +199,145 @@ export default function PropertyDetails() {
                     ) : view === 'table' ? (
                         <div>
                             <div className="overflow-x-auto shadow-inner bg-white p-2">
-                                <table className="min-w-full text-xs text-left border-collapse">
-                                    <thead className="bg-gray-100 text-gray-700 uppercase">
+                                <table className="min-w-full   border-collapse text-[11px]">
+                                    <thead className="bg-blue-100 text-gray-800 font-semibold text-[11px]">
                                         <tr>
-                                            <th className="px-2 py-2">Name</th>
-                                            <th className="px-2 py-2">Type</th>
-                                            <th className="px-2 py-2">Count</th>
-                                            <th className="px-2 py-2">Contact</th>
-                                            <th className="px-2 py-2">Email</th>
-                                            <th className="px-2 py-2">Image</th>
-                                            <th className="px-2 py-2">Address</th>
-                                            <th className="px-2 py-2">Floors</th>
-                                            <th className="px-2 py-2">Room Types</th>
-                                            <th className="px-2 py-2">City</th>
-                                            <th className="px-2 py-2">Pin</th>
-                                            <th className="px-2 py-2">Star</th>
-                                            <th className="px-2 py-2">Rooms</th>
-                                            <th className="px-2 py-2">Facility</th>
-                                            <th className="px-2 py-2">Policies</th>
-                                            <th className="px-2 py-2">Status</th>
-                                            <th className="px-2 py-2">Actions</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Name</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Type</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Count</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Contact</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Email</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Image</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Address</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Floors</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Room Types</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">City</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Pin</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Star</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Rooms</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Facility</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Policies</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Status</th>
+                                            <th className="px-3 py-3 whitespace-nowrap text-center">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-gray-700">
+
+                                    <tbody className="text-gray-700 divide-y divide-gray-200   text-[11px]">
                                         {paginatedData.map((item) => (
                                             <tr
                                                 key={item.id}
-                                                className="border-t border-gray-200 hover:bg-blue-50 transition cursor-pointer"
+                                                className="hover:bg-blue-50 transition cursor-pointer"
                                                 onClick={() => router.push(`/rooms/${item.commonId}`)}
                                             >
-                                                <td className="px-2 py-1">{item.propertyName}</td>
-                                                <td className="px-2 py-1">{item.propertyType}</td>
-                                                <td className="px-2 py-1">{item.propertyCreateCount}</td>
-                                                <td className="px-2 py-1">{item.propertyContact}</td>
-                                                <td className="px-2 py-1">{item.propertyEmail}</td>
-                                                <td className="px-2 py-1">
+                                                {/* Name */}
+                                                <td className="px-3 py-2 whitespace-nowrap max-w-[150px] overflow-x-auto text-center">
+                                                    <div className="truncate">{item.propertyName}</div>
+                                                </td>
+
+                                                {/* Type */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.propertyType}</td>
+
+                                                {/* Count */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.propertyCreateCount}</td>
+
+                                                {/* Contact */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.propertyContact}</td>
+
+                                                {/* Email */}
+                                                <td className="px-3 py-2 whitespace-nowrap max-w-[150px] overflow-x-auto text-center">
+                                                    <div className="truncate">{item.propertyEmail}</div>
+                                                </td>
+
+                                                {/* Image */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">
                                                     {item.propertyImage ? (
                                                         <img
                                                             src={item.propertyImage}
                                                             alt="Property"
-                                                            className="w-[70px] h-[55px] object-cover rounded shadow-sm"
+                                                            className="w-[70px] h-[55px] object-cover rounded shadow-sm mx-auto"
                                                         />
                                                     ) : (
                                                         <span className="text-gray-400 italic text-xs">No</span>
                                                     )}
                                                 </td>
-                                                <td className="px-2 py-1">{item.propertyAddress}</td>
-                                                <td className="px-2 py-1">{item.noOfFloors}</td>
-                                                <td className="px-2 py-1">
-                                                    {Array.isArray(item.roomTypes) && item.roomTypes.length > 0
-                                                        ? item.roomTypes.map((r, i) => (
-                                                            <div key={i} className="truncate">{r.defaultName}</div>
-                                                        ))
-                                                        : "-"}
+
+                                                {/* Address */}
+                                                <td className="px-3 py-2 whitespace-nowrap max-w-[200px] overflow-x-auto text-center">
+                                                    <div className="truncate">{item.propertyAddress}</div>
                                                 </td>
-                                                <td className="px-2 py-1">{item.city}</td>
-                                                <td className="px-2 py-1">{item.pinCode}</td>
-                                                <td className="px-2 py-1">{item.starRating}</td>
-                                                <td className="px-2 py-1">{item.totalRooms}</td>
-                                                <td className="px-2 py-1 truncate">{item.facility}</td>
-                                                <td className="px-2 py-1 truncate">{item.policies}</td>
-                                                <td className="px-2 py-1">{item.status}</td>
+
+                                                {/* Floors */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.noOfFloors}</td>
+
+                                                {/* Room Types */}
+                                                <td className="px-3 py-2 whitespace-nowrap max-w-[150px] overflow-x-auto text-center">
+                                                    {Array.isArray(item.roomTypes) && item.roomTypes.length > 0 ? (
+                                                        <div className="flex flex-col gap-1 items-center">
+                                                            {item.roomTypes.slice(0, 2).map((r, i) => (
+                                                                <div key={i} className="truncate bg-gray-100 px-1 rounded">{r.defaultName}</div>
+                                                            ))}
+                                                            {item.roomTypes.length > 2 && (
+                                                                <div className="text-xs text-gray-500">+{item.roomTypes.length - 2} more</div>
+                                                            )}
+                                                        </div>
+                                                    ) : "-"}
+                                                </td>
+
+                                                {/* City */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.city}</td>
+
+                                                {/* Pin */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.pinCode}</td>
+
+                                                {/* Star */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.starRating}</td>
+
+                                                {/* Rooms */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">{item.totalRooms}</td>
+
+                                                {/* Facility */}
+                                                <td className="px-3 py-2 whitespace-nowrap max-w-[150px] overflow-x-auto text-center">
+                                                    <div className="truncate">{item.facility}</div>
+                                                </td>
+
+                                                {/* Policies */}
+                                                <td className="px-3 py-2 whitespace-nowrap max-w-[150px] overflow-x-auto text-center">
+                                                    <div className="truncate">{item.policies}</div>
+                                                </td>
+
+                                                {/* Status */}
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">
+                                                    <span
+                                                        className={`px-2 py-1 rounded-full text-xs ${item.status === "Active"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : "bg-red-100 text-red-800"
+                                                            }`}
+                                                    >
+                                                        {item.status}
+                                                    </span>
+                                                </td>
+
+                                                {/* Actions */}
                                                 <td
-                                                    className="px-2 py-1 flex items-center gap-1"
+                                                    className="px-3 py-2 whitespace-nowrap text-center"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    <button
-                                                        onClick={() => handleEdit(item.id)}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded"
-                                                    >
-                                                        <FaEdit className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setDeleteTarget(item.id)}
-                                                        className="bg-red-600 hover:bg-red-700 text-white p-1 rounded"
-                                                    >
-                                                        <MdDelete className="h-4 w-4" />
-                                                    </button>
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => handleEdit(item.id)}
+                                                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-100 transition"
+                                                            title="Edit"
+                                                        >
+                                                            <FaEdit className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setDeleteTarget(item.id)}
+                                                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-100 transition"
+                                                            title="Delete"
+                                                        >
+                                                            <MdDelete className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -347,34 +345,40 @@ export default function PropertyDetails() {
                                 </table>
                             </div>
 
+
                             {/* Pagination Controls */}
-                            <div className="flex flex-col md:flex-row md:items-center justify-between px-2 py-2   bg-gray-50 text-xs">
-                                <div>
-                                    <label className="text-gray-600 font-medium mr-1">Show:</label>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
+                                <div className="flex items-center mb-2 md:mb-0">
+                                    <label className="text-sm text-gray-600 mr-2">Show:</label>
                                     <select
                                         value={pageSize === -1 ? 'all' : pageSize}
                                         onChange={handlePageSizeChange}
-                                        className="p-1 rounded border border-gray-300 text-xs focus:ring-1 focus:ring-blue-400"
+                                        className="border border-gray-300 rounded text-sm p-1 focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value={10}>10</option>
                                         <option value={20}>20</option>
                                         <option value={50}>50</option>
                                         <option value="all">All</option>
                                     </select>
+                                    <span className="text-sm text-gray-600 ml-2">entries</span>
                                 </div>
-                                <div className="flex gap-1 items-center mt-2 md:mt-0">
+                                <div className="flex items-center gap-2">
                                     <button
                                         onClick={handlePrevPage}
                                         disabled={page === 1}
-                                        className="px-2 py-1 text-xs rounded bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-50"
+                                        className={`px-3 py-1 rounded text-sm ${page === 1 ? 'bg-gray-200 text-gray-500' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
                                     >
-                                        Prev
+                                        Previous
                                     </button>
-                                    <span className="text-gray-700">Page {page} / {totalPages || 1}</span>
+                                    <span className="text-sm text-gray-700">
+                                        Page {page} of {totalPages || 1}
+                                    </span>
                                     <button
                                         onClick={handleNextPage}
                                         disabled={page === totalPages || totalPages === 0}
-                                        className="px-2 py-1 text-xs rounded bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-50"
+                                        className={`px-3 py-1 rounded text-sm ${page === totalPages || totalPages === 0 ? 'bg-gray-200 text-gray-500' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
                                     >
                                         Next
                                     </button>
@@ -483,7 +487,7 @@ export default function PropertyDetails() {
                                             <div className="text-xs text-gray-500">
                                                 {item.propertyCreateCount} Properties
                                             </div>
-                                            <div className="flex gap-2">
+                                            {/* <div className="flex gap-2">
                                                 <button
                                                     onClick={(e) => {
                                                         e.preventDefault();
@@ -504,7 +508,7 @@ export default function PropertyDetails() {
                                                 >
                                                     <MdDelete className="h-4 w-4" /> Delete
                                                 </button>
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </div>
                                 </div>

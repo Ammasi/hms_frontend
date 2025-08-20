@@ -63,7 +63,7 @@ export default function Navbar() {
 
   return (
     <nav className="w-full bg-blue-800 text-white p-4 flex justify-between items-center relative">
-      <h1 className="text-xl font-bold">Hotel Management</h1>
+      <h1 className="text-xl font-bold">HMS</h1>
 
       <div className="flex items-center gap-4 relative" ref={dropdownRef}>
         {/* User Icon */}

@@ -1,5 +1,4 @@
 "use client";
-
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchRoomsByCommonId, updateRooms, deleteRooms } from "../../../lib/api";
@@ -194,15 +193,12 @@ export default function RoomDetailsPage() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-
-
       <div className="bg-white rounded-xl shadow-sm p-2 mb-4 border border-gray-200">
         <div className="flex items-center flex-wrap gap-2 text-sm">
           <span className="text-gray-700 font-medium mr-2">
             Floors: {floors.length} | Rooms: {rooms.length}
           </span>
 
-          {/* All Floors Button */}
           <button
             onClick={() => setSelectedFloor("All")}
             className={`px-2 py-1 rounded-full text-xs font-medium transition-all ${selectedFloor === "All"
@@ -213,7 +209,6 @@ export default function RoomDetailsPage() {
             All
           </button>
 
-          {/* Floor Buttons */}
           {floors.map((floor) => (
             <button
               key={floor}
@@ -237,8 +232,8 @@ export default function RoomDetailsPage() {
       ) : (
         <div className="overflow-x-auto bg-white shadow rounded-2xl">
           <table className="w-full text-xs text-gray-700 border-collapse">
-            {/* HEADER */}
-            <thead className="bg-gray-100 text-gray-800 font-semibold text-[11px]">
+   
+            <thead className="bg-blue-100 text-gray-800 font-semibold text-[11px]">
               <tr>
                 <th className="px-2 py-2 border-b w-[90px] text-center whitespace-nowrap">Images</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Floor Room</th>
@@ -258,8 +253,6 @@ export default function RoomDetailsPage() {
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-
-            {/* BODY */}
             <tbody className="text-[11px]">
               {filteredRooms.map((room) => (
                 <tr key={room.id} className="hover:bg-gray-50 transition">
