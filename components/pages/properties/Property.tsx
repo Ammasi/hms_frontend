@@ -1,5 +1,4 @@
 "use client";
-
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { deleteProperty, fetchHotelOwnerById, fetchProperty, fetchPropertyById } from "../../../lib/api";
@@ -9,13 +8,24 @@ import PropertyAdd from "../../forms/propertyAdd/Form";
 import { get } from 'lodash';
 import { ClientList } from "../../interface/Client";
 import { PropertyData } from "../../interface/property";
-
+import {
+    User,
+    Mail,
+    Phone,
+    Building2,
+    Landmark,
+    DollarSign,
+    MapPin,
+    CheckCircle2,
+    XCircle,
+    FileText,
+    Clock,
+    CreditCard,
+} from "lucide-react";
 export default function PropertyDetails() {
     const { propertyId } = useParams<{ propertyId: string }>();
     const [client, setClient] = useState<ClientList | null>(null);
     const [loading, setLoading] = useState(true);
-
-
     const [data, setData] = useState<PropertyData[]>([]);
     const [view, setView] = useState<'table' | 'grid'>('table');
     const [editingData, setEditingData] = useState<PropertyData | null>(null);
@@ -119,26 +129,93 @@ export default function PropertyDetails() {
 
     return (
         <div className="bg-gray-50 p-2 min-h-screen">
-            <div className="shadow-lg rounded-xl m-2">
-                <div className="text-center border-b mb-5 rounded-t-2xl bg-gradient-to-r from-blue-800 to-blue-600 text-white">
-                    <h2 className="text-base font-semibold">Client Details</h2>
-                    <h1 className="text-2xl font-bold mt-1">{client.companyName}</h1>
+            <div className="shadow-lg rounded-xl m-2 overflow-hidden border border-gray-200">
+
+
+                <div className="shadow-lg rounded-xl m-2 overflow-hidden border border-gray-200">
+
+                    <div className="text-center py-2 bg-gradient-to-r from-blue-800 to-blue-600 text-white">
+
+                        <h1 className="text-xl font-bold mt-1 flex justify-center items-center gap-2">
+                            <Building2 className="w-7 h-7" /> {client.companyName}
+                        </h1>
+                    </div>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6 text-base leading-relaxed">
+
+                        <div className="flex items-center gap-2">
+                            <User className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">Client Name:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.clientName}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Mail className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">Email:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.clientEmail}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Phone className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">Mobile:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.clientMobileNo}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Landmark className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">GST:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.gst}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">Currency:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.currency}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">Property Count:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.propertyCount}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {client.subscriptionStatus === "Active" ? (
+                                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            ) : (
+                                <XCircle className="w-5 h-5 text-red-600" />
+                            )}
+                            <span className="font-semibold text-gray-600">Status:</span>
+                            <span
+                                className={`font-bold text-lg ${client.subscriptionStatus === "Active" ? "text-green-700" : "text-red-700"
+                                    }`}
+                            >
+                                {client.subscriptionStatus}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CreditCard className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-600">Subscription:</span>
+                            <span className="font-bold text-gray-900 text-lg">{client.subscription}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-6 col-span-1 md:col-span-2 lg:col-span-4">
+
+                            <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                <span className="font-semibold text-gray-600">Subscription Status:</span>
+                                <span className="font-bold text-gray-900 text-lg">{client.subscriptionStatus}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-blue-600" />
+                                <span className="font-semibold text-gray-600">Duration:</span>
+                                <span className="font-bold text-gray-900 text-lg">{client.subscriptionDuration}</span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-1">
+                                <MapPin className="w-5 h-5 text-blue-600" />
+                                <span className="font-semibold text-gray-600">Address:</span>
+                                <span className="font-bold text-gray-900 text-lg break-words">
+                                    {client.clientAddress}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-2  grid  grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 text-sm text-gray-700 leading-relaxed">
-                    <p><span className="font-semibold text-gray-800">Client Name:</span> {client.clientName}</p>
-                    <p><span className="font-semibold text-gray-800">Email:</span> {client.clientEmail}</p>
-                    <p><span className="font-semibold text-gray-800">Mobile:</span> {client.clientMobileNo}</p>
-                    <p><span className="font-semibold text-gray-800">GST:</span> {client.gst}</p>
-                    <p><span className="font-semibold text-gray-800">Currency:</span> {client.currency}</p>
-                    <p><span className="font-semibold text-gray-800">Address:</span> {client.clientAddress}</p>
-                    <p><span className="font-semibold text-gray-800">Status:</span> {client.status}</p>
-                    <p><span className="font-semibold text-gray-800">Property Count:</span> {client.propertyCount}</p>
-                    <p><span className="font-semibold text-gray-800">Subscription:</span> {client.subscription}</p>
-                    <p><span className="font-semibold text-gray-800">Subscription Status:</span> {client.subscriptionStatus}</p>
-                    <p><span className="font-semibold text-gray-800">Duration:</span> {client.subscriptionDuration}</p>
-                </div>
+
             </div>
-            {/* Property Section */}
             <div className="flex flex-col items-center">
                 <div className="bg-white rounded-xl shadow-lg w-full max-w-7xl overflow-hidden">
                     {/* Top Bar */}
@@ -309,8 +386,8 @@ export default function PropertyDetails() {
                                                 <td className="px-3 py-2 whitespace-nowrap text-center">
                                                     <span
                                                         className={`px-2 py-1 rounded-full text-xs ${item.status === "Active"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : "bg-red-100 text-red-800"
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-red-100 text-red-800"
                                                             }`}
                                                     >
                                                         {item.status}
