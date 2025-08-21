@@ -218,8 +218,8 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
 
 
   return (
-    <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-5xl rounded-lg shadow-xl p-3 mx-4 my-8">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+      <div className="bg-white w-full max-w-5xl rounded-lg shadow-xl p-3">
         {/* Header */}
         <div className="relative mb-2">
           <h2 className="text-xl font-bold text-center text-blue-800">
@@ -401,7 +401,7 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
           </div>
 
           {/* Column 3 */}
-          <div className="space-y-4">
+          <div>
             <div>
               <label htmlFor="clientAddress" className="text-sm font-semibold text-gray-700">
                 Address <span className="text-red-500">*</span>

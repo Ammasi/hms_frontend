@@ -9,7 +9,12 @@ type PropertyAddProps = {
 };
 
 const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) => {
-  const [formData, setFormData] = useState<Omit<PropertyData, 'id' | 'createdAt' | 'updatedAt' | 'floors' | 'propertyImage'>>({
+  const [formData, setFormData] = useState<
+    Omit<
+      PropertyData,
+      'id' | 'createdAt' | 'updatedAt' | 'floors' | 'propertyImage'
+    >
+  >({
     clientId: '',
     propertyName: '',
     propertyType: '',
@@ -38,7 +43,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
   useEffect(() => {
     if (editingData) {
-      // Restore basic property details
+      // Restore property details
       setFormData({
         clientId: editingData.clientId,
         propertyName: editingData.propertyName,
@@ -60,29 +65,36 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
         commonId: editingData.commonId,
       });
 
-      // Set image preview
       if (editingData.propertyImage) {
         setImagePreview(editingData.propertyImage);
       }
-
-      // Restore floors with room counts
       if (Array.isArray(editingData.floors)) {
         setFloors(editingData.floors);
       }
     } else {
-      // Default empty floors when creating
+      // Initialize empty floors
       const initialFloors: Floor[] = [];
       if (formData.includeGroundFloor) {
-        initialFloors.push({ defaultName: 'GroundFloor', customName: '', roomCount: 0 });
+        initialFloors.push({
+          defaultName: 'GroundFloor',
+          customName: '',
+          roomCount: 0,
+        });
       }
       for (let i = 1; i <= formData.noOfFloors; i++) {
-        initialFloors.push({ defaultName: `Floor${i}`, customName: '', roomCount: 0 });
+        initialFloors.push({
+          defaultName: `Floor${i}`,
+          customName: '',
+          roomCount: 0,
+        });
       }
       setFloors(initialFloors);
     }
   }, [editingData]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
     let newValue: string | number | boolean;
 
@@ -94,22 +106,35 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
       newValue = value;
     }
 
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, [name]: newValue };
 
-      // Adjust floor list when number of floors or ground floor option changes
+      // Adjust floors when ground floor or noOfFloors changes
       if (name === 'noOfFloors' || name === 'includeGroundFloor') {
-        const includeGF = name === 'includeGroundFloor' ? (newValue as boolean) : prev.includeGroundFloor;
-        const numFloors = name === 'noOfFloors' ? (newValue as number) : prev.noOfFloors;
+        const includeGF =
+          name === 'includeGroundFloor' ? (newValue as boolean) : prev.includeGroundFloor;
+        const numFloors =
+          name === 'noOfFloors' ? (newValue as number) : prev.noOfFloors;
 
-        const newFloors: Floor[] = [];
+        const next: Floor[] = [];
         if (includeGF) {
-          newFloors.push({ defaultName: 'GroundFloor', customName: '', roomCount: 0 });
+          const existingGF = floors.find((f) => f.defaultName === 'GroundFloor');
+          next.push({
+            defaultName: 'GroundFloor',
+            customName: existingGF?.customName ?? '',
+            roomCount: existingGF?.roomCount ?? 0,
+          });
         }
         for (let i = 1; i <= numFloors; i++) {
-          newFloors.push({ defaultName: `Floor${i}`, customName: '', roomCount: 0 });
+          const key = `Floor${i}`;
+          const existing = floors.find((f) => f.defaultName === key);
+          next.push({
+            defaultName: key,
+            customName: existing?.customName ?? '',
+            roomCount: existing?.roomCount ?? 0,
+          });
         }
-        setFloors(newFloors);
+        setFloors(next);
       }
 
       return updated;
@@ -133,9 +158,11 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     updatedFloors[index].roomCount = value;
     setFloors(updatedFloors);
 
-    // Update total rooms
-    const total = updatedFloors.reduce((sum, f) => sum + (f.roomCount || 0), 0);
-    setFormData(prev => ({ ...prev, totalRooms: total.toString() }));
+    const total = updatedFloors.reduce(
+      (sum, f) => sum + (f.roomCount || 0),
+      0
+    );
+    setFormData((prev) => ({ ...prev, totalRooms: total.toString() }));
   };
 
   const renderRoomCountInputs = () => {
@@ -146,11 +173,15 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
           : floor.defaultName.replace('Floor', 'Floor ');
       return (
         <div key={index} className="mb-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+          </label>
           <input
             type="number"
             value={floor.roomCount}
-            onChange={(e) => handleRoomCountChange(index, parseInt(e.target.value) || 0)}
+            onChange={(e) =>
+              handleRoomCountChange(index, parseInt(e.target.value) || 0)
+            }
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min="0"
             onInput={(e) => {
@@ -169,46 +200,69 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
     const formDataToSend = new FormData();
 
-    // Append all form data
-    Object.entries(formData).forEach(([key, value]) => {
-      formDataToSend.append(key, String(value));
-    });
 
-    // Append floors as JSON
-    formDataToSend.append('floors', JSON.stringify(floors));
+    formDataToSend.append("clientId", formData.clientId);
+    formDataToSend.append("propertyName", formData.propertyName);
+    formDataToSend.append("propertyType", formData.propertyType);
+    formDataToSend.append("propertyCreateCount", String(formData.propertyCreateCount));
+    formDataToSend.append("propertyContact", formData.propertyContact);
+    formDataToSend.append("propertyEmail", formData.propertyEmail);
+    formDataToSend.append("propertyAddress", formData.propertyAddress);
+    formDataToSend.append("city", formData.city);
+    formDataToSend.append("pinCode", formData.pinCode);
+    formDataToSend.append("starRating", String(formData.starRating));
+    formDataToSend.append("totalRooms", String(formData.totalRooms));
+    formDataToSend.append("facility", formData.facility);
+    formDataToSend.append("policies", formData.policies);
+    formDataToSend.append("status", formData.status);
+
+    formDataToSend.append("includeGroundFloor", JSON.stringify(formData.includeGroundFloor));
+    formDataToSend.append("noOfFloors", String(formData.noOfFloors));
+    formDataToSend.append("roomTypeCount", String(formData.roomTypeCount));
+    formDataToSend.append("roomCounts", JSON.stringify(
+      floors.map((f) => (Number.isFinite(f.roomCount) ? f.roomCount : 0))
+    ));
+
 
     if (propertyImageFile) {
-      formDataToSend.append('file', propertyImageFile);
+      formDataToSend.append("file", propertyImageFile);
+    }
+
+    console.log("Submitting form data:");
+    for (let [key, value] of formDataToSend.entries()) {
+      console.log(key, value);
     }
 
     try {
-      const baseUrl = 'http://192.168.1.14:8000/api/v1/property';
+      const baseUrl = "http://192.168.1.14:8000/api/v1/property";
       const url = editingData
         ? `${baseUrl}/update/${editingData.id}`
         : `${baseUrl}/create`;
-      const method = editingData ? 'PUT' : 'POST';
+      const method = editingData ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
         body: formDataToSend,
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit form');
+        throw new Error(errorData.message || "Failed to submit form");
       }
 
-      alert(editingData ? 'Property updated successfully' : 'Property created successfully');
+      alert(editingData ? "Property updated successfully" : "Property created successfully");
       setShowModal(false);
       onSaved?.();
     } catch (error) {
-      console.error('Error submitting form:', error);
-      alert(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
+      console.error("Error submitting form:", error);
+      alert(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+
   return (
     <div className="fixed inset-0  not-even: bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-6 my-10">
