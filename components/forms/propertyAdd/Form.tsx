@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Floor, PropertyData } from '../../interface/property';
+import { createProperty, updateProperty } from '../../../lib/api';
 
 type PropertyAddProps = {
   setShowModal: (value: boolean) => void;
@@ -43,7 +44,6 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
   useEffect(() => {
     if (editingData) {
-      // Restore property details
       setFormData({
         clientId: editingData.clientId,
         propertyName: editingData.propertyName,
@@ -72,7 +72,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
         setFloors(editingData.floors);
       }
     } else {
-      // Initialize empty floors
+
       const initialFloors: Floor[] = [];
       if (formData.includeGroundFloor) {
         initialFloors.push({
@@ -98,7 +98,9 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     const { name, value, type } = e.target;
     let newValue: string | number | boolean;
 
-    if (type === 'checkbox') {
+    if (name === 'includeGroundFloor') {
+      newValue = value === 'true';
+    } else if (type === 'checkbox') {
       newValue = (e.target as HTMLInputElement).checked;
     } else if (type === 'number') {
       newValue = parseInt(value) || 0;
@@ -108,8 +110,6 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
     setFormData((prev) => {
       const updated = { ...prev, [name]: newValue };
-
-      // Adjust floors when ground floor or noOfFloors changes
       if (name === 'noOfFloors' || name === 'includeGroundFloor') {
         const includeGF =
           name === 'includeGroundFloor' ? (newValue as boolean) : prev.includeGroundFloor;
@@ -141,6 +141,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     });
   };
 
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -167,21 +168,20 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
 
   const renderRoomCountInputs = () => {
     return floors.map((floor, index) => {
+      if (!formData.includeGroundFloor && floor.defaultName === 'GroundFloor') {
+        return null;
+      }
       const label =
         floor.defaultName === 'GroundFloor'
           ? 'Ground Floor'
           : floor.defaultName.replace('Floor', 'Floor ');
       return (
         <div key={index} className="mb-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {label}
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
           <input
             type="number"
             value={floor.roomCount}
-            onChange={(e) =>
-              handleRoomCountChange(index, parseInt(e.target.value) || 0)
-            }
+            onChange={(e) => handleRoomCountChange(index, parseInt(e.target.value) || 0)}
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min="0"
             onInput={(e) => {
@@ -194,12 +194,12 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     });
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     const formDataToSend = new FormData();
-
 
     formDataToSend.append("clientId", formData.clientId);
     formDataToSend.append("propertyName", formData.propertyName);
@@ -219,10 +219,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     formDataToSend.append("includeGroundFloor", JSON.stringify(formData.includeGroundFloor));
     formDataToSend.append("noOfFloors", String(formData.noOfFloors));
     formDataToSend.append("roomTypeCount", String(formData.roomTypeCount));
-    formDataToSend.append("roomCounts", JSON.stringify(
-      floors.map((f) => (Number.isFinite(f.roomCount) ? f.roomCount : 0))
-    ));
-
+    formDataToSend.append(
+      "roomCounts",
+      JSON.stringify(floors.map((f) => (Number.isFinite(f.roomCount) ? f.roomCount : 0)))
+    );
 
     if (propertyImageFile) {
       formDataToSend.append("file", propertyImageFile);
@@ -234,35 +234,23 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     }
 
     try {
-      const baseUrl = "http://192.168.1.14:8000/api/v1/property";
-      const url = editingData
-        ? `${baseUrl}/update/${editingData.id}`
-        : `${baseUrl}/create`;
-      const method = editingData ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        body: formDataToSend,
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to submit form");
+      if (editingData) {
+        await updateProperty(editingData.id, formDataToSend);
+        alert("Property updated successfully");
+      } else {
+        await createProperty(formDataToSend);
+        alert("Property created successfully");
       }
 
-      alert(editingData ? "Property updated successfully" : "Property created successfully");
       setShowModal(false);
       onSaved?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting form:", error);
-      alert(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      alert(error.response?.data?.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
-
-
   return (
     <div className="fixed inset-0  not-even: bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-6 my-10">
@@ -392,14 +380,13 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Include Ground Floor*</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Include Ground Floor*
+            </label>
             <select
               name="includeGroundFloor"
-              value={formData.includeGroundFloor.toString()}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                includeGroundFloor: e.target.value === 'true'
-              }))}
+              value={String(formData.includeGroundFloor)}
+              onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             >
@@ -407,6 +394,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               <option value="false">No</option>
             </select>
           </div>
+
 
 
           <div>

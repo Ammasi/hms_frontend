@@ -242,16 +242,14 @@ export const fetchChargesRegisterById = (id: string) =>
 
 export const fetchProperty = () => api.get('/property');
 
-export const createProperty = (formData: any) =>
-  api.post('/property/create', {
-    ...formData
-
+export const createProperty = (formData: FormData) =>
+  api.post('/property/create', formData, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
 
-export const updateProperty = (id: string, data: any) =>
-  api.put(`/property/update/${id}`, {
-    ...data
-
+export const updateProperty = (id: string, formData: FormData) =>
+  api.put(`/property/update/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
 
 export const deleteProperty = (id: string) =>
