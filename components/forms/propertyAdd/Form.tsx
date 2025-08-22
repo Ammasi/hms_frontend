@@ -184,6 +184,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
             onChange={(e) => handleRoomCountChange(index, parseInt(e.target.value) || 0)}
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             min="0"
+            onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+            }}
             onInput={(e) => {
               const target = e.target as HTMLInputElement;
               target.value = target.value.replace(/^0+(?=\d)/, '');
@@ -215,7 +219,6 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     formDataToSend.append("facility", formData.facility);
     formDataToSend.append("policies", formData.policies);
     formDataToSend.append("status", formData.status);
-
     formDataToSend.append("includeGroundFloor", JSON.stringify(formData.includeGroundFloor));
     formDataToSend.append("noOfFloors", String(formData.noOfFloors));
     formDataToSend.append("roomTypeCount", String(formData.roomTypeCount));
@@ -252,10 +255,11 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     }
   };
   return (
-    <div className="fixed inset-0  not-even: bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-6 my-10">
-        <div className="relative mb-6">
-          <h2 className="text-2xl font-bold text-center text-blue-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-4">
+        {/* Header */}
+        <div className="relative mb-3">
+          <h2 className="text-xl font-bold text-center text-blue-900">
             {editingData ? 'Edit Property' : 'Add New Property'}
           </h2>
           <button
@@ -271,102 +275,180 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Client ID*</label>
-            <input
-              type="text"
-              name="clientId"
-              value={formData.clientId}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* ===== Column 1 ===== */}
+          <div className="space-y-4">
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Client ID*</label>
+              <input
+                type="text"
+                name="clientId"
+                value={formData.clientId}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
 
-            />
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property Name*</label>
+              <input
+                type="text"
+                name="propertyName"
+                value={formData.propertyName}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property Type*</label>
+              <input
+                type="text"
+                name="propertyType"
+                value={formData.propertyType}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property Create Count*</label>
+              <input
+                type="text"
+                name="propertyCreateCount"
+                value={formData.propertyCreateCount}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Property Name*</label>
-            <input
-              type="text"
-              name="propertyName"
-              value={formData.propertyName}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+          {/* ===== Column 2 ===== */}
+          <div className="space-y-4">
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property Contact*</label>
+              <input
+                type="text"
+                name="propertyContact"
+                value={formData.propertyContact}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
 
-            />
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+              <input
+                type="email"
+                name="propertyEmail"
+                value={formData.propertyEmail}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Include Ground Floor*</label>
+              <select
+                name="includeGroundFloor"
+                value={String(formData.includeGroundFloor)}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Number of Floors*</label>
+              <input
+                type="number"
+                name="noOfFloors"
+                value={formData.noOfFloors}
+                onChange={handleChange}
+                min="1"
+                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.value = target.value.replace(/^0+(?=\d)/, '');
+                }}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">property Type*</label>
-            <input
-              type="text"
-              name="propertyType"
-              value={formData.propertyType}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+          {/* ===== Column 3 ===== */}
+          <div className="space-y-4">
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property Image</label>
+              <input
+                type="file"
+                ref={propertyImageRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {imagePreview && (
+                <div className="mt-2">
+                  <img
+                    src={imagePreview}
+                    alt="Property preview"
+                    className="h-20 w-20 object-cover rounded"
+                  />
+                </div>
+              )}
+            </div>
 
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">property Create Count*</label>
-            <input
-              type="text"
-              name="propertyCreateCount"
-              value={formData.propertyCreateCount}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Types*</label>
+              <input
+                type="text"
+                name="roomTypeCount"
+                value={formData.roomTypeCount}
+                onChange={handleChange}
+                onInput={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.value = target.value.replace(/^0+(?=\d)/, '');
+                }}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
 
-            />
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Star Rating*</label>
+              <select
+                name="starRating"
+                value={formData.starRating}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select rating</option>
+                <option value="1">1 Star</option>
+                <option value="2">2 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="5">5 Stars</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">property Contact*</label>
-            <input
-              type="text"
-              name="propertyContact"
-              value={formData.propertyContact}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
 
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email*</label>
-            <input
-              type="email"
-              name="propertyEmail"
-              value={formData.propertyEmail}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Property Image</label>
-            <input
-              type="file"
-              ref={propertyImageRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {imagePreview && (
-              <div className="mt-2">
-                <img
-                  src={imagePreview}
-                  alt="Property preview"
-                  className="h-20 w-20 object-cover rounded"
-                />
-              </div>
-            )}
-
-          </div>
-          <div className="md:col-span-2">
+          {/* ===== Full-width rows ===== */}
+          <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">Address*</label>
             <input
               type="text"
@@ -375,69 +457,18 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
-
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Include Ground Floor*
-            </label>
-            <select
-              name="includeGroundFloor"
-              value={String(formData.includeGroundFloor)}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-          </div>
-
-
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Number of Floors*</label>
-            <input
-              type="number"
-              name="noOfFloors"
-              value={formData.noOfFloors}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              min="1"
-              max="20"
-              onInput={(e) => {
-                const target = e.target as HTMLInputElement;
-                target.value = target.value.replace(/^0+(?=\d)/, '');
-              }}
-              required
-            />
-          </div>
-
-          <div className="mb-4">
+          <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-2">Rooms per Floor*</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {renderRoomCountInputs()}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Types*</label>
-            <input
-              type="text"
-              name="roomTypeCount"
-              value={formData.roomTypeCount}
-              onChange={handleChange} onInput={(e) => {
-                const target = e.target as HTMLInputElement;
-                target.value = target.value.replace(/^0+(?=\d)/, '');
-              }}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-
-          <div>
+          {/* ===== Next 3-column row ===== */}
+          <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">City*</label>
             <input
               type="text"
@@ -446,11 +477,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
-
             />
           </div>
 
-          <div>
+          <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Pin Code*</label>
             <input
               type="text"
@@ -462,27 +492,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
             />
           </div>
 
-
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Star Rating*</label>
-            <select
-              name="starRating"
-              value={formData.starRating}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="">Select rating</option>
-              <option value="1">1 Star</option>
-              <option value="2">2 Stars</option>
-              <option value="3">3 Stars</option>
-              <option value="4">4 Stars</option>
-              <option value="5">5 Stars</option>
-            </select>
-          </div>
-
-          <div className="w-full md:w-1/3">
+          <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Total Rooms</label>
             <input
               type="text"
@@ -493,7 +503,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
             />
           </div>
 
-          <div>
+          <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Facilities</label>
             <input
               type="text"
@@ -501,12 +511,10 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               value={formData.facility}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-
             />
-
           </div>
 
-          <div>
+          <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Policies</label>
             <input
               type="text"
@@ -514,24 +522,22 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               value={formData.policies}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-
             />
-
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">status</label>
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <input
               type="text"
               name="status"
               value={formData.status}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-
             />
-
           </div>
-          <div className="md:col-span-2 flex justify-end pt-4 space-x-3">
+
+          {/* Footer */}
+          <div className="md:col-span-3 flex justify-end pt-2 space-x-3">
             <button
               type="button"
               onClick={() => {
@@ -551,10 +557,9 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
               {isLoading ? 'Processing...' : editingData ? 'Update' : 'Submit'}
             </button>
           </div>
-
-
         </form>
       </div>
     </div>
+
   );
 }; export default PropertyAdd;

@@ -232,14 +232,13 @@ export default function RoomDetailsPage() {
       ) : (
         <div className="overflow-x-auto bg-white shadow rounded-2xl">
           <table className="w-full text-xs text-gray-700 border-collapse">
-   
+
             <thead className="bg-blue-100 text-gray-800 font-semibold text-[11px]">
               <tr>
                 <th className="px-2 py-2 border-b w-[90px] text-center whitespace-nowrap">Images</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Floor Room</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Active Status</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Room Type</th>
-                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Custom Name</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Default Type</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Smoking</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Occupancy</th>
@@ -305,7 +304,7 @@ export default function RoomDetailsPage() {
                   </td>
 
                   <td className="px-2 py-2 border-b text-center">{room.roomType || "-"}</td>
-                  <td className="px-2 py-2 border-b text-center">{room.roomTypeCustomName || "-"}</td>
+
                   <td className="px-2 py-2 border-b text-center">{room.isDefaultRoomType ? "Yes" : "No"}</td>
                   <td className="px-2 py-2 border-b text-center">
                     {room.isSmokingAllowed ? "Allowed" : "Not Allowed"}
@@ -603,6 +602,15 @@ export default function RoomDetailsPage() {
                     </label>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Discounts</label>
+                    <input
+                      name="discounts"
+                      value={formData.discounts}
+                      onChange={handleFormChange}
+                      className="w-full border p-2 rounded"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Facilities</label>
                     <textarea

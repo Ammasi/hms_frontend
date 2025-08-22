@@ -219,7 +219,7 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-white w-full max-w-5xl rounded-lg shadow-xl p-3">
+      <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-3">
         {/* Header */}
         <div className="relative mb-2">
           <h2 className="text-xl font-bold text-center text-blue-800">
@@ -508,12 +508,18 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
                 placeholder="Enter Number Of Hotels"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
                 min="0"
+                step="1"
+                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+                }}
                 onInput={(e) => {
                   const target = e.target as HTMLInputElement;
                   target.value = target.value.replace(/^0+(?=\d)/, '');
                 }}
                 required
               />
+
             </div>
 
             <div>
@@ -546,6 +552,10 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
                focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
                 min="0"
+                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+                }}
                 onInput={(e) => {
                   const target = e.target as HTMLInputElement;
                   target.value = target.value.replace(/^0+(?=\d)/, '');
