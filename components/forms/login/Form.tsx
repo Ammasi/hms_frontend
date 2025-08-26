@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import Cookies from "js-cookie";
 
 
 type Props = {
@@ -18,6 +19,10 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
   });
 
   const [error, setError] = useState('');
+  useEffect(() => {
+    const token = Cookies.get('auth_token');
+    if (token) router.replace('/clients');
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,25 +36,23 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
           password: formData.password,
         },
         {
-          withCredentials: true,
+          // withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
           },
         }
       );
       if (response.data.success) {
-        const token = response.data.token; // ← Add this line
-        console.log('Login successful:', response.data);
-        console.log('TOKEN:', response.data.token ?? 'No token, using cookie-based auth');
+        // console.log('Login successful:', response.data);
 
-        const { user } = response.data;
-        // Store user info in localStorage (or context if preferred)
-        localStorage.setItem('user', JSON.stringify(user));
+        Cookies.set('auth_token', response.data.token, {
+          expires: 7,
+          path: '/',
+          sameSite: 'Lax',
 
-        router.push('/home');
+        });
 
-
-        router.push('/home');
+        router.push('/clients');
       }
 
     } catch (err: any) {

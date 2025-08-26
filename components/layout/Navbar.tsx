@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { FaUserCircle } from 'react-icons/fa';
-
+import Cookies from "js-cookie";
 type User = {
   name: string;
   email: string;
@@ -40,7 +40,8 @@ export default function Navbar() {
       );
 
       if (res.data.success) {
-        localStorage.removeItem('user'); // Remove user info
+        localStorage.removeItem('user');
+        Cookies.remove("auth_token");
         router.push('/');
       } else {
         alert('Logout failed');
