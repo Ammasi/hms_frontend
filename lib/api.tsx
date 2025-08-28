@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import Cookies from 'js-cookie';
 const API_BASE_URL = 'http://192.168.1.14:8000/api/v1';
 
 const api = axios.create({
@@ -11,14 +11,36 @@ const api = axios.create({
   },
 });
 
+
+//  attach token automatically if present
+api.interceptors.request.use((config) => {
+  const token = Cookies.get('auth_token');
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // ----------------- Auth APIs -----------------
+export const login = (email: string, password: string) =>
+  api.post('/auth/login', { email, password });
+ 
+export const verifyUser = async () => {
+  const res = await api.get("/auth/verify");
+  return res.data;
+};
 
-export const login = (email: string, password: string, role: string) =>
-  api.post('/auth/login', { email, password, role });
-
-export const verifyUser = () => api.get('/auth/verify');
-
-export const logout = () => api.post('/auth/logout');
+export const logout = async () => {
+  try {
+    await api.post("/auth/logout");  
+  } catch (err) {
+    console.error("Logout API error:", err);
+  } finally { 
+    localStorage.removeItem("user");
+    Cookies.remove("auth_token");
+  }
+};
 
 // ----------------- Subscription APIs -----------------
 export const fetchSubscriptions = () => api.get('/product-subscription');

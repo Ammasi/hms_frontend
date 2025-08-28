@@ -2,7 +2,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Hotel App',
+  title: 'HMS',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

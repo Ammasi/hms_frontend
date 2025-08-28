@@ -19,10 +19,11 @@ import {
   FaBell,
   FaAddressCard
 } from 'react-icons/fa';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(true);
-
+  const { user } = useAuth();
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
   };
@@ -32,7 +33,7 @@ export default function Sidebar() {
       className={`${collapsed ? 'w-20' : 'w-65'} 
         bg-blue-800 text-white transition-all duration-300 ease-in-out 
         flex flex-col h-screen`}
-    > 
+    >
       <div className="flex justify-end p-4 border-b border-blue-700 flex-shrink-0">
         <button
           onClick={toggleCollapse}
@@ -40,16 +41,24 @@ export default function Sidebar() {
         >
           {collapsed ? '☰' : '✕'}
         </button>
-      </div> 
+      </div>
       <div className={`${collapsed ? 'p-3' : 'p-0'} flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-blue-900`}>
-      
+
         <ul className="space-y-4 flex flex-col items-start  min-h-full">
-          <li>
-            <Link href="/clients" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaUsers  className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>clients</span>
-            </Link>
-          </li>
+
+          {(["admin", "owner"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link
+                href="/clients"
+                className="flex items-center gap-3 p-2 rounded hover:bg-blue-700"
+              >
+                <FaUsers className="text-xl" />
+                <span className={collapsed ? "hidden" : ""}>Clients</span>
+              </Link>
+            </li>
+          )}
+
+
           <li>
             <Link href="/hotelManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaHotel className="text-xl" />
@@ -126,7 +135,7 @@ export default function Sidebar() {
               <span className={collapsed ? 'hidden' : ''}>Property Management</span>
             </Link>
           </li>
-           {/* subscription Model */}
+          {/* subscription Model */}
           {/* <li>
             <Link href="/subscriptionModel" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaCreditCard className="text-xl" />

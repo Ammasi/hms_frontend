@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 import Cookies from "js-cookie";
+import { login } from '../../../lib/api';
 
 
 type Props = {
@@ -29,35 +29,28 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
     setError('');
 
     try {
-      const response = await axios.post(
-        'http://192.168.1.14:8000/api/v1/auth/login',
-        {
-          email: formData.email,
-          password: formData.password,
-        },
-        {
-          // withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      if (response.data.success) {
-        // console.log('Login successful:', response.data);
+      const { data } = await login(formData.email, formData.password);
 
-        Cookies.set('auth_token', response.data.token, {
+      if (data?.success && data?.token) {
+        Cookies.set('auth_token', data.token, {
           expires: 7,
           path: '/',
           sameSite: 'Lax',
-
+          secure: process.env.NODE_ENV === 'production',
         });
 
-        router.push('/clients');
-      }
+        // (optional) if backend returns user, store it for instant UI
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
 
+        router.push('/clients');
+      } else {
+        throw new Error(data?.message || 'Login failed');
+      }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
-      setError(errorMessage);
+      const msg = err?.response?.data?.message || err?.message || 'Login failed. Please try again.';
+      setError(msg);
       console.error('Login error:', err);
     }
   };
