@@ -213,7 +213,7 @@ const PropertyAdd = ({ setShowModal, editingData, onSaved }: PropertyAddProps) =
     }
 
     try {
-      const baseUrl = 'http://192.168.1.14:8000/api/v1/property';
+      const baseUrl = 'http://192.168.1.8:8000/api/v1/property';
       const url = editingData
         ? `${baseUrl}/update/${editingData.id}`
         : `${baseUrl}/create`;

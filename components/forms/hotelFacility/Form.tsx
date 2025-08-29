@@ -82,8 +82,8 @@ const HotelFacilityForm = ({ setShowModal, editingData, onSaved }: HotelFacility
 
     try {
       const url = editingData
-        ? `http://192.168.1.14:8000/api/v1/hotel-facility/update/${editingData.id}`
-        : `http://192.168.1.14:8000/api/v1/hotel-facility/create`;
+        ? `http://192.168.1.8:8000/api/v1/hotel-facility/update/${editingData.id}`
+        : `http://192.168.1.8:8000/api/v1/hotel-facility/create`;
 
       const formDataToSend = new FormData();
       formDataToSend.append('clientId', formData.clientId);

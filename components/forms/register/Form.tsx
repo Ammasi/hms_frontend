@@ -20,7 +20,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://192.168.1.14:8000/api/v1/auth/register', {
+      const response = await fetch('http://192.168.1.8:8000/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

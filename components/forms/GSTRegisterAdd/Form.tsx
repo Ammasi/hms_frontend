@@ -17,10 +17,10 @@ type GSTRegisterData = {
   gstStateCode: string;
   cgst: string;
   sgst: string;
-  igst: string;                 // ✅ change to string
+  igst: string;                  
   registrationDate: string;
-  taxJurisdiction: string;     // ✅ change to string
-  propertyAddress: string;     // ✅ change to string
+  taxJurisdiction: string;      
+  propertyAddress: string;   
   gstCertificateUrl?: string;
   isActive: boolean;
 };
@@ -107,8 +107,8 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     e.preventDefault();
     setIsLoading(true);
     const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/gst/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/gst/create`;
+      ? `http://192.168.1.8:8000/api/v1/gst/update/${editingData.id}`
+      : `http://192.168.1.8:8000/api/v1/gst/create`;
 
 
     const method = editingData ? 'PUT' : 'POST';

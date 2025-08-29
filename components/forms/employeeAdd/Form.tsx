@@ -101,8 +101,8 @@ const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddPr
     }
 
     const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/employee/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/employee/create`;
+      ? `http://192.168.1.8:8000/api/v1/employee/update/${editingData.id}`
+      : `http://192.168.1.8:8000/api/v1/employee/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 

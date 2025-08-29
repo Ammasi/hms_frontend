@@ -66,8 +66,8 @@ const SubscriptionLimitAdd = ({ setShowModal, editingData, onSaved }: Subscripti
 
 
   const url = editingData
-  ? `http://192.168.1.14:8000/api/v1/subscription-limits/update/${editingData.id}`
-  : `http://192.168.1.14:8000/api/v1/subscription-limits/create`;
+  ? `http://192.168.1.8:8000/api/v1/subscription-limits/update/${editingData.id}`
+  : `http://192.168.1.8:8000/api/v1/subscription-limits/create`;
 
 
 

@@ -1,5 +1,7 @@
-'use client'; 
-import { ReactNode, useEffect, useState } from 'react';
+'use client';
+
+import { useEffect, useState } from 'react';
+import axios, { AxiosError } from 'axios';
 
 interface StatusMessageItem {
   defaultStatusName: string;
@@ -7,256 +9,146 @@ interface StatusMessageItem {
   isEnableOrDisable: boolean;
 }
 
-interface StatusMessageData {
-  id: string;
-  clientId: string;
-  propertyId: string;
-  noOfTypes: number;
-  statusMessage: StatusMessageItem[];
-}
-
 type StatusMessageAddProps = {
   setShowModal: (value: boolean) => void;
-  editingData?: StatusMessageData | null;
   onSaved?: () => void;
 };
 
-const StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessageAddProps) => {
-  const initialFormData = {
-    clientId: '',
-    propertyId: '',
-    noOfTypes: '',
-    statusMessage: [] as StatusMessageItem[]
-  };
+const api = axios.create({
+  baseURL: 'http://192.168.1.8:8000/api/v1',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
 
-  const [formData, setFormData] = useState(initialFormData);
+export default function StatusMessageAdd({
+  setShowModal,
+  onSaved,
+}: StatusMessageAddProps) {
+  const [item, setItem] = useState<StatusMessageItem>({
+    defaultStatusName: '',
+    customStatusName: '',
+    isEnableOrDisable: true,
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (editingData) {
-      setFormData({
-        clientId: editingData.clientId || '',
-        propertyId: editingData.propertyId || '',
-        noOfTypes: editingData.noOfTypes.toString() || '',
-        statusMessage: editingData.statusMessage || []
-      });
-    } else {
-      setFormData(initialFormData);
-    }
-  }, [editingData]);
+    setItem({ defaultStatusName: '', customStatusName: '', isEnableOrDisable: true });
+  }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleStatusMessageChange = (index: number, field: keyof StatusMessageItem, value: string | boolean) => {
-    const updatedStatusMessage = [...formData.statusMessage];
-    updatedStatusMessage[index] = {
-      ...updatedStatusMessage[index],
-      [field]: value
-    };
-    setFormData(prev => ({
-      ...prev,
-      statusMessage: updatedStatusMessage
-    }));
-  };
-
-  const addStatusMessage = () => {
-    setFormData(prev => ({
-      ...prev,
-      statusMessage: [
-        ...prev.statusMessage,
-        {
-          defaultStatusName: '',
-          customStatusName: '',
-          isEnableOrDisable: true
-        }
-      ]
-    }));
-  };
-
-  const removeStatusMessage = (index: number) => {
-    const updatedStatusMessage = [...formData.statusMessage];
-    updatedStatusMessage.splice(index, 1);
-    setFormData(prev => ({
-      ...prev,
-      statusMessage: updatedStatusMessage
-    }));
+  const updateField = (field: keyof StatusMessageItem, value: string | boolean) => {
+    setItem((prev) => ({ ...prev, [field]: value as never }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/status-message/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/status-message/create`;
+    const payload: StatusMessageItem[] = [
+      {
+        defaultStatusName: item.defaultStatusName.trim(),
+        customStatusName: item.customStatusName.trim(),
+        isEnableOrDisable: !!item.isEnableOrDisable,
+      },
+    ];
 
-    const method = editingData ? 'PUT' : 'POST';
+    if (!payload[0].defaultStatusName || !payload[0].customStatusName) {
+      alert('Please fill both Default Status Name and Custom Status Name.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const requestData = {
-        clientId: formData.clientId,
-        propertyId: formData.propertyId,
-        noOfTypes: parseInt(formData.noOfTypes),
-        statusMessage: formData.statusMessage
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      alert(editingData ? 'Status Message updated successfully!' : 'Status Message added successfully!');
+      await api.post('/status-message/create', payload);
+      alert('Status Message added successfully!');
       onSaved?.();
       setShowModal(false);
-    } catch (error) {
-      console.error('Error:', error);
-      alert(`Failed to save data. ${error instanceof Error ? error.message : 'Please try again.'}`);
+    } catch (err) {
+      const axErr = err as AxiosError<any>;
+      const serverMsg =
+        axErr.response?.data?.message ||
+        axErr.response?.data?.error ||
+        axErr.message ||
+        'Unknown error';
+      console.error('POST /status-message/create failed:', axErr.response?.data || axErr);
+      alert(`Failed to save data. ${serverMsg}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto"
+      onClick={() => !isLoading && setShowModal(false)}
+    >
+      <div
+        className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="relative mb-4">
-          <h2 className="text-xl font-bold text-center text-blue-900">
-            {editingData ? 'Edit Status Message' : 'Add Status Message'}
-          </h2>
+          <h2 className="text-xl font-bold text-center text-blue-900">Add Status Message</h2>
           <div className="absolute top-0 right-0">
+
             <button
-              onClick={() => {
-                setShowModal(false);
-                onSaved?.();
-              }}
+              onClick={() => setShowModal(false)}
               className="text-gray-900 hover:text-red-500 text-2xl font-bold"
               disabled={isLoading}
+              aria-label="Close"
+              type="button"
             >
               &times;
             </button>
           </div>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">Client ID</label>
-              <input
-                type="text"
-                name="clientId"
-                value={formData.clientId}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Property Id</label>
-              <input
-                type="text"
-                name="propertyId"
-                value={formData.propertyId}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">No Of Types</label>
-              <input
-                type="number"
-                name="noOfTypes"
-                value={formData.noOfTypes}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Status Messages</h3>
-            {formData.statusMessage.map((message, index) => (
-              <div key={index} className="border rounded-lg p-4 mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">Status Message {index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => removeStatusMessage(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium">Default Status Name</label>
-                    <input
-                      type="text"
-                      value={message.defaultStatusName}
-                      onChange={(e) => handleStatusMessageChange(index, 'defaultStatusName', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Custom Status Name</label>
-                    <input
-                      type="text"
-                      value={message.customStatusName}
-                      onChange={(e) => handleStatusMessageChange(index, 'customStatusName', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Enable/Disable</label>
-                    <select
-                      value={message.isEnableOrDisable ? 'true' : 'false'}
-                      onChange={(e) => handleStatusMessageChange(index, 'isEnableOrDisable', e.target.value === 'true')}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    >
-                      <option value="true">Enable</option>
-                      <option value="false">Disable</option>
-                    </select>
-                  </div>
-                </div>
+          <div className="border rounded-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium">Default Status Name</label>
+                <input
+                  type="text"
+                  value={item.defaultStatusName}
+                  onChange={(e) => updateField('defaultStatusName', e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  required
+                />
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addStatusMessage}
-              className="mt-2 bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200"
-            >
-              Add Status Message
-            </button>
+
+              <div>
+                <label className="block text-sm font-medium">Custom Status Name</label>
+                <input
+                  type="text"
+                  value={item.customStatusName}
+                  onChange={(e) => updateField('customStatusName', e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">Enable/Disable</label>
+                <select
+                  value={item.isEnableOrDisable ? 'true' : 'false'}
+                  onChange={(e) => updateField('isEnableOrDisable', e.target.value === 'true')}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  required
+                >
+                  <option value="true">Enable</option>
+                  <option value="false">Disable</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="flex justify-end pt-4 space-x-3">
+          <div className="flex justify-end pt-2 space-x-3">
+
             <button
               type="button"
-              onClick={() => {
-                setShowModal(false);
-                onSaved?.();
-              }}
+              onClick={() => setShowModal(false)}
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded"
               disabled={isLoading}
             >
@@ -267,13 +159,11 @@ const StatusMessageAdd = ({ setShowModal, editingData, onSaved }: StatusMessageA
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
               disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : editingData ? 'Update' : 'Submit'}
+              {isLoading ? 'Processing...' : 'Submit'}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default StatusMessageAdd;
+}

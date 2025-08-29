@@ -98,8 +98,8 @@ const NotificationAdd = ({ setShowModal, editingData, onSaved }: NotificationPro
     setIsLoading(true);
 
     const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/notification/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/notification/create`;
+      ? `http://192.168.1.8:8000/api/v1/notification/update/${editingData.id}`
+      : `http://192.168.1.8:8000/api/v1/notification/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 

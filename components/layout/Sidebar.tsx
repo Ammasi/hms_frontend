@@ -17,7 +17,8 @@ import {
   FaEnvelope,
   FaPhoneAlt,
   FaBell,
-  FaAddressCard
+  FaAddressCard,
+  FaReply
 } from 'react-icons/fa';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -58,29 +59,29 @@ export default function Sidebar() {
             </li>
           )}
 
-
+{/* 
           <li>
             <Link href="/hotelManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaHotel className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Hotel Management</span>
             </Link>
-          </li>
+          </li> */}
 
           {/* Customer Management */}
-          <li>
+          {/* <li>
             <Link href="/customerManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaUsers className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Customer Management</span>
             </Link>
-          </li>
+          </li> */}
 
           {/* Task Sheet */}
-          <li>
+          {/* <li>
             <Link href="/taskSheet" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaTasks className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Task Sheet</span>
             </Link>
-          </li>
+          </li> */}
 
           {/* Subscription Limit */}
           <li>
@@ -91,10 +92,38 @@ export default function Sidebar() {
           </li>
 
           {/* Hotel Facility */}
-          <li>
+          {/* <li>
             <Link href="/hotelFacility" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaConciergeBell className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Hotel Facility</span>
+            </Link>
+          </li> */}
+          {/* Booking Report */}
+          <li>
+            <Link href="/bookingReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaReply className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>Booking Report</span>
+            </Link>
+          </li>
+          {/* Stay Report */}
+          <li>
+            <Link href="/stayReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaReply className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>Stay Report</span>
+            </Link>
+          </li>
+          {/* Night Audit Report*/}
+          <li>
+            <Link href="/nightAuditReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaReply className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>Night Audit Report</span>
+            </Link>
+          </li>
+          {/*Reservation Report*/}
+          <li>
+            <Link href="/reservationReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaReply className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>Reservation Report</span>
             </Link>
           </li>
 
@@ -136,33 +165,33 @@ export default function Sidebar() {
             </Link>
           </li>
           {/* subscription Model */}
-          {/* <li>
+          <li>
             <Link href="/subscriptionModel" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaCreditCard className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Subscription Model</span>
             </Link>
-          </li> */}
+          </li>
           {/*  Status Message */}
-          {/* <li>
+          <li>
             <Link href="/statusMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaEnvelope className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Status Message</span>
             </Link>
-          </li> */}
+          </li>
           {/*  Call Message */}
-          {/* <li>
+          <li>
             <Link href="/callMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaPhoneAlt className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Call Message</span>
             </Link>
-          </li> */}
+          </li>
           {/*  Notification */}
-          {/* <li>
+          <li>
             <Link href="/notification" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaBell className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Notification</span>
             </Link>
-          </li> */}
+          </li>
           {/*  CustomerInfo */}
           {/* <li>
             <Link href="/customerInfo" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">

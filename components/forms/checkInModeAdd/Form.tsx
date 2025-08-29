@@ -61,8 +61,8 @@ const CheckInModeForm = ({ setShowModal, editingData, onSaved }: CheckInModeForm
     try {
       const id = get(editingData, 'id', '');
       const url = id
-        ? `http://192.168.1.14:8000/api/v1/checkin-mode/update/${id}`
-        : `http://192.168.1.14:8000/api/v1/checkin-mode/create`;
+        ? `http://192.168.1.8:8000/api/v1/checkin-mode/update/${id}`
+        : `http://192.168.1.8:8000/api/v1/checkin-mode/create`;
 
       const response = await fetch(url, {
         method: editingData ? 'PUT' : 'POST',

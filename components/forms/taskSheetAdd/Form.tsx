@@ -93,8 +93,8 @@ const TaskSheetAdd = ({ setShowModal, editingData, onSaved }: TaskSheetAddProps)
     setIsLoading(true);
 
     const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/task-sheet/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/task-sheet/create`;
+      ? `http://192.168.1.8:8000/api/v1/task-sheet/update/${editingData.id}`
+      : `http://192.168.1.8:8000/api/v1/task-sheet/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ClientAddData } from '../../interface/Client';
 import { createHotelOwner, updateHotelOwner } from '../../../lib/api';
+import axios from "axios";
 
 type ClientAddProps = {
   setShowModal: (value: boolean) => void;
@@ -17,7 +18,7 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
     clientMobileNo: '',
     gst: '',
     currency: 'INR',
-    subscription: 'Premium',
+    subscription: '',
     subscriptionStatus: 'Active',
     subscriptionStartDate: '',
     subscriptionEndDate: '',
@@ -32,11 +33,11 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
 
   const [formData, setFormData] = useState(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [planNames, setPlanNames] = useState<string[]>([]);
   const [existingUrls, setExistingUrls] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const MAX_IMAGES = 3;
-
+  type SubscriptionModel = { planDefaultName: string };
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const openPicker = () => fileInputRef.current?.click();
 
@@ -74,7 +75,9 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
   ].slice(0, MAX_IMAGES);
 
   useEffect(() => {
+    getPlans();
     if (editingData) {
+
       const transformedData = {
         companyName: editingData.companyName || '',
         clientName: editingData.clientName || '',
@@ -82,7 +85,7 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
         clientMobileNo: editingData.clientMobileNo || '',
         gst: editingData.gst || '',
         currency: editingData.currency || 'INR',
-        subscription: editingData.subscripton || editingData.subscription || 'Premium',
+        subscription: editingData.subscripton || editingData.subscription || '',
         subscriptionStatus: editingData.subscriptonStatus || editingData.subscriptionStatus || 'Active',
         subscriptionStartDate: formatDateForInput(editingData.subscriptionStartDate),
         subscriptionEndDate: formatDateForInput(editingData.subscriptonEndDate || editingData.subscriptionEndDate),
@@ -154,7 +157,18 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
       return null;
     }
   }
+  async function getPlans() {
 
+    const res = await axios.get<SubscriptionModel[]>(
+      "http://192.168.1.8:8000/api/v1/subscription-model/"
+    );
+
+    const names: string[] = res.data
+      .map((item) => item.planDefaultName?.trim())
+      .filter((s): s is string => !!s && s.length > 0);
+    const uniqueNames: string[] = Array.from(new Set<string>(names));
+    setPlanNames(uniqueNames);
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -215,8 +229,6 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
       setIsLoading(false);
     }
   };
-
-
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
       <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-3">
@@ -293,19 +305,23 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-700">Subscription <span className="text-red-500">*</span></label>
+              <label className="text-sm font-semibold text-gray-700">
+                Subscription <span className="text-red-500">*</span>
+              </label>
               <select
                 name="subscription"
                 value={formData.subscription}
                 onChange={handleChange}
-
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+             focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
                 required
               >
-                <option value="Basic">Basic</option>
-                <option value="Standard">Standard</option>
-                <option value="Premium">Premium</option>
+                <option value="">-- Select Plan --</option>
+                {planNames.map((plan) => (
+                  <option key={plan} value={plan}>
+                    {plan}
+                  </option>
+                ))}
               </select>
             </div>
 

@@ -1,11 +1,14 @@
 'use client';
 import { ReactNode, useEffect, useState } from 'react';
+import { fetchStatusMessage } from '../../../lib/api';
 
 type Floor = { propertyId: string; floors: number };
 type Room = { propertyId: string; rooms: number };
 type RoomType = { propertyId: string; types: number };
 type ReportType = { propertyId: string; reports: number };
+
 type Status = { propertyId: string; status: number };
+
 type Call = { propertyId: string; call: number };
 type Notification = { propertyId: string; notification: number };
 
@@ -21,7 +24,7 @@ type SubscriptionModelData = {
   noOfRooms: Room[];
   noOfRoomTypes: RoomType[];
   noOfReportTypes: ReportType[];
-  noOfStatus: Status[];
+  noOfStatus?: string[] | Status[];
   noOfCall: Call[];
   noOfNotification: Notification[];
   priority?: ReactNode;
@@ -32,6 +35,13 @@ type SubscriptionModelAddProps = {
   setShowModal: (value: boolean) => void;
   editingData?: SubscriptionModelData | null;
   onSaved?: () => void;
+};
+
+type FlatStatusMessage = {
+  id: string;
+  defaultStatusName: string;
+  customStatusName?: string;
+  isEnableOrDisable: boolean;
 };
 
 const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: SubscriptionModelAddProps) => {
@@ -51,61 +61,60 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
       status: string;
       call: string;
       notification: string;
-    }>
+    }>,
   };
 
   const [formData, setFormData] = useState(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
 
+
+  const [statusOptions, setStatusOptions] = useState<FlatStatusMessage[]>([]);
+  const [selectedStatusIds, setSelectedStatusIds] = useState<Set<string>>(new Set());
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+
   useEffect(() => {
     if (editingData) {
-       
       const propertyMap = new Map<string, any>();
-      
-    
-      editingData.noOfFloors?.forEach(floor => {
+
+      editingData.noOfFloors?.forEach((floor) => {
         if (!propertyMap.has(floor.propertyId)) {
           propertyMap.set(floor.propertyId, { propertyId: floor.propertyId });
         }
         propertyMap.get(floor.propertyId).floors = floor.floors.toString();
       });
 
-      editingData.noOfRooms?.forEach(room => {
+      editingData.noOfRooms?.forEach((room) => {
         if (!propertyMap.has(room.propertyId)) {
           propertyMap.set(room.propertyId, { propertyId: room.propertyId });
         }
         propertyMap.get(room.propertyId).rooms = room.rooms.toString();
       });
 
-      editingData.noOfRoomTypes?.forEach(type => {
+      editingData.noOfRoomTypes?.forEach((type) => {
         if (!propertyMap.has(type.propertyId)) {
           propertyMap.set(type.propertyId, { propertyId: type.propertyId });
         }
         propertyMap.get(type.propertyId).types = type.types.toString();
       });
 
-      editingData.noOfReportTypes?.forEach(report => {
+      editingData.noOfReportTypes?.forEach((report) => {
         if (!propertyMap.has(report.propertyId)) {
           propertyMap.set(report.propertyId, { propertyId: report.propertyId });
         }
         propertyMap.get(report.propertyId).reports = report.reports.toString();
       });
 
-      editingData.noOfStatus?.forEach(status => {
-        if (!propertyMap.has(status.propertyId)) {
-          propertyMap.set(status.propertyId, { propertyId: status.propertyId });
-        }
-        propertyMap.get(status.propertyId).status = status.status.toString();
-      });
 
-      editingData.noOfCall?.forEach(call => {
+      editingData.noOfCall?.forEach((call) => {
         if (!propertyMap.has(call.propertyId)) {
           propertyMap.set(call.propertyId, { propertyId: call.propertyId });
         }
         propertyMap.get(call.propertyId).call = call.call.toString();
       });
 
-      editingData.noOfNotification?.forEach(notification => {
+      editingData.noOfNotification?.forEach((notification) => {
         if (!propertyMap.has(notification.propertyId)) {
           propertyMap.set(notification.propertyId, { propertyId: notification.propertyId });
         }
@@ -121,16 +130,46 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
         price: editingData.price.toString() || '',
         duration: editingData.duration || '',
         noOfProperty: editingData.noOfProperty.toString() || '',
-        properties
+        properties,
       });
     } else {
       setFormData(initialFormData);
     }
   }, [editingData]);
 
+  useEffect(() => {
+    const loadStatuses = async () => {
+      setStatusLoading(true);
+      setStatusError(null);
+      try {
+        const res = await fetchStatusMessage();
+        const raw = res?.data;
+        const list: FlatStatusMessage[] = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : [];
+
+        // const active = list.filter((x) => x.isEnableOrDisable !== false);
+        setStatusOptions(list);
+        if (editingData && Array.isArray(editingData.noOfStatus) && typeof editingData.noOfStatus[0] === 'string') {
+          setSelectedStatusIds(new Set(editingData.noOfStatus as string[]));
+        }
+      } catch (err: any) {
+        console.error('Error fetching status messages:', err);
+        setStatusError('Failed to fetch status options');
+        setStatusOptions([]);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatuses();
+  }, [editingData?.id]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -140,16 +179,16 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
     const updatedProperties = [...formData.properties];
     updatedProperties[index] = {
       ...updatedProperties[index],
-      [field]: value
+      [field]: value,
     };
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      properties: updatedProperties
+      properties: updatedProperties,
     }));
   };
 
   const addProperty = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       properties: [
         ...prev.properties,
@@ -161,18 +200,18 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
           reports: '',
           status: '',
           call: '',
-          notification: ''
-        }
-      ]
+          notification: '',
+        },
+      ],
     }));
   };
 
   const removeProperty = (index: number) => {
     const updatedProperties = [...formData.properties];
     updatedProperties.splice(index, 1);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      properties: updatedProperties
+      properties: updatedProperties,
     }));
   };
 
@@ -181,13 +220,12 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
     setIsLoading(true);
 
     const url = editingData
-      ? `http://192.168.1.14:8000/api/v1/subscription-model/update/${editingData.id}`
-      : `http://192.168.1.14:8000/api/v1/subscription-model/create`;
+      ? `http://192.168.1.8:8000/api/v1/subscription-model/update/${editingData.id}`
+      : `http://192.168.1.8:8000/api/v1/subscription-model/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 
     try {
-    
       const requestData = {
         clientId: formData.clientId,
         planDefaultName: formData.planDefaultName,
@@ -195,34 +233,32 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
         price: Number(formData.price),
         duration: formData.duration,
         noOfProperty: Number(formData.noOfProperty),
-        noOfFloors: formData.properties.map(p => ({
+        noOfFloors: formData.properties.map((p) => ({
           propertyId: p.propertyId,
-          floors: Number(p.floors)
+          floors: Number(p.floors),
         })),
-        noOfRooms: formData.properties.map(p => ({
+        noOfRooms: formData.properties.map((p) => ({
           propertyId: p.propertyId,
-          rooms: Number(p.rooms)
+          rooms: Number(p.rooms),
         })),
-        noOfRoomTypes: formData.properties.map(p => ({
+        noOfRoomTypes: formData.properties.map((p) => ({
           propertyId: p.propertyId,
-          types: Number(p.types)
+          types: Number(p.types),
         })),
-        noOfReportTypes: formData.properties.map(p => ({
+        noOfReportTypes: formData.properties.map((p) => ({
           propertyId: p.propertyId,
-          reports: Number(p.reports)
+          reports: Number(p.reports),
         })),
-        noOfStatus: formData.properties.map(p => ({
+        noOfStatus: Array.from(selectedStatusIds),
+
+        noOfCall: formData.properties.map((p) => ({
           propertyId: p.propertyId,
-          status: Number(p.status)
+          call: Number(p.call),
         })),
-        noOfCall: formData.properties.map(p => ({
+        noOfNotification: formData.properties.map((p) => ({
           propertyId: p.propertyId,
-          call: Number(p.call)
+          notification: Number(p.notification),
         })),
-        noOfNotification: formData.properties.map(p => ({
-          propertyId: p.propertyId,
-          notification: Number(p.notification)
-        }))
       };
 
       const response = await fetch(url, {
@@ -239,7 +275,7 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
       alert(editingData ? 'Subscription model updated successfully!' : 'Subscription model added successfully!');
       onSaved?.();
       setShowModal(false);
@@ -271,6 +307,7 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
             </button>
           </div>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -345,6 +382,9 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
               />
             </div>
           </div>
+         
+
+
 
           <div className="mt-6">
             <h3 className="text-lg font-medium mb-2">Properties</h3>
@@ -360,6 +400,7 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
                     Remove
                   </button>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium">Property ID</label>
@@ -412,14 +453,63 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Status</label>
-                    <input
-                      type="number"
-                      value={property.status}
-                      onChange={(e) => handlePropertyChange(index, 'status', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
+                    <label className="block text-sm font-medium mb-1">Status</label>
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatusIds(new Set(statusOptions.map(o => o.id)))}
+                        className="text-xs px-2 py-1 rounded border"
+                      >
+                        Select all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatusIds(new Set())}
+                        className="text-xs px-2 py-1 rounded border"
+                      >
+                        Clear
+                      </button>
+                    </div>
+
+                    <div className="border border-gray-300 rounded p-2 max-h-48 overflow-y-auto">
+                      {statusLoading && <div className="text-sm text-gray-500 p-2">Loading…</div>}
+                      {statusError && <div className="text-sm text-red-600 p-2">{statusError}</div>}
+                      {!statusLoading && statusOptions.length === 0 && (
+                        <div className="text-sm text-gray-500 p-2">No status options available.</div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {statusOptions.map((opt) => {
+                          const label = opt.customStatusName?.trim() ? opt.customStatusName : opt.defaultStatusName;
+                          const checked = selectedStatusIds.has(opt.id);
+                          return (
+                            <label
+                              key={opt.id}
+                              className={`flex items-center gap-2 rounded border px-3 py-2 transition
+              ${checked ? 'bg-blue-50 border-blue-300' : 'bg-white hover:bg-gray-50'}
+            `}
+                            >
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={checked}
+                                onChange={(e) => {
+                                  setSelectedStatusIds(prev => {
+                                    const next = new Set(prev);
+                                    e.target.checked ? next.add(opt.id) : next.delete(opt.id);
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <span className="text-sm">{label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-1">Selected: {selectedStatusIds.size}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium">Call</label>
@@ -444,6 +534,7 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
                 </div>
               </div>
             ))}
+
             <button
               type="button"
               onClick={addProperty}
