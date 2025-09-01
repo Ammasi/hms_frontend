@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import get from 'lodash/get';
 const API_BASE_URL = 'http://192.168.1.8:8000/api/v1';
 
 const api = axios.create({
@@ -25,25 +26,35 @@ api.interceptors.request.use((config) => {
 // ----------------- Auth APIs -----------------
 export const login = (email: string, password: string) =>
   api.post('/auth/login', { email, password });
- 
+
 export const verifyUser = async () => {
   const res = await api.get("/auth/verify");
   return res.data;
 };
 
+// export const verifyUser = async () => {
+//   const res = await api.get("/auth/verify");
+
+//   return get(res, "data", null);
+// };
+
 export const logout = async () => {
   try {
-    await api.post("/auth/logout");  
+    await api.post("/auth/logout");
   } catch (err) {
     console.error("Logout API error:", err);
-  } finally { 
+  } finally {
     localStorage.removeItem("user");
     Cookies.remove("auth_token");
   }
 };
 
 // ----------------- Subscription APIs -----------------
-export const fetchSubscriptions = () => api.get('/product-subscription');
+export const fetchSubscriptions = async () => {
+  const response = await api.get('/product-subscription');
+
+  return get(response, 'data', []);
+};
 
 export const createHotelOwner = (fd: FormData) =>
   api.post('/product-subscription/create', fd, {
@@ -58,8 +69,12 @@ export const updateHotelOwner = (id: string, fd: FormData) =>
 export const deleteHotelOwner = (id: string) =>
   api.delete(`/product-subscription/delete/${id}`);
 
-export const fetchHotelOwnerById = (id: string) =>
-  api.get(`/product-subscription/${id}`).then((res) => res.data);
+export const fetchHotelOwnerById = async (id: string) => {
+  const response = await api.get(`/product-subscription/${id}`);
+
+  const res = get(response, 'data', null);
+  return res;
+};
 
 // ----------------- Dynamic URL & Method Helper -----------------
 
@@ -262,7 +277,11 @@ export const fetchChargesRegisterById = (id: string) =>
 
 // ----------------- Property APIs -----------------
 
-export const fetchProperty = () => api.get('/property');
+export const fetchProperty = async () => {
+  const response = await api.get("/property");
+
+  return get(response, "data", []);
+};
 
 export const createProperty = (formData: FormData) =>
   api.post('/property/create', formData, {
@@ -282,29 +301,37 @@ export const fetchPropertyById = (id: string) =>
 
 // ----------------- subscriptiomodel APIs -----------------
 
-export const fetchSubscriptioModel = () => api.get('/subscription-model');
+ 
+
+export const fetchSubscriptioModel = async () => {
+  const response = await api.get("/subscription-model");
+
+  return get(response, "data", []);
+};
 
 export const createSubscriptioModel = (formData: any) =>
-  api.post('/subscription-model/create', {
-    ...formData
-
-  });
+  api.post('/subscription-model/create', formData);
 
 export const updateSubscriptioModel = (id: string, data: any) =>
-  api.put(`/subscription-model/update/${id}`, {
-    ...data
-
-  });
+  api.put(`/subscription-model/update/${id}`, data);
 
 export const deleteSubscriptioModel = (id: string) =>
   api.delete(`/subscription-model/delete/${id}`);
+ 
 
-export const fetchSubscriptioModelById = (id: string) =>
-  api.get(`/subscription-model/${id}`).then(res => res.data);
+export const fetchSubscriptioModelById = async (id: string) => {
+  const res = await api.get(`/subscription-model/${id}`);
+  return get(res, "data", {}); 
+};
 
 // ----------------- Status Message APIs -----------------
+ 
 
-export const fetchStatusMessage = () => api.get('/status-message');
+
+export const fetchStatusMessage = async () => { 
+  const res = await api.get("/status-message"); 
+  return get(res, "data", []);    
+};
 
 export const createStatusMessage = (formData: any) =>
   api.post('/status-message/create', {
@@ -319,15 +346,19 @@ export const updateStatusMessage = (id: string, data: any) =>
   });
 
 export const deleteStatusMessage = (id: string) =>
-  api.delete(`/status-message/delete/${id}`);
+  api.delete(`/status-message/delete/${id}`); 
 
-export const fetchStatusMessageById = (id: string) =>
-  api.get(`/status-message/${id}`).then(res => res.data);
 
+export const fetchStatusMessageById = async (id: string) => {
+  const res = await api.get(`/status-message/${id}`);
+  return get(res, "data", {}); 
+};
 // ----------------- Call Message APIs -----------------
 
-export const fetchCallMessage = () => api.get('/call-message');
-
+export const fetchCallMessage = async () => { 
+  const res = await api.get("/call-message"); 
+  return get(res, "data", []);    
+};
 export const createCallMessage = (formData: any) =>
   api.post('/call-message/create', {
     ...formData
@@ -343,13 +374,18 @@ export const updateCallMessage = (id: string, data: any) =>
 export const deleteCallMessage = (id: string) =>
   api.delete(`/call-message/delete/${id}`);
 
-export const fetchCallMessageById = (id: string) =>
-  api.get(`/call-message/${id}`).then(res => res.data);
+export const fetchCallMessageById = async (id: string) => {
+  const res = await api.get(`/call-message/${id}`);
+  return get(res, "data", {}); 
+};
 
 // ----------------- Notification APIs -----------------
 
-export const fetchNotification = () => api.get('/notification');
-
+ 
+export const fetchNotification = async () => { 
+  const res = await api.get("/notification"); 
+  return get(res, "data", []);    
+};
 export const createNotification = (formData: any) =>
   api.post('/notification/create', {
     ...formData
@@ -365,9 +401,14 @@ export const updateNotification = (id: string, data: any) =>
 export const deleteNotification = (id: string) =>
   api.delete(`/notification/delete/${id}`);
 
-export const fetchNotificationById = (id: string) =>
-  api.get(`/notification/${id}`).then(res => res.data);
+ 
+ 
 
+
+export const fetchNotificationById = async (id: string) => {
+  const res = await api.get(`/notification/${id}`);
+  return get(res, "data", {}); 
+};
 // ----------------- CustomerInfo APIs -----------------
 
 export const fetchCustomerInfo = () => api.get('/customer-info');

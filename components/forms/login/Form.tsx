@@ -39,7 +39,7 @@ export const LoginForm = ({ onRegisterClick, onForgotClick }: Props) => {
           secure: process.env.NODE_ENV === 'production',
         });
 
-        // (optional) if backend returns user, store it for instant UI
+     
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user));
         }

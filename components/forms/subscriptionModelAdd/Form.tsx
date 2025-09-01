@@ -1,35 +1,9 @@
 'use client';
-import { ReactNode, useEffect, useState } from 'react';
-import { fetchStatusMessage } from '../../../lib/api';
-
-type Floor = { propertyId: string; floors: number };
-type Room = { propertyId: string; rooms: number };
-type RoomType = { propertyId: string; types: number };
-type ReportType = { propertyId: string; reports: number };
-
-type Status = { propertyId: string; status: number };
-
-type Call = { propertyId: string; call: number };
-type Notification = { propertyId: string; notification: number };
-
-type SubscriptionModelData = {
-  id: string;
-  clientId: string;
-  planDefaultName: string;
-  planCustomName: string;
-  price: number;
-  duration: string;
-  noOfProperty: number;
-  noOfFloors: Floor[];
-  noOfRooms: Room[];
-  noOfRoomTypes: RoomType[];
-  noOfReportTypes: ReportType[];
-  noOfStatus?: string[] | Status[];
-  noOfCall: Call[];
-  noOfNotification: Notification[];
-  priority?: ReactNode;
-  deadline?: string;
-};
+import { useEffect, useState } from 'react';
+import { createSubscriptioModel, fetchCallMessage, fetchNotification, fetchStatusMessage, updateSubscriptioModel } from '../../../lib/api';
+import { CallMessageItem } from '../../interface/callMessage';
+import { StatusMessageItem } from '../../interface/StatusMessage';
+import { FlatCallMessage, FlatNotificationMessage, FlatStatusMessage, SubscriptionModelData } from '../../interface/SubscriptionModel';
 
 type SubscriptionModelAddProps = {
   setShowModal: (value: boolean) => void;
@@ -37,256 +11,184 @@ type SubscriptionModelAddProps = {
   onSaved?: () => void;
 };
 
-type FlatStatusMessage = {
-  id: string;
-  defaultStatusName: string;
-  customStatusName?: string;
-  isEnableOrDisable: boolean;
-};
-
 const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: SubscriptionModelAddProps) => {
   const initialFormData = {
     clientId: '',
+    propertyId: '',
     planDefaultName: '',
     planCustomName: '',
     price: '',
     duration: '',
     noOfProperty: '',
-    properties: [] as Array<{
-      propertyId: string;
-      floors: string;
-      rooms: string;
-      types: string;
-      reports: string;
-      status: string;
-      call: string;
-      notification: string;
-    }>,
+    noOfFloors: '',
+    noOfRooms: '',
+    noOfRoomTypes: '',
+    noOfReportTypes: [] as string[],
   };
 
   const [formData, setFormData] = useState(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
 
-
   const [statusOptions, setStatusOptions] = useState<FlatStatusMessage[]>([]);
-  const [selectedStatusIds, setSelectedStatusIds] = useState<Set<string>>(new Set());
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
+  const [callOptions, setCallOptions] = useState<FlatCallMessage[]>([]);
+  const [notificationOptions, setNotificationOptions] = useState<FlatNotificationMessage[]>([]);
+
+
+  const [selectedStatusNames, setSelectedStatusNames] = useState<Set<string>>(new Set());
+  const [selectedCallNames, setSelectedCallNames] = useState<Set<string>>(new Set());
+  const [selectedNotificationNames, setSelectedNotificationNames] = useState<Set<string>>(new Set());
+
 
 
   useEffect(() => {
     if (editingData) {
-      const propertyMap = new Map<string, any>();
-
-      editingData.noOfFloors?.forEach((floor) => {
-        if (!propertyMap.has(floor.propertyId)) {
-          propertyMap.set(floor.propertyId, { propertyId: floor.propertyId });
-        }
-        propertyMap.get(floor.propertyId).floors = floor.floors.toString();
-      });
-
-      editingData.noOfRooms?.forEach((room) => {
-        if (!propertyMap.has(room.propertyId)) {
-          propertyMap.set(room.propertyId, { propertyId: room.propertyId });
-        }
-        propertyMap.get(room.propertyId).rooms = room.rooms.toString();
-      });
-
-      editingData.noOfRoomTypes?.forEach((type) => {
-        if (!propertyMap.has(type.propertyId)) {
-          propertyMap.set(type.propertyId, { propertyId: type.propertyId });
-        }
-        propertyMap.get(type.propertyId).types = type.types.toString();
-      });
-
-      editingData.noOfReportTypes?.forEach((report) => {
-        if (!propertyMap.has(report.propertyId)) {
-          propertyMap.set(report.propertyId, { propertyId: report.propertyId });
-        }
-        propertyMap.get(report.propertyId).reports = report.reports.toString();
-      });
-
-
-      editingData.noOfCall?.forEach((call) => {
-        if (!propertyMap.has(call.propertyId)) {
-          propertyMap.set(call.propertyId, { propertyId: call.propertyId });
-        }
-        propertyMap.get(call.propertyId).call = call.call.toString();
-      });
-
-      editingData.noOfNotification?.forEach((notification) => {
-        if (!propertyMap.has(notification.propertyId)) {
-          propertyMap.set(notification.propertyId, { propertyId: notification.propertyId });
-        }
-        propertyMap.get(notification.propertyId).notification = notification.notification.toString();
-      });
-
-      const properties = Array.from(propertyMap.values());
-
       setFormData({
         clientId: editingData.clientId || '',
+        propertyId: editingData.propertyId || '',
         planDefaultName: editingData.planDefaultName || '',
         planCustomName: editingData.planCustomName || '',
-        price: editingData.price.toString() || '',
+        price: (editingData.price ?? '').toString(),
         duration: editingData.duration || '',
-        noOfProperty: editingData.noOfProperty.toString() || '',
-        properties,
+        noOfProperty: (editingData.noOfProperty ?? '').toString(),
+        noOfFloors: editingData.noOfFloors?.[0]?.toString() || '',
+        noOfRooms: editingData.noOfRooms?.[0]?.toString() || '',
+        noOfRoomTypes: editingData.noOfRoomTypes?.join(', ') || '',
+        noOfReportTypes: editingData.noOfReportTypes || [],
       });
+
+      if (editingData.noOfStatus) {
+        const names = editingData.noOfStatus.map((s: any) =>
+          typeof s === 'string' ? s : s.defaultStatusName
+        ).filter(Boolean);
+        setSelectedStatusNames(new Set(names));
+      }
+      if (editingData.noOfCall) {
+        const names = editingData.noOfCall.map((c: any) =>
+          typeof c === 'string' ? c : c.defaultCallName
+        ).filter(Boolean);
+        setSelectedCallNames(new Set(names));
+      }
+      if (editingData.noOfNotification) {
+        const names = editingData.noOfNotification.map((n: any) =>
+          typeof n === 'string' ? n : n.defaultNotificationName
+        ).filter(Boolean);
+        setSelectedNotificationNames(new Set(names));
+      }
     } else {
       setFormData(initialFormData);
     }
   }, [editingData]);
 
+  // Load options
   useEffect(() => {
-    const loadStatuses = async () => {
-      setStatusLoading(true);
-      setStatusError(null);
-      try {
-        const res = await fetchStatusMessage();
-        const raw = res?.data;
-        const list: FlatStatusMessage[] = Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw?.data)
-            ? raw.data
-            : [];
+    const load = async () => {
 
-        // const active = list.filter((x) => x.isEnableOrDisable !== false);
-        setStatusOptions(list);
-        if (editingData && Array.isArray(editingData.noOfStatus) && typeof editingData.noOfStatus[0] === 'string') {
-          setSelectedStatusIds(new Set(editingData.noOfStatus as string[]));
-        }
+
+      try {
+        const list: CallMessageItem[] = await fetchCallMessage();
+        const res = await fetchNotification();
+        const listStatus: StatusMessageItem[] = await fetchStatusMessage();
+
+        const flatStatus = (Array.isArray(listStatus) ? listStatus : []).map((s) => ({
+          id: s.id ?? '',
+          defaultStatusName: s.defaultStatusName,
+          customStatusName: s.customStatusName,
+          isEnableOrDisable: s.isEnableOrDisable,
+        }));
+
+        const flatCall = Array.isArray(list) ? list : [];
+        const flatNotification = Array.isArray(res) ? res : [];
+
+        setStatusOptions(flatStatus);
+        setCallOptions(flatCall);
+        setNotificationOptions(flatNotification);
       } catch (err: any) {
-        console.error('Error fetching status messages:', err);
-        setStatusError('Failed to fetch status options');
+        console.error('Error fetching options:', err);
+
         setStatusOptions([]);
-      } finally {
-        setStatusLoading(false);
+        setCallOptions([]);
+        setNotificationOptions([]);
       }
     };
 
-    loadStatuses();
+    load();
   }, [editingData?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePropertyChange = (index: number, field: string, value: string) => {
-    const updatedProperties = [...formData.properties];
-    updatedProperties[index] = {
-      ...updatedProperties[index],
-      [field]: value,
-    };
-    setFormData((prev) => ({
-      ...prev,
-      properties: updatedProperties,
-    }));
+  const handleReportChange = (value: string) => {
+    setFormData((prev) => {
+      const newReports = [...prev.noOfReportTypes];
+      if (newReports.includes(value)) {
+        return { ...prev, noOfReportTypes: newReports.filter((r) => r !== value) };
+      } else {
+        return { ...prev, noOfReportTypes: [...newReports, value] };
+      }
+    });
   };
-
-  const addProperty = () => {
-    setFormData((prev) => ({
-      ...prev,
-      properties: [
-        ...prev.properties,
-        {
-          propertyId: '',
-          floors: '',
-          rooms: '',
-          types: '',
-          reports: '',
-          status: '',
-          call: '',
-          notification: '',
-        },
-      ],
-    }));
-  };
-
-  const removeProperty = (index: number) => {
-    const updatedProperties = [...formData.properties];
-    updatedProperties.splice(index, 1);
-    setFormData((prev) => ({
-      ...prev,
-      properties: updatedProperties,
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const url = editingData
-      ? `http://192.168.1.8:8000/api/v1/subscription-model/update/${editingData.id}`
-      : `http://192.168.1.8:8000/api/v1/subscription-model/create`;
-
-    const method = editingData ? 'PUT' : 'POST';
-
     try {
+      const roomTypesArray = formData.noOfRoomTypes
+        .split(',')
+        .map((type) => type.trim())
+        .filter((type) => type.length > 0);
+
+      const statusIds = Array.from(selectedStatusNames)
+        .map((name) => statusOptions.find((s) => s.defaultStatusName === name)?.id)
+        .filter(Boolean);
+
+      const callIds = Array.from(selectedCallNames)
+        .map((name) => callOptions.find((c) => c.defaultCallName === name)?.id)
+        .filter(Boolean);
+
+      const notificationIds = Array.from(selectedNotificationNames)
+        .map((name) => notificationOptions.find((n) => n.defaultNotificationName === name)?.id)
+        .filter(Boolean);
+
       const requestData = {
         clientId: formData.clientId,
+        propertyId: formData.propertyId,
         planDefaultName: formData.planDefaultName,
         planCustomName: formData.planCustomName,
         price: Number(formData.price),
         duration: formData.duration,
         noOfProperty: Number(formData.noOfProperty),
-        noOfFloors: formData.properties.map((p) => ({
-          propertyId: p.propertyId,
-          floors: Number(p.floors),
-        })),
-        noOfRooms: formData.properties.map((p) => ({
-          propertyId: p.propertyId,
-          rooms: Number(p.rooms),
-        })),
-        noOfRoomTypes: formData.properties.map((p) => ({
-          propertyId: p.propertyId,
-          types: Number(p.types),
-        })),
-        noOfReportTypes: formData.properties.map((p) => ({
-          propertyId: p.propertyId,
-          reports: Number(p.reports),
-        })),
-        noOfStatus: Array.from(selectedStatusIds),
-
-        noOfCall: formData.properties.map((p) => ({
-          propertyId: p.propertyId,
-          call: Number(p.call),
-        })),
-        noOfNotification: formData.properties.map((p) => ({
-          propertyId: p.propertyId,
-          notification: Number(p.notification),
-        })),
+        noOfFloors: [Number(formData.noOfFloors)],
+        noOfRooms: [Number(formData.noOfRooms)],
+        noOfRoomTypes: roomTypesArray,
+        noOfReportTypes: formData.noOfReportTypes,
+        noOfStatus: statusIds,
+        noOfCall: callIds,
+        noOfNotification: notificationIds,
       };
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestData),
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (editingData) {
+        await updateSubscriptioModel(editingData.id, requestData);
+        alert("Subscription model updated successfully!");
+      } else {
+        await createSubscriptioModel(requestData);
+        alert("Subscription model created successfully!");
       }
 
-      await response.json();
-      alert(editingData ? 'Subscription model updated successfully!' : 'Subscription model added successfully!');
       onSaved?.();
       setShowModal(false);
     } catch (error) {
-      console.error('Error:', error);
-      alert(`Failed to save data. ${error instanceof Error ? error.message : 'Please try again.'}`);
+      console.error("Error:", error);
+      alert(
+        `Failed to save data. ${error instanceof Error ? error.message : "Please try again."
+        }`
+      );
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
@@ -316,6 +218,18 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
                 type="text"
                 name="clientId"
                 value={formData.clientId}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Property ID</label>
+              <input
+                type="text"
+                name="propertyId"
+                value={formData.propertyId}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
                 required
@@ -381,187 +295,170 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
                 required
               />
             </div>
-          </div>
-         
 
+            <div>
+              <label className="block text-sm font-medium">Floors</label>
+              <input
+                type="number"
+                name="noOfFloors"
+                value={formData.noOfFloors}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded"
+                required
+              />
+            </div>
 
+            <div>
+              <label className="block text-sm font-medium">Rooms</label>
+              <input
+                type="number"
+                name="noOfRooms"
+                value={formData.noOfRooms}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded"
+                required
+              />
+            </div>
 
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Properties</h3>
-            {formData.properties.map((property, index) => (
-              <div key={index} className="border rounded-lg p-4 mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">Property {index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => removeProperty(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium">Property ID</label>
-                    <input
-                      type="text"
-                      value={property.propertyId}
-                      onChange={(e) => handlePropertyChange(index, 'propertyId', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Floors</label>
-                    <input
-                      type="number"
-                      value={property.floors}
-                      onChange={(e) => handlePropertyChange(index, 'floors', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Rooms</label>
-                    <input
-                      type="number"
-                      value={property.rooms}
-                      onChange={(e) => handlePropertyChange(index, 'rooms', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Room Types</label>
-                    <input
-                      type="number"
-                      value={property.types}
-                      onChange={(e) => handlePropertyChange(index, 'types', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Reports</label>
-                    <input
-                      type="number"
-                      value={property.reports}
-                      onChange={(e) => handlePropertyChange(index, 'reports', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Status</label>
-
-                    <div className="flex items-center gap-2 mb-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStatusIds(new Set(statusOptions.map(o => o.id)))}
-                        className="text-xs px-2 py-1 rounded border"
-                      >
-                        Select all
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStatusIds(new Set())}
-                        className="text-xs px-2 py-1 rounded border"
-                      >
-                        Clear
-                      </button>
-                    </div>
-
-                    <div className="border border-gray-300 rounded p-2 max-h-48 overflow-y-auto">
-                      {statusLoading && <div className="text-sm text-gray-500 p-2">Loading…</div>}
-                      {statusError && <div className="text-sm text-red-600 p-2">{statusError}</div>}
-                      {!statusLoading && statusOptions.length === 0 && (
-                        <div className="text-sm text-gray-500 p-2">No status options available.</div>
-                      )}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {statusOptions.map((opt) => {
-                          const label = opt.customStatusName?.trim() ? opt.customStatusName : opt.defaultStatusName;
-                          const checked = selectedStatusIds.has(opt.id);
-                          return (
-                            <label
-                              key={opt.id}
-                              className={`flex items-center gap-2 rounded border px-3 py-2 transition
-              ${checked ? 'bg-blue-50 border-blue-300' : 'bg-white hover:bg-gray-50'}
-            `}
-                            >
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4"
-                                checked={checked}
-                                onChange={(e) => {
-                                  setSelectedStatusIds(prev => {
-                                    const next = new Set(prev);
-                                    e.target.checked ? next.add(opt.id) : next.delete(opt.id);
-                                    return next;
-                                  });
-                                }}
-                              />
-                              <span className="text-sm">{label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-gray-500 mt-1">Selected: {selectedStatusIds.size}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Call</label>
-                    <input
-                      type="number"
-                      value={property.call}
-                      onChange={(e) => handlePropertyChange(index, 'call', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Notification</label>
-                    <input
-                      type="number"
-                      value={property.notification}
-                      onChange={(e) => handlePropertyChange(index, 'notification', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addProperty}
-              className="mt-2 bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200"
-            >
-              Add Property
-            </button>
+            <div>
+              <label className="block text-sm font-medium">Room Types (comma separated)</label>
+              <input
+                type="text"
+                name="noOfRoomTypes"
+                value={formData.noOfRoomTypes}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="delux, suite, normal"
+                required
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end pt-4 space-x-3">
+
+          <h3 className="text-lg font-semibold mb-3">Property Details</h3>
+
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Report Types</label>
+            <div className="flex flex-col gap-2">
+              {[
+                { value: "arrivalreport", label: "Stay Report" },
+                { value: "checkinreport", label: "Reservation Report" },
+                { value: "nightauditreport", label: "Night Audit Report" },
+                { value: "bookingreport", label: "Booking Report" }
+              ].map(option => (
+                <label key={option.value} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.noOfReportTypes.includes(option.value)}
+                    onChange={() => handleReportChange(option.value)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Status Options */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Status</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {statusOptions.map((opt) => {
+                const key = opt.defaultStatusName;
+                const checked = selectedStatusNames.has(key);
+                return (
+                  <label key={opt.id} className="flex items-center gap-2 border p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedStatusNames((prev) => {
+                          const next = new Set(prev);
+                          e.target.checked ? next.add(key) : next.delete(key);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>{opt.defaultStatusName}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Call Options */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Call</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {callOptions.map((opt) => {
+                const key = opt.defaultCallName;
+                const checked = selectedCallNames.has(key);
+                return (
+                  <label key={opt.id} className="flex items-center gap-2 border p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedCallNames((prev) => {
+                          const next = new Set(prev);
+                          e.target.checked ? next.add(key) : next.delete(key);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>{opt.defaultCallName}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Notification Options */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Notification</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {notificationOptions.map((opt) => {
+                const key = opt.defaultNotificationName;
+                const checked = selectedNotificationNames.has(key);
+                return (
+                  <label key={opt.id} className="flex items-center gap-2 border p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedNotificationNames((prev) => {
+                          const next = new Set(prev);
+                          e.target.checked ? next.add(key) : next.delete(key);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>{opt.defaultNotificationName}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Submit buttons */}
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => {
                 setShowModal(false);
                 onSaved?.();
               }}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded"
-              disabled={isLoading}
+              className="bg-gray-300 px-4 py-2 rounded"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
               disabled={isLoading}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
             >
-              {isLoading ? 'Processing...' : editingData ? 'Update' : 'Submit'}
+              {isLoading ? 'Processing…' : editingData ? 'Update' : 'Submit'}
             </button>
           </div>
         </form>
@@ -569,5 +466,4 @@ const SubscriptionModelAdd = ({ setShowModal, editingData, onSaved }: Subscripti
     </div>
   );
 };
-
 export default SubscriptionModelAdd;

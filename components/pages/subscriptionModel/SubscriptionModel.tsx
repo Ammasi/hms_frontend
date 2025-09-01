@@ -1,36 +1,12 @@
 'use client';
 import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
-import { ReactNode, useEffect, useState } from 'react';
+import {   useEffect, useState } from 'react';
 import { deleteSubscriptioModel, fetchSubscriptioModelById, fetchSubscriptioModel } from '../../../lib/api';
 import SubscriptionModelAdd from "../../forms/subscriptionModelAdd/Form";
+import { SubscriptionModelData } from "../../interface/SubscriptionModel";
 
-type Floor = { propertyId: string; floors: number };
-type Room = { propertyId: string; rooms: number };
-type RoomType = { propertyId: string; types: number };
-type ReportType = { propertyId: string; reports: number };
-type Status = { propertyId: string; status: number };
-type Call = { propertyId: string; call: number };
-type Notification = { propertyId: string; notification: number };
-
-type SubscriptionModelData = {
-  id: string;
-  clientId: string;
-  planDefaultName: string;
-  planCustomName: string;
-  price: number;
-  duration: string;
-  noOfProperty: number;
-  noOfFloors: Floor[];
-  noOfRooms: Room[];
-  noOfRoomTypes: RoomType[];
-  noOfReportTypes: ReportType[];
-  noOfStatus: Status[];
-  noOfCall: Call[];
-  noOfNotification: Notification[];
-  priority?: ReactNode;
-  deadline?: string;
-};
+ 
 
 export default function SubscriptionModel() {
   const [data, setData] = useState<SubscriptionModelData[]>([]);
@@ -42,7 +18,10 @@ export default function SubscriptionModel() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const handleOpen = () => setShowModal(true);
+  const handleOpen = () => {
+    setEditingData(null);
+    setShowModal(true);
+  };
 
   const load = async () => {
     setIsLoading(true);
@@ -50,8 +29,16 @@ export default function SubscriptionModel() {
 
     try {
       const res = await fetchSubscriptioModel();
-      // If API returns `res.data` directly as array
-      setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
+
+      if (Array.isArray(res)) {
+        setData(res);
+      } else if (res && Array.isArray(res.data)) {
+        setData(res.data);
+      } else if (res && res.data && Array.isArray(res.data.data)) {
+        setData(res.data.data);
+      } else {
+        setData([]);
+      }
     } catch (err) {
       console.error("Error fetching subscription model:", err);
       setError("Failed to fetch data");
@@ -60,6 +47,7 @@ export default function SubscriptionModel() {
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     load();
   }, []);
@@ -71,6 +59,7 @@ export default function SubscriptionModel() {
       setShowModal(true);
     } catch (error) {
       console.error('Failed to fetch for edit', error);
+      setError('Failed to fetch data for editing');
     }
   };
 
@@ -97,27 +86,79 @@ export default function SubscriptionModel() {
   };
 
   const renderPropertyDetails = (item: SubscriptionModelData) => {
-    return item.noOfFloors?.map((floor, index) => (
-      <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
-        <h4 className="font-medium text-gray-800 mb-2">
-          Property ID: {floor.propertyId || `Property ${index + 1}`}
-        </h4>
+    return (
+      <div className="mb-4 p-3 border rounded-lg bg-gray-50">
+        <h4 className="font-medium text-gray-800 mb-2">Property Details</h4>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div><span className="font-medium">Floors:</span> {floor.floors}</div>
-          <div><span className="font-medium">Rooms:</span> {item.noOfRooms?.[index]?.rooms || 'N/A'}</div>
-          <div><span className="font-medium">Room Types:</span> {item.noOfRoomTypes?.[index]?.types || 'N/A'}</div>
-          <div><span className="font-medium">Reports:</span> {item.noOfReportTypes?.[index]?.reports || 'N/A'}</div>
-          {index === 0 && (
-            <>
-              <div><span className="font-medium">Status Types:</span> {item.noOfStatus?.[0]?.status || 'N/A'}</div>
-              <div><span className="font-medium">Call Types:</span> {item.noOfCall?.[0]?.call || 'N/A'}</div>
-              <div><span className="font-medium">Notifications:</span> {item.noOfNotification?.[0]?.notification || 'N/A'}</div>
-            </>
-          )}
+          <div><span className="font-medium">Properties:</span> {item.noOfProperty}</div>
+          <div><span className="font-medium">Floors:</span> {item.noOfFloors?.join(', ') || 'N/A'}</div>
+          <div><span className="font-medium">Rooms:</span> {item.noOfRooms?.join(', ') || 'N/A'}</div>
+          <div><span className="font-medium">Room Types:</span> {item.noOfRoomTypes?.join(', ') || 'N/A'}</div>
+          <div><span className="font-medium">Report Types:</span> {item.noOfReportTypes?.join(', ') || 'N/A'}</div>
+
+          {/* Status Types */}
+          <div className="col-span-2">
+            <span className="font-medium">Status Types:</span>{' '}
+            {item.noOfStatus && item.noOfStatus.length > 0 ? (
+              <ul className="list-disc ml-6">
+                {item.noOfStatus.map((s: any, idx: number) => (
+                  <li key={idx}>
+                    {s.defaultStatusName}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              'N/A'
+            )}
+          </div>
+
+          {/* Call Types */}
+          <div className="col-span-2">
+            <span className="font-medium">Call Types:</span>{' '}
+            {item.noOfCall && item.noOfCall.length > 0 ? (
+              <ul className="list-disc ml-6">
+                {item.noOfCall.map((c: any, idx: number) => (
+                  <li key={idx}>
+                    {c.defaultCallName}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              'N/A'
+            )}
+          </div>
+
+          {/* Notifications */}
+          <div className="col-span-2">
+            <span className="font-medium">Notifications:</span>{' '}
+            {item.noOfNotification && item.noOfNotification.length > 0 ? (
+              <ul className="list-disc ml-6">
+                {item.noOfNotification.map((n: any, idx: number) => (
+                  <li key={idx}>
+                    <div className="flex flex-col">
+                      <span>
+                        <strong>Notification:</strong>{' '}
+                        {n.defaultNotificationName}
+                          
+                      </span>
+                      <span>
+                        <strong>Action:</strong>{' '}
+                        { n.defaultActionName}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              'N/A'
+            )}
+          </div>
         </div>
       </div>
-    ));
+    );
   };
+
+
 
   return (
     <div className="p-6 flex flex-col items-center">
@@ -148,27 +189,10 @@ export default function SubscriptionModel() {
                 Grid View
               </button>
             </div>
-            {/* Popup Modal */}
-            {showModal && (
-              <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                <SubscriptionModelAdd
-                  setShowModal={(val) => {
-                    setShowModal(val);
-                    if (!val) setEditingData(null);
-                  }}
-                  editingData={editingData}
-                  onSaved={() => {
-                    setShowModal(false);
-                    setEditingData(null);
-                    load();
-                  }}
-                />
-              </div>
-            )}
           </div>
         </div>
 
-        <h1 className="text-2xl ms-2 font-bold">Subscription Model</h1>
+        <h1 className="text-2xl ms-4 font-bold mt-4">Subscription Model</h1>
 
         {isLoading ? (
           <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
@@ -208,9 +232,8 @@ export default function SubscriptionModel() {
                           className="font-bold text-blue-600 hover:text-blue-800 mr-2"
                         >
                           {expandedRows.has(item.id) ? 'Hide Details' : 'View Details'}
-                        </button></td>
-
-
+                        </button>
+                      </td>
                       <td className="px-6 py-3 flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(item.id)}
@@ -230,11 +253,8 @@ export default function SubscriptionModel() {
                     </tr>
                     {expandedRows.has(item.id) && (
                       <tr className="bg-gray-50">
-                        <td colSpan={6} className="px-6 py-4">
-                          <div className="space-y-3">
-                            <h3 className="font-medium text-gray-800">Property Details</h3>
-                            {renderPropertyDetails(item)}
-                          </div>
+                        <td colSpan={7} className="px-6 py-4">
+                          {renderPropertyDetails(item)}
                         </td>
                       </tr>
                     )}
@@ -269,7 +289,6 @@ export default function SubscriptionModel() {
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="font-medium text-gray-800 mb-2">Property Details</h3>
                   {renderPropertyDetails(item)}
                 </div>
 
@@ -295,8 +314,27 @@ export default function SubscriptionModel() {
         )}
       </div>
 
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center  bg-opacity-50 z-50">
+          <SubscriptionModelAdd
+            setShowModal={(val) => {
+              setShowModal(val);
+              if (!val) setEditingData(null);
+            }}
+            editingData={editingData}
+            onSaved={() => {
+              setShowModal(false);
+              setEditingData(null);
+              load();
+            }}
+          />
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Are you sure you want to delete this record?</h2>
             <div className="flex justify-center gap-4">

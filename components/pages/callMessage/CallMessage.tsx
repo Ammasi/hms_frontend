@@ -3,43 +3,26 @@ import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
 import { useEffect, useState } from 'react';
 import { deleteCallMessage, fetchCallMessageById, fetchCallMessage } from '../../../lib/api';
-
 import CallMessageAdd from "../../forms/callMessageAdd/Form";
- 
+import { CallMessageItem } from "../../interface/callMessage";
 
-interface CallMessageItem {
-  defaultCallName: string;
-  customCallName: string;
-  isEnableOrDisable: boolean;
-}
-
-interface CallMessageData {
-  id: string;
-  clientId: string;
-  propertyId: string;
-  noOfTypes: number;
- callMessage: CallMessageItem[];
-}
-
-export default function CallMessage() {
-  const [data, setData] = useState<CallMessageData[]>([]);
+export default function CallMessagePage() {
+  const [data, setData] = useState<CallMessageItem[]>([]);
   const [view, setView] = useState<'table' | 'grid'>('table');
-  const [editingData, setEditingData] = useState<CallMessageData | null>(null);
+  const [editingData, setEditingData] = useState<CallMessageItem | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const handleOpen = () => setShowModal(true);
 
   const load = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      const res = await fetchCallMessage();
-      setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
+      const list: CallMessageItem[] = await fetchCallMessage();
+      setData(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error("Error fetching Call messages:", err);
       setError("Failed to fetch data");
@@ -49,6 +32,7 @@ export default function CallMessage() {
     }
   };
 
+
   useEffect(() => {
     load();
   }, []);
@@ -56,7 +40,9 @@ export default function CallMessage() {
   const handleEdit = async (id: string) => {
     try {
       const res = await fetchCallMessageById(id);
-      setEditingData(res);
+
+      const item: CallMessageItem = res?.data ?? res;
+      setEditingData(item);
       setShowModal(true);
     } catch (error) {
       console.error('Failed to fetch for edit', error);
@@ -65,7 +51,6 @@ export default function CallMessage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-
     try {
       await deleteCallMessage(deleteTarget);
       setData(prev => prev.filter(item => item.id !== deleteTarget));
@@ -75,41 +60,21 @@ export default function CallMessage() {
     }
   };
 
-  const toggleRow = (id: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedRows(newExpanded);
-  };
-
-  const renderCallMessages = (CallMessages: CallMessageItem[]) => {
-    return CallMessages.map((message, index) => (
-      <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
-        <div className="grid grid-cols-3 gap-2 text-sm">
-          <div>
-            <span className="font-medium">Default Name:</span> {message.defaultCallName}
-          </div>
-          <div>
-            <span className="font-medium">Custom Name:</span> {message.customCallName}
-          </div>
-          <div>
-            <span className="font-medium">Call:</span> 
-            {message.isEnableOrDisable ? ' Disabled' : ' Enabled'}
-          </div>
-        </div>
-      </div>
-    ));
-  };
+  const StatusBadge = ({ disabled }: { disabled: boolean }) => (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${disabled ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+        }`}
+    >
+      {disabled ? 'Disabled' : 'Enabled'}
+    </span>
+  );
 
   return (
     <div className="p-6 flex flex-col items-center">
-      <div className="bg-white rounded-t-2xl shadow-lg w-full max-w-7xl">
-        <div className="mb-6 bg-blue-800 p-4 rounded-t-2xl text-white relative">
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-7xl">
+        <div className="mb-4 bg-blue-800 p-4 rounded-t-2xl text-white">
           <div className="flex items-center justify-between">
-            <div className="w-1/3"></div>
+            <div className="w-1/3" />
             <div className="w-1/3 text-center">
               <h1 className="text-xl font-bold">Call Message</h1>
             </div>
@@ -133,26 +98,28 @@ export default function CallMessage() {
                 Grid View
               </button>
             </div>
-            {showModal && (
-              <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                <CallMessageAdd
-                  setShowModal={(val) => {
-                    setShowModal(val);
-                    if (!val) setEditingData(null);
-                  }}
-                  editingData={editingData}
-                  onSaved={() => {
-                    setShowModal(false);
-                    setEditingData(null);
-                    load();
-                  }}
-                />
-              </div>
-            )}
           </div>
         </div>
 
-        <h1 className="text-2xl ms-2 font-bold">Call Message</h1>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <CallMessageAdd
+              setShowModal={(val: boolean) => {
+                setShowModal(val);
+                if (!val) setEditingData(null);
+              }}
+
+              editingData={editingData}
+              onSaved={() => {
+                setShowModal(false);
+                setEditingData(null);
+                load();
+              }}
+            />
+          </div>
+        )}
+
+        <h2 className="text-2xl ms-2 font-bold mb-2">Call Message</h2>
 
         {isLoading ? (
           <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
@@ -165,59 +132,37 @@ export default function CallMessage() {
             <table className="min-w-full text-sm text-left">
               <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                  <th className="px-6 py-4">Client Id</th>
-                  <th className="px-6 py-4">Property Id</th>
-                  <th className="px-6 py-4">No Of Types</th>
-                  <th className="px-6 py-4">View</th>
+                  <th className="px-6 py-4">Default Name</th>
+                  <th className="px-6 py-4">Custom Name</th>
+                  <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="text-gray-700">
                 {data.map((item) => (
-                  <>
-                    <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
-                      <td className="px-6 py-3">
-                        <div className="font-medium">{item.clientId}</div>
-                        
-                      </td>
-                      <td className="px-6 py-3">{item.propertyId}</td>
-                      <td className="px-6 py-3">{item.noOfTypes}</td>
-                      <td className="px-6 py-3">
-                        <button
-                          onClick={() => toggleRow(item.id)}
-                          className="font-bold text-blue-600 hover:text-blue-800 mr-2"
-                        >
-                          {expandedRows.has(item.id) ? 'Hide Details' : 'View Details'}
-                        </button>
-                      </td>
-                      <td className="px-6 py-3 flex items-center gap-2">
-                        <button
-                          onClick={() => handleEdit(item.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow"
-                          title="Edit"
-                        >
-                          <FaEdit className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(item.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow"
-                          title="Delete"
-                        >
-                          <MdDelete className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedRows.has(item.id) && (
-                      <tr className="bg-gray-50">
-                        <td colSpan={6} className="px-6 py-4">
-                          <div className="space-y-3">
-                            <h3 className="font-medium text-gray-800">Call Messages</h3>
-                            {renderCallMessages(item.callMessage)}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
+                  <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
+                    <td className="px-6 py-3">{item.defaultCallName}</td>
+                    <td className="px-6 py-3">{item.customCallName}</td>
+                    <td className="px-6 py-3">
+                      <StatusBadge disabled={item.isEnableOrDisable} />
+                    </td>
+                    <td className="px-6 py-3 flex items-center gap-2">
+                      <button
+                        onClick={() => handleEdit(item.id)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow"
+                        title="Edit"
+                      >
+                        <FaEdit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(item.id)}
+                        className="bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow"
+                        title="Delete"
+                      >
+                        <MdDelete className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -225,35 +170,21 @@ export default function CallMessage() {
         ) : (
           <div className="grid grid-cols-1 p-4 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {data.map((item) => (
-              <div
-                key={item.id}
-                className="p-5 border rounded-lg shadow-md bg-white flex flex-col"
-              >
-                <div className="text-center space-y-2 mb-4">
-                  <h2 className="text-xl font-semibold text-blue-700">Call Messages</h2>
-                  <div className="flex justify-center gap-4">
-                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      Types: {item.noOfTypes}
-                    </span>
+              <div key={item.id} className="p-5 border rounded-lg shadow-md bg-white flex flex-col">
+
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  <div>
+                    <span className="font-medium">Default Name:</span> {item.defaultCallName}
+                  </div>
+                  <div>
+                    <span className="font-medium">Custom Name:</span> {item.customCallName}
+                  </div>
+                  <div>
+                    <span className="font-medium">Status:</span>{' '}
+                    <StatusBadge disabled={item.isEnableOrDisable} />
                   </div>
                 </div>
-
-                <div className="mb-4">
-                  <h3 className="font-medium text-gray-800 mb-2">Client ID</h3>
-                  <p className="text-sm">{item.clientId}</p>
-                </div>
-
-                <div className="mb-4">
-                  <h3 className="font-medium text-gray-800 mb-2">Property ID</h3>
-                  <p className="text-sm">{item.propertyId}</p>
-                </div>
-
-                <div className="mb-4">
-                  <h3 className="font-medium text-gray-800 mb-2">Call Messages</h3>
-                  {renderCallMessages(item.callMessage)}
-                </div>
-
-                <div className="mt-auto pt-3 border-t">
+                <div className="mt-4 pt-3">
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => handleEdit(item.id)}
@@ -276,9 +207,11 @@ export default function CallMessage() {
       </div>
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Are you sure you want to delete this record?</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              Are you sure you want to delete this record?
+            </h2>
             <div className="flex justify-center gap-4">
               <button
                 onClick={confirmDelete}

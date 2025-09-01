@@ -1,79 +1,78 @@
 'use client';
+import { useEffect, useState } from "react";
+import { StatusMessageItem } from "../../interface/StatusMessage";
+import { createStatusMessage, updateStatusMessage } from "../../../lib/api";
 
-import { useEffect, useState } from 'react';
-import axios, { AxiosError } from 'axios';
 
-interface StatusMessageItem {
-  defaultStatusName: string;
-  customStatusName: string;
-  isEnableOrDisable: boolean;
-}
 
 type StatusMessageAddProps = {
   setShowModal: (value: boolean) => void;
+  editingData?: StatusMessageItem | null;
   onSaved?: () => void;
 };
 
-const api = axios.create({
-  baseURL: 'http://192.168.1.8:8000/api/v1',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
-});
-
 export default function StatusMessageAdd({
   setShowModal,
+  editingData,
   onSaved,
 }: StatusMessageAddProps) {
-  const [item, setItem] = useState<StatusMessageItem>({
-    defaultStatusName: '',
-    customStatusName: '',
+  const [formData, setFormData] = useState<StatusMessageItem>({
+    defaultStatusName: "",
+    customStatusName: "",
     isEnableOrDisable: true,
+    noOfTypes: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setItem({ defaultStatusName: '', customStatusName: '', isEnableOrDisable: true });
-  }, []);
+    if (editingData) {
+      setFormData({
+        ...editingData,
+        noOfTypes: editingData.noOfTypes ?? 0,
+      });
+    } else {
+      setFormData({
+        defaultStatusName: "",
+        customStatusName: "",
+        isEnableOrDisable: true,
+        noOfTypes: 0,
+      });
+    }
+  }, [editingData]);
 
-  const updateField = (field: keyof StatusMessageItem, value: string | boolean) => {
-    setItem((prev) => ({ ...prev, [field]: value as never }));
+  const handleChange = (field: keyof StatusMessageItem, value: string | boolean | number) => {
+    setFormData((prev) => ({ ...prev, [field]: value as never }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const payload: StatusMessageItem[] = [
-      {
-        defaultStatusName: item.defaultStatusName.trim(),
-        customStatusName: item.customStatusName.trim(),
-        isEnableOrDisable: !!item.isEnableOrDisable,
-      },
-    ];
-
-    if (!payload[0].defaultStatusName || !payload[0].customStatusName) {
-      alert('Please fill both Default Status Name and Custom Status Name.');
-      setIsLoading(false);
-      return;
-    }
-
+    const isEdit = !!editingData?.id;
     try {
-      await api.post('/status-message/create', payload);
-      alert('Status Message added successfully!');
+
+
+      const item = {
+        defaultStatusName: formData.defaultStatusName.trim(),
+        customStatusName: formData.customStatusName.trim(),
+        isEnableOrDisable: !!formData.isEnableOrDisable,
+      };
+
+      if (isEdit) {
+        await updateStatusMessage(editingData!.id!, item);
+        alert("Status Message updated successfully!");
+      } else {
+        await createStatusMessage({
+          noOfTypes: formData.noOfTypes ?? 1,
+          statusMessage: [item],
+
+        });
+        alert("Status Message added successfully!");
+      }
       onSaved?.();
       setShowModal(false);
     } catch (err) {
-      const axErr = err as AxiosError<any>;
-      const serverMsg =
-        axErr.response?.data?.message ||
-        axErr.response?.data?.error ||
-        axErr.message ||
-        'Unknown error';
-      console.error('POST /status-message/create failed:', axErr.response?.data || axErr);
-      alert(`Failed to save data. ${serverMsg}`);
+      console.error(err);
+      alert("Failed to save data.");
     } finally {
       setIsLoading(false);
     }
@@ -89,9 +88,10 @@ export default function StatusMessageAdd({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative mb-4">
-          <h2 className="text-xl font-bold text-center text-blue-900">Add Status Message</h2>
+          <h2 className="text-xl font-bold text-center text-blue-900">
+            {editingData ? "Edit Status Message" : "Add Status Message"}
+          </h2>
           <div className="absolute top-0 right-0">
-
             <button
               onClick={() => setShowModal(false)}
               className="text-gray-900 hover:text-red-500 text-2xl font-bold"
@@ -106,46 +106,66 @@ export default function StatusMessageAdd({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="border rounded-lg p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium">Default Status Name</label>
+            {!editingData && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium">Number Of Types</label>
                 <input
-                  type="text"
-                  value={item.defaultStatusName}
-                  onChange={(e) => updateField('defaultStatusName', e.target.value)}
+                  type="number"
+                  name="noOfTypes"
+                  value={formData.noOfTypes ?? 0}
+                  onChange={(e) => handleChange("noOfTypes", parseInt(e.target.value, 10))}
                   className="w-full p-2 border border-gray-300 rounded"
                   required
+                  onInput={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.value = target.value.replace(/^0+(?=\d)/, '');
+                  }}
+                  min={0}
                 />
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium">Custom Status Name</label>
-                <input
-                  type="text"
-                  value={item.customStatusName}
-                  onChange={(e) => updateField('customStatusName', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  required
-                />
-              </div>
+            {editingData && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">Default Status Name</label>
+                  <input
+                    type="text"
+                    value={formData.defaultStatusName}
+                    onChange={(e) => handleChange("defaultStatusName", e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium">Enable/Disable</label>
-                <select
-                  value={item.isEnableOrDisable ? 'true' : 'false'}
-                  onChange={(e) => updateField('isEnableOrDisable', e.target.value === 'true')}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  required
-                >
-                  <option value="true">Enable</option>
-                  <option value="false">Disable</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-medium">Custom Status Name</label>
+                  <input
+                    type="text"
+                    value={formData.customStatusName}
+                    onChange={(e) => handleChange("customStatusName", e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium">Enable/Disable</label>
+                  <select
+                    value={formData.isEnableOrDisable ? "true" : "false"}
+                    onChange={(e) => handleChange("isEnableOrDisable", e.target.value === "true")}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  >
+                    <option value="true">Enable</option>
+                    <option value="false">Disable</option>
+                  </select>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-2 space-x-3">
-
             <button
               type="button"
               onClick={() => setShowModal(false)}
@@ -159,7 +179,7 @@ export default function StatusMessageAdd({
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
               disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : 'Submit'}
+              {isLoading ? "Processing..." : "Submit"}
             </button>
           </div>
         </form>

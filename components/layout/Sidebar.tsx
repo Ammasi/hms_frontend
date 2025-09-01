@@ -47,7 +47,7 @@ export default function Sidebar() {
 
         <ul className="space-y-4 flex flex-col items-start  min-h-full">
 
-          {(["admin", "owner"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link
                 href="/clients"
@@ -58,61 +58,67 @@ export default function Sidebar() {
               </Link>
             </li>
           )}
+          {/* 
+          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/hotelManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaHotel className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Hotel Management</span>
+              </Link>
+            </li>
+          )} */}
+          {/* {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/customerManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaUsers className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Customer Management</span>
+              </Link>
+            </li>)} */}
 
-{/* 
-          <li>
-            <Link href="/hotelManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaHotel className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Hotel Management</span>
-            </Link>
-          </li> */}
+          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
 
-          {/* Customer Management */}
-          {/* <li>
-            <Link href="/customerManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaUsers className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Customer Management</span>
-            </Link>
-          </li> */}
+            <li>
+              <Link href="/taskSheet" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaTasks className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Task Sheet</span>
+              </Link>
+            </li>
+          )}
 
-          {/* Task Sheet */}
-          {/* <li>
-            <Link href="/taskSheet" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaTasks className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Task Sheet</span>
-            </Link>
-          </li> */}
+          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/subscriptionLimit" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaStream className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Subscription Limit</span>
+              </Link>
+            </li>
+          )}
 
-          {/* Subscription Limit */}
-          <li>
-            <Link href="/subscriptionLimit" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaStream className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Subscription Limit</span>
-            </Link>
-          </li>
+          {/* {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/hotelFacility" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaConciergeBell className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Hotel Facility</span>
+              </Link>
+            </li>
+          )} */}
 
-          {/* Hotel Facility */}
-          {/* <li>
-            <Link href="/hotelFacility" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaConciergeBell className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Hotel Facility</span>
-            </Link>
-          </li> */}
-          {/* Booking Report */}
-          <li>
-            <Link href="/bookingReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaReply className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Booking Report</span>
-            </Link>
-          </li>
-          {/* Stay Report */}
+          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/bookingReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaReply className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Booking Report</span>
+              </Link>
+            </li>
+          )}
+
           <li>
             <Link href="/stayReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaReply className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Stay Report</span>
             </Link>
           </li>
-          {/* Night Audit Report*/}
+
           <li>
             <Link href="/nightAuditReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaReply className="text-xl" />
@@ -126,73 +132,63 @@ export default function Sidebar() {
               <span className={collapsed ? 'hidden' : ''}>Reservation Report</span>
             </Link>
           </li>
-
-          {/* Check In Mode */}
-          {/* <li>
+          <li>
             <Link href="/checkInMode" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaClipboardCheck className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Check In Mode</span>
             </Link>
-          </li> */}
+          </li>
 
-          {/* GST Registration */}
-          {/* <li>
+          <li>
             <Link href="/gstRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaFileInvoice className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>GST Registration</span>
             </Link>
-          </li> */}
-
-          {/* Employee Management */}
-          {/* <li>
+          </li>
+          <li>
             <Link href="/employee" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaUserTie className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Employee Management</span>
             </Link>
-          </li> */}
-          {/*  Charges Register */}
-          {/* <li>
+          </li>
+
+          <li>
             <Link href="/chargesRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaFileInvoiceDollar className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Charges Register</span>
             </Link>
-          </li> */}
-          {/*  Property Management */}
-          <li>
+          </li>
+
+          {/* <li>
             <Link href="/propertyManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaBuilding className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Property Management</span>
             </Link>
-          </li>
-          {/* subscription Model */}
+          </li> */}
           <li>
             <Link href="/subscriptionModel" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaCreditCard className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Subscription Model</span>
             </Link>
           </li>
-          {/*  Status Message */}
           <li>
             <Link href="/statusMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaEnvelope className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Status Message</span>
             </Link>
           </li>
-          {/*  Call Message */}
           <li>
             <Link href="/callMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaPhoneAlt className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Call Message</span>
             </Link>
           </li>
-          {/*  Notification */}
           <li>
             <Link href="/notification" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaBell className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Notification</span>
             </Link>
           </li>
-          {/*  CustomerInfo */}
           {/* <li>
             <Link href="/customerInfo" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaAddressCard className="text-xl" />

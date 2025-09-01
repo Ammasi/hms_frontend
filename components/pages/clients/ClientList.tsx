@@ -21,7 +21,7 @@ import {
 
 import { deleteHotelOwner, fetchHotelOwnerById, fetchSubscriptions } from '../../../lib/api';
 import { useRouter } from 'next/navigation';
-import { get } from "lodash";
+
 import ClientAdd from '../../forms/ClientAdd/Form';
 
 type ClientList = {
@@ -84,9 +84,7 @@ export default function ClientList() {
     setError(null);
     try {
       const res = await fetchSubscriptions();
-      const items = get(res, 'data', [])
-
-      setData(items);
+      setData(res);
     } catch (err) {
       console.error('Error fetching subscriptions:', err);
       setError('Failed to fetch data');
@@ -427,8 +425,8 @@ export default function ClientList() {
                       Status:
                       <span
                         className={`ml-1 px-2 py-0.5 rounded-full text-xs ${item.subscriptionStatus === "Active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
                           }`}
                       >
                         {item.subscriptionStatus}

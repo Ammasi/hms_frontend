@@ -1,140 +1,92 @@
-'use client'; 
+'use client';
 import { useEffect, useState } from 'react';
+import { createCallMessage, updateCallMessage } from '../../../lib/api';
+import { CallMessageItem } from '../../interface/callMessage';
 
-interface CallMessageItem {
-  defaultCallName: string;
-  customCallName: string;
-  isEnableOrDisable: boolean;
-}
-
-interface CallMessageData {
-  id: string;
-  clientId: string;
-  propertyId: string;
-  noOfTypes: number;
-  callMessage: CallMessageItem[];
-}
 
 type CallMessageAddProps = {
   setShowModal: (value: boolean) => void;
-  editingData?: CallMessageData | null;
+  editingData?: CallMessageItem | null;
   onSaved?: () => void;
 };
 
 const CallMessageAdd = ({ setShowModal, editingData, onSaved }: CallMessageAddProps) => {
-  const initialFormData = {
-    clientId: '',
-    propertyId: '',
-    noOfTypes: '',
-    callMessage: [] as CallMessageItem[]
+  const initialFormData: CallMessageItem = {
+    defaultCallName: '',
+    customCallName: '',
+    isEnableOrDisable: false,
+    noOfTypes: 0,
+    id: ''
   };
 
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<CallMessageItem>(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (editingData) {
       setFormData({
-        clientId: editingData.clientId || '',
-        propertyId: editingData.propertyId || '',
-        noOfTypes: editingData.noOfTypes.toString() || '',
-        callMessage: editingData.callMessage || []
+        id: editingData.id,
+        defaultCallName: editingData.defaultCallName ?? '',
+        customCallName: editingData.customCallName ?? '',
+        isEnableOrDisable: !!editingData.isEnableOrDisable,
       });
     } else {
       setFormData(initialFormData);
     }
   }, [editingData]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'number' ? Number(value) : value,
     }));
   };
 
-  const handleCallMessageChange = (index: number, field: keyof CallMessageItem, value: string | boolean) => {
-    const updatedCallMessage = [...formData.callMessage];
-    updatedCallMessage[index] = {
-      ...updatedCallMessage[index],
-      [field]: value
-    };
-    setFormData(prev => ({
-      ...prev,
-      callMessage: updatedCallMessage
-    }));
-  };
-
-  const addCallMessage = () => {
-    setFormData(prev => ({
-      ...prev,
-      callMessage: [
-        ...prev.callMessage,
-        {
-          defaultCallName: '',
-          customCallName: '',
-          isEnableOrDisable: true
-        }
-      ]
-    }));
-  };
-
-  const removeCallMessage = (index: number) => {
-    const updatedCallMessage = [...formData.callMessage];
-    updatedCallMessage.splice(index, 1);
-    setFormData(prev => ({
-      ...prev,
-      callMessage: updatedCallMessage
-    }));
+  const handleToggleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, isEnableOrDisable: e.target.value === 'true' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const url = editingData
-      ? `http://192.168.1.8:8000/api/v1/call-message/update/${editingData.id}`
-      : `http://192.168.1.8:8000/api/v1/call-message/create`;
-
-    const method = editingData ? 'PUT' : 'POST';
+    const isEdit = !!editingData?.id;
 
     try {
-      const requestData = {
-        clientId: formData.clientId,
-        propertyId: formData.propertyId,
-        noOfTypes: parseInt(formData.noOfTypes),
-        callMessage: formData.callMessage
+      const item = {
+        defaultCallName: formData.defaultCallName.trim(),
+        customCallName: formData.customCallName.trim(),
+        isEnableOrDisable: !!formData.isEnableOrDisable,
       };
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (isEdit) {
+        await updateCallMessage(editingData!.id!, item);
+        alert("Call Message updated successfully!");
+      } else {
+        await createCallMessage({
+          noOfTypes: formData.noOfTypes ?? 1,
+          callMessage: [item],
+        });
+        alert("Call Message added successfully!");
       }
 
-      const result = await response.json();
-      alert(editingData ? 'Call Message updated successfully!' : 'Call Message added successfully!');
       onSaved?.();
       setShowModal(false);
-    } catch (error) {
-      console.error('Error:', error);
-      alert(`Failed to save data. ${error instanceof Error ? error.message : 'Please try again.'}`);
+    } catch (err) {
+      console.error(err);
+      alert(
+        `Failed to save data. ${err instanceof Error ? err.message : String(err)
+        }`
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-white w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">
         <div className="relative mb-4">
           <h2 className="text-xl font-bold text-center text-blue-900">
             {editingData ? 'Edit Call Message' : 'Add Call Message'}
@@ -147,107 +99,77 @@ const CallMessageAdd = ({ setShowModal, editingData, onSaved }: CallMessageAddPr
               }}
               className="text-gray-900 hover:text-red-500 text-2xl font-bold"
               disabled={isLoading}
+              aria-label="Close"
             >
               &times;
             </button>
           </div>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">Client ID</label>
-              <input
-                type="text"
-                name="clientId"
-                value={formData.clientId}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium">Property Id</label>
-              <input
-                type="text"
-                name="propertyId"
-                value={formData.propertyId}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium">No Of Types</label>
-              <input
-                type="number"
-                name="noOfTypes"
-                value={formData.noOfTypes}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Call Messages</h3>
-            {formData.callMessage.map((message, index) => (
-              <div key={index} className="border rounded-lg p-4 mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">Call Message {index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => removeCallMessage(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium">Default Call Name</label>
-                    <input
-                      type="text"
-                      value={message.defaultCallName}
-                      onChange={(e) => handleCallMessageChange(index, 'defaultCallName', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Custom Call Name</label>
-                    <input
-                      type="text"
-                      value={message.customCallName}
-                      onChange={(e) => handleCallMessageChange(index, 'customCallName', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Enable/Disable</label>
-                    <select
-                      value={message.isEnableOrDisable ? 'true' : 'false'}
-                      onChange={(e) => handleCallMessageChange(index, 'isEnableOrDisable', e.target.value === 'true')}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      required
-                    >
-                      <option value="true">Enable</option>
-                      <option value="false">Disable</option>
-                    </select>
-                  </div>
-                </div>
+            {!editingData && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium">Number Of Types</label>
+                <input
+                  type="number"
+                  name="noOfTypes"
+                  value={formData.noOfTypes ?? 0}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  required
+                  onInput={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.value = target.value.replace(/^0+(?=\d)/, '');
+                  }}
+                  min={0}
+                />
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addCallMessage}
-              className="mt-2 bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200"
-            >
-              Add Call Message
-            </button>
+            )}
+
+
+            {editingData && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium">Default Call Name</label>
+                  <input
+                    type="text"
+                    name="defaultCallName"
+                    value={formData.defaultCallName}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium">Custom Call Name</label>
+                  <input
+                    type="text"
+                    name="customCallName"
+                    value={formData.customCallName}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium">Status</label>
+                  <select
+                    value={formData.isEnableOrDisable ? 'true' : 'false'}
+                    onChange={handleToggleChange}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  >
+                    <option value="false">Enabled</option>
+                    <option value="true">Disabled</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex justify-end pt-4 space-x-3">
