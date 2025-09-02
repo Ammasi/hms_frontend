@@ -189,6 +189,19 @@ export default function Sidebar() {
               <span className={collapsed ? 'hidden' : ''}>Notification</span>
             </Link>
           </li>
+
+          <li>
+            <Link href="/billing" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaBell className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>Billing</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/BillingInfoList" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+              <FaBell className="text-xl" />
+              <span className={collapsed ? 'hidden' : ''}>BillingInfoList</span>
+            </Link>
+          </li>
           {/* <li>
             <Link href="/customerInfo" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaAddressCard className="text-xl" />

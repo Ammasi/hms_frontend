@@ -2,30 +2,10 @@
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { NightAuditResponse } from '../../interface/nightAuditReport';
+import { fetchNightAuditReport } from '../../../lib/api';
 
-type NightAuditCustomer = {
-  customerName: string;
-  customerAddress: string;
-  customerId: string;
-  mobileNumber: string;
-  customerEmail: string;
-  totalGuests: string;
-  checkInDate: string;
-  checkOutDate: string;
-  expectedCheckOutDate: string;
-  graceTime: string;
-};
 
-type NightAuditResponse = {
-  date: string; // e.g., "2025-08-29"
-  totalCheckouts: number;
-  customers: NightAuditCustomer[];
-};
-
-const API_BASE_NIGHT = 'http://192.168.1.8:8000/api/v1/reports/night-audit';
-
- 
 function toBackendDate(d?: string): string | undefined {
   return d || undefined;
 }
@@ -35,7 +15,7 @@ export default function NightAuditReportClient() {
 
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
- 
+
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
 
@@ -43,46 +23,37 @@ export default function NightAuditReportClient() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
-  const fetchReport = async () => {
+  const handleFetchNightAudit = async () => {
     if (!user?.clientId || !user?.propertyId) {
-      setErr('Missing clientId/propertyId from user context.');
+      setErr("Missing clientId/propertyId from user context.");
       return;
     }
 
     setLoading(true);
-    setErr('');
+    setErr("");
 
     try {
-      const params = new URLSearchParams();
-      params.set('clientId', user.clientId);
-      params.set('propertyId', user.propertyId);
-
- 
-      if (fromDate) params.set('fromDate', toBackendDate(fromDate)!);
-      if (toDate) params.set('toDate', toBackendDate(toDate)!);
-
-      const url = `${API_BASE_NIGHT}?${params.toString()}`;
-      console.log('GET:', url);
-
-      const res = await axios.get<NightAuditResponse>(url, {
-        headers: { Accept: 'application/json' },
-        withCredentials: true,
+      const data = await fetchNightAuditReport({
+        clientId: user.clientId,
+        propertyId: user.propertyId,
+        fromDate: fromDate ? toBackendDate(fromDate)! : undefined,
+        toDate: toDate ? toBackendDate(toDate)! : undefined,
       });
 
-      setData(res.data);
+      setData(data);
     } catch (e: any) {
-      setErr(e?.response?.data?.message || e?.message || 'Failed to fetch night audit report.');
+      setErr(e.message);
       setData(null);
     } finally {
       setLoading(false);
     }
   };
- 
+
   useEffect(() => {
     if (user?.clientId && user?.propertyId) {
-      fetchReport();
+      handleFetchNightAudit();
     }
- 
+
   }, [user]);
 
   if (!user) return <div className="p-6">Loading user…</div>;
@@ -120,7 +91,7 @@ export default function NightAuditReportClient() {
           </div>
           <div className="flex items-end gap-2">
             <button
-              onClick={fetchReport}
+              onClick={handleFetchNightAudit}
               className="px-4 py-2 rounded-lg bg-black text-white hover:opacity-90"
               disabled={loading}
             >
@@ -132,7 +103,7 @@ export default function NightAuditReportClient() {
                 setToDate('');
                 setErr('');
                 setData(null);
-                fetchReport();  
+                handleFetchNightAudit();
               }}
               className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
               disabled={loading}

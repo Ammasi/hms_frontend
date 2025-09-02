@@ -2,26 +2,10 @@
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
-
-export interface IReservationList {
-    reservationNo: string;
-    bookingId: string;
-    bookedOn: string;
-    name: string;
-    contact: string;
-    status: string;
-    arrivalDate: string;
-    departureDate: string;
-    arrivalMode: string;
-    advanceAmount: number;
-    noOfRooms: number;
-}
+import { IReservationList } from '../../interface/reservationReport';
+import { fetchReservationReport } from '../../../lib/api';
 
 type ReservationRow = Record<string, any>;
-
-const API_BASE_RES = 'http://192.168.1.8:8000/api/v1/report/reservations/';
-
 
 function toBackendDate(d?: string): string | undefined {
     return d || undefined;
@@ -76,43 +60,33 @@ export default function ReservationReportClient() {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    const fetchReport = async () => {
+    const handleFetchReservation = async () => {
         if (!user?.clientId || !user?.propertyId) {
-            setErr('Missing clientId/propertyId from user context.');
+            setErr("Missing clientId/propertyId from user context.");
             return;
         }
 
         setLoading(true);
-        setErr('');
+        setErr("");
 
         try {
-            const params = new URLSearchParams();
-            params.set('clientId', user.clientId);
-            params.set('propertyId', user.propertyId);
-
-
-            if (arrivalFrom) params.set('arrivalFrom', toBackendDate(arrivalFrom)!);
-            if (arrivalTo) params.set('arrivalTo', toBackendDate(arrivalTo)!);
-            if (bookedFrom) params.set('bookedFrom', toBackendDate(bookedFrom)!);
-            if (bookedTo) params.set('bookedTo', toBackendDate(bookedTo)!);
-            if (cancelFrom) params.set('cancelFrom', toBackendDate(cancelFrom)!);
-            if (cancelTo) params.set('cancelTo', toBackendDate(cancelTo)!);
-            if (showList.trim()) params.set('showList', showList.trim());
-            if (arrivalMode.trim()) params.set('arrivalMode', arrivalMode.trim());
-            if (timewise.trim()) params.set('timewise', timewise.trim());
-
-            const url = `${API_BASE_RES}?${params.toString()}`;
-            console.log('GET:', url);
-
-            const res = await axios.get<ReservationRow[]>(url, {
-                headers: { Accept: 'application/json' },
-                withCredentials: true,
+            const data = await fetchReservationReport({
+                clientId: user.clientId,
+                propertyId: user.propertyId,
+                arrivalFrom: arrivalFrom ? toBackendDate(arrivalFrom)! : undefined,
+                arrivalTo: arrivalTo ? toBackendDate(arrivalTo)! : undefined,
+                bookedFrom: bookedFrom ? toBackendDate(bookedFrom)! : undefined,
+                bookedTo: bookedTo ? toBackendDate(bookedTo)! : undefined,
+                cancelFrom: cancelFrom ? toBackendDate(cancelFrom)! : undefined,
+                cancelTo: cancelTo ? toBackendDate(cancelTo)! : undefined,
+                showList: showList.trim() || undefined,
+                arrivalMode: arrivalMode.trim() || undefined,
+                timewise: timewise.trim() || undefined,
             });
 
-            const raw = Array.isArray(res.data) ? res.data : [];
-            setData(raw.map(normalizeReservationRow));
+            setData(data.map(normalizeReservationRow));
         } catch (e: any) {
-            setErr(e?.response?.data?.message || e?.message || 'Failed to fetch reservation report.');
+            setErr(e.message);
             setData([]);
         } finally {
             setLoading(false);
@@ -122,7 +96,7 @@ export default function ReservationReportClient() {
 
     useEffect(() => {
         if (user?.clientId && user?.propertyId) {
-            fetchReport();
+            handleFetchReservation();
         }
 
     }, [user]);
@@ -262,7 +236,7 @@ export default function ReservationReportClient() {
 
                 <div className="mt-4 flex gap-2">
                     <button
-                        onClick={fetchReport}
+                        onClick={handleFetchReservation}
                         className="px-4 py-2 rounded-lg bg-black text-white hover:opacity-90"
                         disabled={loading}
                     >
@@ -282,7 +256,7 @@ export default function ReservationReportClient() {
                             setTimewise('');
                             setErr('');
                             setData([]);
-                            fetchReport();
+                            handleFetchReservation();
                         }}
                         className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
                         disabled={loading}

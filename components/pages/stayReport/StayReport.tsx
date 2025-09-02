@@ -2,46 +2,8 @@
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
-
-type StayReportItem = {
-  customerName: string;
-  customerAddress: string;
-  customerId: string;
-  mobileNumber: string;
-  customerEmail?: string;
-  totalGuests: string;
-  checkinMode: string;
-  reservationId: string;
-  paymentStatus: string;
-  totalAmount: number | string;
-  paymentMode: string;
-  roomNo: string;
-  roomType: string;
-  bedType: string;
-  isVip: boolean;
-  isForeignCustomer: boolean;
-  noOfPax: number;
-  childPax: number;
-  extraPax: number;
-  complimentary: string;
-  status: string;
-  paidAmount: string;
-  checkInDate: string;
-  checkOutDate: string;
-  expectedCheckOutDate: string;
-  graceTime: string;
-  balanceAmount: number | string;
-  extraServicesUsed: string[];
-  feedbackRating?: string;
-  idProofSubmitted: string;
-};
-
-const API_BASE_STAY = 'http://192.168.1.8:8000/api/v1/stay-report/';
-
-function toBackendDate(d?: string): string | undefined {
-  return d || undefined;
-}
+import { StayReportItem } from '../../interface/stayReport';
+import { fetchStayReport } from '../../../lib/api';
 
 export default function StayReport() {
   const { user } = useAuth();
@@ -56,38 +18,28 @@ export default function StayReport() {
   const [loading, setLoading] = useState<boolean>(false);
   const [err, setErr] = useState<string>('');
 
-  const fetchReport = async () => {
+  const handleFetchStayReport = async () => {
     if (!user?.clientId || !user?.propertyId) {
-      setErr('Missing clientId/propertyId from user context.');
+      setErr("Missing clientId/propertyId from user context.");
       return;
     }
 
     setLoading(true);
-    setErr('');
+    setErr("");
 
     try {
-      const params = new URLSearchParams();
-
-      params.set('clientId', user.clientId);
-      params.set('propertyId', user.propertyId);
-
-      if (fromDate && fromDate !== todayISO) params.set('fromDate', fromDate);
-      if (toDate && toDate !== todayISO) params.set('toDate', toDate);
-      if (roomType && roomType !== 'all') params.set('roomType', roomType);
-      if (customerName.trim()) params.set('customerName', customerName.trim());
-
-      const url = `${API_BASE_STAY}?${params.toString()}`;
-      console.log('GET:', url);
-
-      type ApiResponse = { success: boolean; message: string; data: StayReportItem[] };
-      const res = await axios.get<ApiResponse>(url, {
-        headers: { Accept: 'application/json' },
-        withCredentials: true,
+      const data = await fetchStayReport({
+        clientId: user.clientId,
+        propertyId: user.propertyId,
+        fromDate: fromDate !== todayISO ? fromDate : undefined,
+        toDate: toDate !== todayISO ? toDate : undefined,
+        roomType: roomType !== "all" ? roomType : undefined,
+        customerName: customerName.trim() || undefined,
       });
 
-      setData(Array.isArray(res.data?.data) ? res.data.data : []);
+      setData(data);
     } catch (e: any) {
-      setErr(e?.response?.data?.message || e?.message || 'Failed to fetch stay report.');
+      setErr(e.message);
       setData([]);
     } finally {
       setLoading(false);
@@ -97,7 +49,7 @@ export default function StayReport() {
 
   useEffect(() => {
     if (user?.clientId && user?.propertyId) {
-      fetchReport();
+      handleFetchStayReport();
     }
   }, [user]);
 
@@ -155,7 +107,7 @@ export default function StayReport() {
 
         <div className="mt-4 flex gap-2">
           <button
-            onClick={fetchReport}
+            onClick={handleFetchStayReport}
             className="px-4 py-2 rounded-lg bg-black text-white hover:opacity-90"
             disabled={loading}
           >
@@ -170,7 +122,7 @@ export default function StayReport() {
               setCustomerName('');
               setErr('');
               setData([]);
-              fetchReport(); // refetch with defaults
+              handleFetchStayReport(); // refetch with defaults
             }}
             className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
             disabled={loading}

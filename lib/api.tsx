@@ -301,7 +301,7 @@ export const fetchPropertyById = (id: string) =>
 
 // ----------------- subscriptiomodel APIs -----------------
 
- 
+
 
 export const fetchSubscriptioModel = async () => {
   const response = await api.get("/subscription-model");
@@ -317,20 +317,20 @@ export const updateSubscriptioModel = (id: string, data: any) =>
 
 export const deleteSubscriptioModel = (id: string) =>
   api.delete(`/subscription-model/delete/${id}`);
- 
+
 
 export const fetchSubscriptioModelById = async (id: string) => {
   const res = await api.get(`/subscription-model/${id}`);
-  return get(res, "data", {}); 
+  return get(res, "data", {});
 };
 
 // ----------------- Status Message APIs -----------------
- 
 
 
-export const fetchStatusMessage = async () => { 
-  const res = await api.get("/status-message"); 
-  return get(res, "data", []);    
+
+export const fetchStatusMessage = async () => {
+  const res = await api.get("/status-message");
+  return get(res, "data", []);
 };
 
 export const createStatusMessage = (formData: any) =>
@@ -346,18 +346,18 @@ export const updateStatusMessage = (id: string, data: any) =>
   });
 
 export const deleteStatusMessage = (id: string) =>
-  api.delete(`/status-message/delete/${id}`); 
+  api.delete(`/status-message/delete/${id}`);
 
 
 export const fetchStatusMessageById = async (id: string) => {
   const res = await api.get(`/status-message/${id}`);
-  return get(res, "data", {}); 
+  return get(res, "data", {});
 };
 // ----------------- Call Message APIs -----------------
 
-export const fetchCallMessage = async () => { 
-  const res = await api.get("/call-message"); 
-  return get(res, "data", []);    
+export const fetchCallMessage = async () => {
+  const res = await api.get("/call-message");
+  return get(res, "data", []);
 };
 export const createCallMessage = (formData: any) =>
   api.post('/call-message/create', {
@@ -376,15 +376,15 @@ export const deleteCallMessage = (id: string) =>
 
 export const fetchCallMessageById = async (id: string) => {
   const res = await api.get(`/call-message/${id}`);
-  return get(res, "data", {}); 
+  return get(res, "data", {});
 };
 
 // ----------------- Notification APIs -----------------
 
- 
-export const fetchNotification = async () => { 
-  const res = await api.get("/notification"); 
-  return get(res, "data", []);    
+
+export const fetchNotification = async () => {
+  const res = await api.get("/notification");
+  return get(res, "data", []);
 };
 export const createNotification = (formData: any) =>
   api.post('/notification/create', {
@@ -401,13 +401,13 @@ export const updateNotification = (id: string, data: any) =>
 export const deleteNotification = (id: string) =>
   api.delete(`/notification/delete/${id}`);
 
- 
- 
+
+
 
 
 export const fetchNotificationById = async (id: string) => {
   const res = await api.get(`/notification/${id}`);
-  return get(res, "data", {}); 
+  return get(res, "data", {});
 };
 // ----------------- CustomerInfo APIs -----------------
 
@@ -461,3 +461,189 @@ export const deleteRooms = (id: string) =>
 
 export const fetchRoomsById = (id: string) =>
   api.get(`/room/${id}`).then(res => res.data);
+
+// ----------------- Report APIs -----------------
+
+export const fetchReport = async ({
+  clientId,
+  propertyId,
+  fromDate,
+  toDate,
+  roomType,
+}: {
+  clientId: string;
+  propertyId: string;
+  fromDate?: string;
+  toDate?: string;
+  roomType?: string;
+}) => {
+  try {
+    const params = new URLSearchParams();
+
+    if (clientId) params.set("clientId", clientId);
+    if (propertyId) params.set("propertyId", propertyId);
+    if (fromDate) params.set("fromDate", fromDate);
+    if (toDate) params.set("toDate", toDate);
+    if (roomType) params.set("roomType", roomType);
+
+    const res = await api.get(`/reports/get?${params.toString()}`);
+    return get(res, "data", []);
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to fetch booking report."
+    );
+  }
+};
+
+// ----------------- Night Audit Report API -----------------
+export const fetchNightAuditReport = async ({
+  clientId,
+  propertyId,
+  fromDate,
+  toDate,
+}: {
+  clientId: string;
+  propertyId: string;
+  fromDate?: string;
+  toDate?: string;
+}) => {
+  try {
+    const params = new URLSearchParams();
+    params.set("clientId", clientId);
+    params.set("propertyId", propertyId);
+
+    if (fromDate) params.set("fromDate", fromDate);
+    if (toDate) params.set("toDate", toDate);
+
+    const res = await api.get(`/reports/night-audit?${params.toString()}`);
+    return get(res, "data", null);
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to fetch night audit report."
+    );
+  }
+};
+
+// ----------------- Reservation Report API -----------------
+export const fetchReservationReport = async ({
+  clientId,
+  propertyId,
+  arrivalFrom,
+  arrivalTo,
+  bookedFrom,
+  bookedTo,
+  cancelFrom,
+  cancelTo,
+  showList,
+  arrivalMode,
+  timewise,
+}: {
+  clientId: string;
+  propertyId: string;
+  arrivalFrom?: string;
+  arrivalTo?: string;
+  bookedFrom?: string;
+  bookedTo?: string;
+  cancelFrom?: string;
+  cancelTo?: string;
+  showList?: string;
+  arrivalMode?: string;
+  timewise?: string;
+}) => {
+  try {
+    const params = new URLSearchParams();
+    params.set("clientId", clientId);
+    params.set("propertyId", propertyId);
+
+    if (arrivalFrom) params.set("arrivalFrom", arrivalFrom);
+    if (arrivalTo) params.set("arrivalTo", arrivalTo);
+    if (bookedFrom) params.set("bookedFrom", bookedFrom);
+    if (bookedTo) params.set("bookedTo", bookedTo);
+    if (cancelFrom) params.set("cancelFrom", cancelFrom);
+    if (cancelTo) params.set("cancelTo", cancelTo);
+    if (showList) params.set("showList", showList);
+    if (arrivalMode) params.set("arrivalMode", arrivalMode);
+    if (timewise) params.set("timewise", timewise);
+
+    const res = await api.get(`/reports/reservation?${params.toString()}`);
+    return get(res, "data", []);
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to fetch reservation report."
+    );
+  }
+};
+
+
+// ----------------- Stay Report API -----------------
+export const fetchStayReport = async ({
+  clientId,
+  propertyId,
+  fromDate,
+  toDate,
+  roomType,
+  customerName,
+}: {
+  clientId: string;
+  propertyId: string;
+  fromDate?: string;
+  toDate?: string;
+  roomType?: string;
+  customerName?: string;
+}) => {
+  try {
+    const params = new URLSearchParams();
+    params.set("clientId", clientId);
+    params.set("propertyId", propertyId);
+
+    if (fromDate) params.set("fromDate", fromDate);
+    if (toDate) params.set("toDate", toDate);
+    if (roomType && roomType !== "all") params.set("roomType", roomType);
+    if (customerName?.trim()) params.set("customerName", customerName.trim());
+
+    const res = await api.get(`/reports/stay?${params.toString()}`);
+    return get(res, "data.data", []);
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to fetch stay report."
+    );
+  }
+};
+
+// ----------------- BillingInfo APIs -----------------
+
+
+export const createBillingInfo = async (data: any) => {
+  const res = await api.post('/billing-info/create', data);
+  return get(res, 'data', null);
+};
+
+export const updateBillingInfo = async (id: string, payload: any) => {
+  const res = await api.put(`/billing-info/update/${id}`, payload);
+  return res.data;
+};
+ 
+
+export const fetchBillingInfos = async () => {
+  const res = await api.get('/billing-info/');
+  return get(res, 'data', []);
+};
+
+ 
+export const getBillingInfoById = async (id: string) => {
+  const res = await api.get(`/billing-info/${id}`);
+  return get(res, 'data', []);
+};
+ 
+export const deleteBillingInfo = async (id: string) => {
+  const res = await api.delete(`/billing-info/delete/${id}`);
+  return res.data;
+}

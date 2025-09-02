@@ -2,53 +2,18 @@
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { fetchReport } from '../../../lib/api';
+import { ReportItem } from '../../interface/bookingReport';
 
-type ReportItem = {
-  customerName: string;
-  customerAddress: string;
-  roomNo: string;
-  roomType: string;
-  status: string;
-  paidAmount: string;
-  checkInDate: string;
-  checkOutDate: string;
-  expectedCheckOut: string;
-  graceTime: string;
-  reservationId: string;
-  customerId: string;
-  mobileNumber: string;
-  customerEmail: string;
-  totalGuests: string;
-  checkinMode: string;
-  paymentStatus: string;
-  totalAmount: string;
-  paymentMode: string;
-  bedType: string;
-  isVip: boolean;
-  isForeignCustomer: boolean;
-  noOfPax: number;
-  childPax: number;
-  extraPax: number;
-  complimentary: string;
-  expectedCheckOutDate: string;
-  balanceAmount: string;
-  extraServicesUsed: string[];
-  feedbackRating: string;
-  idProofSubmitted: string;
-};
-
-const API_BASE = 'http://192.168.1.8:8000/api/v1/reports/get';
- 
 function toBackendDate(d?: string): string | undefined {
   return d || undefined;
 }
 
 export default function BookingReportClient() {
   const { user } = useAuth();
- 
+
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
- 
+
   const [fromDate, setFromDate] = useState<string>(todayISO);
   const [toDate, setToDate] = useState<string>(todayISO);
   const [roomType, setRoomType] = useState<string>('');
@@ -57,49 +22,41 @@ export default function BookingReportClient() {
   const [loading, setLoading] = useState<boolean>(false);
   const [err, setErr] = useState<string>('');
 
-  const fetchReport = async () => {
+  const handleFetch = async () => {
     if (!user?.clientId || !user?.propertyId) {
-      setErr('Missing clientId/propertyId from user context.');
+      setErr("Missing clientId/propertyId from user context.");
       return;
     }
 
     setLoading(true);
-    setErr('');
+    setErr("");
 
     try {
-      const params = new URLSearchParams();
- 
-      if (user.clientId) params.set('clientId', user.clientId);
-      if (user.propertyId) params.set('propertyId', user.propertyId);
-
       const fd = toBackendDate(fromDate);
       const td = toBackendDate(toDate);
-      if (fd) params.set('fromDate', fd);
-      if (td) params.set('toDate', td);
-      if (roomType) params.set('roomType', roomType);
 
-      const url = `${API_BASE}?${params.toString()}`;
-      console.log('GET:', url);
-
-      const res = await axios.get<ReportItem[]>(url, {
-        headers: { Accept: 'application/json' },
-        withCredentials: true,
+      const data = await fetchReport({
+        clientId: user.clientId,
+        propertyId: user.propertyId,
+        fromDate: fd,
+        toDate: td,
+        roomType,
       });
 
-      setData(Array.isArray(res.data) ? res.data : []);
+      setData(data);
     } catch (e: any) {
-      setErr(e?.response?.data?.message || e?.message || 'Failed to fetch booking report.');
+      setErr(e.message);
       setData([]);
     } finally {
       setLoading(false);
     }
   };
- 
+
   useEffect(() => {
     if (user?.clientId && user?.propertyId) {
-      fetchReport();
+      handleFetch();
     }
-     
+
   }, [user]);
 
   if (!user) return <div className="p-6">Loading user…</div>;
@@ -107,7 +64,7 @@ export default function BookingReportClient() {
   return (
     <div className="bg-amber-50 min-h-full h-full p-6">
       <h1 className="text-2xl font-semibold mb-4">Booking Report</h1>
- 
+
       <div className="bg-white rounded-xl shadow p-4 mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
@@ -144,7 +101,7 @@ export default function BookingReportClient() {
 
         <div className="mt-4 flex gap-2">
           <button
-            onClick={fetchReport}
+            onClick={handleFetch}
             className="px-4 py-2 rounded-lg bg-black text-white hover:opacity-90"
             disabled={loading}
           >
@@ -158,7 +115,7 @@ export default function BookingReportClient() {
               setRoomType('2');
               setErr('');
               setData([]);
-              fetchReport();  
+              handleFetch();
             }}
             className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
             disabled={loading}
