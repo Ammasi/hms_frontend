@@ -47,7 +47,7 @@ export default function Sidebar() {
 
         <ul className="space-y-4 flex flex-col items-start  min-h-full">
 
-          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link
                 href="/clients"
@@ -55,6 +55,17 @@ export default function Sidebar() {
               >
                 <FaUsers className="text-xl" />
                 <span className={collapsed ? "hidden" : ""}>Clients</span>
+              </Link>
+            </li>
+          )}
+            {(["receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 p-2 rounded hover:bg-blue-700"
+              >
+                <FaUsers className="text-xl" />
+                <span className={collapsed ? "hidden" : ""}>Dashboard</span>
               </Link>
             </li>
           )}
@@ -75,7 +86,7 @@ export default function Sidebar() {
               </Link>
             </li>)} */}
 
-          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
 
             <li>
               <Link href="/taskSheet" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
@@ -85,7 +96,7 @@ export default function Sidebar() {
             </li>
           )}
 
-          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link href="/subscriptionLimit" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
                 <FaStream className="text-xl" />
@@ -94,7 +105,7 @@ export default function Sidebar() {
             </li>
           )}
 
-          {/* {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {/*   {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link href="/hotelFacility" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
                 <FaConciergeBell className="text-xl" />
@@ -103,7 +114,7 @@ export default function Sidebar() {
             </li>
           )} */}
 
-          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link href="/bookingReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
                 <FaReply className="text-xl" />
@@ -111,103 +122,127 @@ export default function Sidebar() {
               </Link>
             </li>
           )}
-
-          <li>
-            <Link href="/stayReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaReply className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Stay Report</span>
-            </Link>
-          </li>
-
-          <li>
-            <Link href="/nightAuditReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaReply className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Night Audit Report</span>
-            </Link>
-          </li>
-          {/*Reservation Report*/}
-          <li>
-            <Link href="/reservationReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaReply className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Reservation Report</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/checkInMode" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaClipboardCheck className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Check In Mode</span>
-            </Link>
-          </li>
-
-          <li>
-            <Link href="/gstRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaFileInvoice className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>GST Registration</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/employee" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaUserTie className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Employee Management</span>
-            </Link>
-          </li>
-
-          <li>
-            <Link href="/chargesRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaFileInvoiceDollar className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Charges Register</span>
-            </Link>
-          </li>
-
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/stayReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaReply className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Stay Report</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/nightAuditReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaReply className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Night Audit Report</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/reservationReport" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaReply className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Reservation Report</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/checkInMode" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaClipboardCheck className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Check In Mode</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/gstRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaFileInvoice className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>GST Registration</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/employee" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaUserTie className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Employee Management</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/chargesRegister" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaFileInvoiceDollar className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Charges Register</span>
+              </Link>
+            </li>
+          )}
           {/* <li>
             <Link href="/propertyManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
               <FaBuilding className="text-xl" />
               <span className={collapsed ? 'hidden' : ''}>Property Management</span>
             </Link>
           </li> */}
-          <li>
-            <Link href="/subscriptionModel" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaCreditCard className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Subscription Model</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/statusMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaEnvelope className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Status Message</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/callMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaPhoneAlt className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Call Message</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/notification" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaBell className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Notification</span>
-            </Link>
-          </li>
 
-          <li>
-            <Link href="/billing" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaBell className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Billing</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/BillingInfoList" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaBell className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>BillingInfoList</span>
-            </Link>
-          </li>
-          {/* <li>
-            <Link href="/customerInfo" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
-              <FaAddressCard className="text-xl" />
-              <span className={collapsed ? 'hidden' : ''}>Customer Info</span>
-            </Link>
-          </li> */}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/subscriptionModel" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaCreditCard className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Subscription Model</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/statusMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaEnvelope className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Status Message</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/callMessage" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaPhoneAlt className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Call Message</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/notification" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaBell className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Notification</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+
+            <li>
+              <Link href="/billing" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaBell className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Billing</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/BillingInfoList" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaBell className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>BillingInfoList</span>
+              </Link>
+            </li>
+          )}
+          {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link href="/customerInfo" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
+                <FaAddressCard className="text-xl" />
+                <span className={collapsed ? 'hidden' : ''}>Customer Info</span>
+              </Link>
+            </li>
+          )}
+
         </ul>
       </div>
     </aside>

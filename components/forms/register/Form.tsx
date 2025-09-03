@@ -67,6 +67,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
               <option value="">Select Role</option>
 
               <option value="software">Software Supplier</option>
+              <option value="receptionist">Receptionist</option>
               <option value="owner">Hotel Owner</option>
               <option value="manager" >Manager/Receptionist</option>
               <option value="employee">Employee</option>
