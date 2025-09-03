@@ -230,420 +230,426 @@ const ClientAdd = ({ setShowModal, editingData, onSaved }: ClientAddProps) => {
     }
   };
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl p-3">
-        {/* Header */}
-        <div className="relative mb-2">
-          <h2 className="text-xl font-bold text-center text-blue-800">
-            {editingData ? 'Edit Client Details' : 'Add New Client'}
-          </h2>
-          <button
-            onClick={() => {
-              setShowModal(false);
-              onSaved?.();
-            }}
-            className="absolute top-0 right-0 text-gray-500 hover:text-red-600 transition-colors duration-200 text-3xl font-light"
-            disabled={isLoading}
-            aria-label="Close modal"
-          >
-            &times;
-          </button>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Column 1 */}
-          <div className="space-y-4">
-            <div className="flex flex-col space-y-1">
-              <label
-                htmlFor="companyName"
-                className="text-sm font-semibold text-gray-700"
-              >
-                Company Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="companyName"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                required
-                placeholder="Enter company name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="companyName"
-                className="text-sm font-semibold text-gray-700"
-              >Email <span className="text-red-500">*</span></label>
-              <input
-                type="email"
-                name="clientEmail"
-                value={formData.clientEmail}
-                onChange={handleChange}
-                placeholder="Enter Eamil"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">GST Number </label>
-              <input
-                type="text"
-                name="gst"
-                value={formData.gst}
-                onChange={handleChange}
-                placeholder="Enter GST Number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Subscription <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="subscription"
-                value={formData.subscription}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-             focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
-                required
-              >
-                <option value="">-- Select Plan --</option>
-                {planNames.map((plan) => (
-                  <option key={plan} value={plan}>
-                    {plan}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Start Date <span className="text-red-500">*</span></label>
-              <input
-                type="date"
-                name="subscriptionStartDate"
-                value={formData.subscriptionStartDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Column 2 */}
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Name <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                name="clientName"
-                value={formData.clientName}
-                onChange={handleChange}
-                placeholder="Enter Name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Mobile Number <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                name="clientMobileNo"
-                value={formData.clientMobileNo}
-                onChange={handleChange}
-                placeholder="Enter Mobile Number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Currency <span className="text-red-500">*</span></label>
-              <select
-                name="currency"
-                value={formData.currency}
-                onChange={handleChange}
-
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              >
-                <option value="INR">INR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Subscription Status <span className="text-red-500">*</span></label>
-              <select
-                name="subscriptionStatus"
-                value={formData.subscriptionStatus}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Pending">Pending</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">End Date <span className="text-red-500">*</span></label>
-              <input
-                type="date"
-                name="subscriptionEndDate"
-                value={formData.subscriptionEndDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Column 3 */}
-          <div>
-            <div>
-              <label htmlFor="clientAddress" className="text-sm font-semibold text-gray-700">
-                Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="clientAddress"
-                type="text"
-                name="clientAddress"
-                value={formData.clientAddress}
-                onChange={handleChange}
-                placeholder="Enter Address"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="clientDocuments" className="block text-sm font-medium text-gray-700">
-                Client Documents <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="clientDocuments"
-                ref={fileInputRef}
-                type="file"
-                name="clientDocuments"
-                multiple
-                accept="image/*"
-                onChange={handleChange}
-                className="hidden"
-              />
-              <div className="flex items-center gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={openPicker}
-                  className="px-3 py-1.5  border border-gray-300 rounded-lg shadow-sm 
-                   focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                  disabled={existingUrls.length + newFiles.length >= MAX_IMAGES}
-                >
-                  Add +
-                </button>
-                <span className="text-xs text-gray-500">
-                  {existingUrls.length + newFiles.length}/{MAX_IMAGES} images
-                </span>
-              </div>
-              <div className="border border-gray-200 rounded-md p-2 bg-gray-50">
-                <div className="grid grid-cols-3 gap-2">
-                  {previewItems.map((item, i) => (
-                    <div
-                      key={i}
-                      className="relative group border border-gray-200 rounded-md overflow-hidden h-20 w-20"
-                    >
-                      <img
-                        src={item.url}
-                        alt={item.kind === 'existing' ? `Client document ${i + 1}` : item.file.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (item.kind === 'existing') {
-                            setExistingUrls((prev) => prev.filter((_, idx) => idx !== i));
-                          } else {
-                            const idx = newFiles.indexOf(item.file);
-                            if (idx > -1) removeNewAt(idx);
-                          }
-                        }}
-                        className="absolute top-1 right-1 hidden group-hover:block bg-white/90 border border-red-200 text-red-600 text-[10px] px-1.5 py-0.5 rounded"
-                        aria-label="Remove image"
-                        title="Remove"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  {Array.from({ length: Math.max(0, MAX_IMAGES - previewItems.length) }).map((_, k) => (
-                    <button
-                      key={`empty-${k}`}
-                      type="button"
-                      onClick={openPicker}
-                      className="h-20 w-20 rounded-md border-2 border-dashed border-gray-300
-                       flex items-center justify-center text-xs text-gray-500
-                       hover:border-gray-400 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      aria-label="Upload image"
-                      title="Upload image"
-                    >
-                      + Upload
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Number of Hotels <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="noOfHotels"
-                value={formData.noOfHotels}
-                onChange={handleChange}
-                placeholder="Enter Number Of Hotels"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
-                min="0"
-                step="1"
-                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  target.value = target.value.replace(/^0+(?=\d)/, '');
-                }}
-                required
-              />
-
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Subscription Duration <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="subscriptionDuration"
-                value={formData.subscriptionDuration}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
-                required
-              >
-                <option value="yearly">Yearly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Property Count <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                name="propertyCount"
-                value={formData.propertyCount}
-                onChange={handleChange}
-                placeholder="Enter Property Count"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
-               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
-                min="0"
-                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  target.value = target.value.replace(/^0+(?=\d)/, '');
-                }}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700 block mb-2">
-                Active Status <span className="text-red-500">*</span>
-              </label>
-
-              <div
-                className="w-full flex items-center gap-6 px-3 py-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="isActive"
-                    value="true"
-                    checked={formData.isActive === true}
-                    onChange={() => setFormData((prev: any) => ({ ...prev, isActive: true }))}
-                    className="text-blue-600 focus:ring-blue-500"
-                    required
-                  />
-                  <span className="text-gray-700">Yes</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="isActive"
-                    value="false"
-                    checked={formData.isActive === false}
-                    onChange={() => setFormData((prev: any) => ({ ...prev, isActive: false }))}
-                    className="text-blue-600 focus:ring-blue-500"
-                    required
-                  />
-                  <span className="text-gray-700">No</span>
-                </label>
-              </div>
-            </div>
-
-
-            <div className="flex items-end justify-center space-x-3">
+    <>
+      {setShowModal && (
+        <div className="fixed inset-0 mt-8 z-50 flex items-center justify-center">
+          <div className="bg-white   w-[1000px] h-[500px] overflow-y-auto rounded-lg shadow-xl p-6 relative">
+            {/* Header */}
+            <div className="relative mb-2">
+              <h2 className="text-xl font-bold text-center text-blue-800">
+                {editingData ? 'Edit Client Details' : 'Add New Client'}
+              </h2>
               <button
-                type="button"
                 onClick={() => {
                   setShowModal(false);
                   onSaved?.();
                 }}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="absolute top-0 right-0 text-gray-500 hover:text-red-600 transition-colors duration-200 text-3xl font-light"
                 disabled={isLoading}
+                aria-label="Close modal"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    Processing...
-                  </span>
-                ) : editingData ? 'Update' : 'Submit'}
+                &times;
               </button>
             </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Column 1 */}
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-1">
+                  <label
+                    htmlFor="companyName"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Company Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="companyName"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter company name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="companyName"
+                    className="text-sm font-semibold text-gray-700"
+                  >Email <span className="text-red-500">*</span></label>
+                  <input
+                    type="email"
+                    name="clientEmail"
+                    value={formData.clientEmail}
+                    onChange={handleChange}
+                    placeholder="Enter Eamil"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">GST Number </label>
+                  <input
+                    type="text"
+                    name="gst"
+                    value={formData.gst}
+                    onChange={handleChange}
+                    placeholder="Enter GST Number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Subscription <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="subscription"
+                    value={formData.subscription}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+             focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  >
+                    <option value="">-- Select Plan --</option>
+                    {planNames.map((plan) => (
+                      <option key={plan} value={plan}>
+                        {plan}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Start Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    name="subscriptionStartDate"
+                    value={formData.subscriptionStartDate}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Column 2 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    name="clientName"
+                    value={formData.clientName}
+                    onChange={handleChange}
+                    placeholder="Enter Name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Mobile Number <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    name="clientMobileNo"
+                    value={formData.clientMobileNo}
+                    onChange={handleChange}
+                    placeholder="Enter Mobile Number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Currency <span className="text-red-500">*</span></label>
+                  <select
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleChange}
+
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  >
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Subscription Status <span className="text-red-500">*</span></label>
+                  <select
+                    name="subscriptionStatus"
+                    value={formData.subscriptionStatus}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">End Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    name="subscriptionEndDate"
+                    value={formData.subscriptionEndDate}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Column 3 */}
+              <div>
+                <div>
+                  <label htmlFor="clientAddress" className="text-sm font-semibold text-gray-700">
+                    Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="clientAddress"
+                    type="text"
+                    name="clientAddress"
+                    value={formData.clientAddress}
+                    onChange={handleChange}
+                    placeholder="Enter Address"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="clientDocuments" className="block text-sm font-medium text-gray-700">
+                    Client Documents <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="clientDocuments"
+                    ref={fileInputRef}
+                    type="file"
+                    name="clientDocuments"
+                    multiple
+                    accept="image/*"
+                    onChange={handleChange}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={openPicker}
+                      className="px-3 py-1.5  border border-gray-300 rounded-lg shadow-sm 
+                   focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                      disabled={existingUrls.length + newFiles.length >= MAX_IMAGES}
+                    >
+                      Add +
+                    </button>
+                    <span className="text-xs text-gray-500">
+                      {existingUrls.length + newFiles.length}/{MAX_IMAGES} images
+                    </span>
+                  </div>
+                  <div className="border border-gray-200 rounded-md p-2 bg-gray-50">
+                    <div className="grid grid-cols-3 gap-2">
+                      {previewItems.map((item, i) => (
+                        <div
+                          key={i}
+                          className="relative group border border-gray-200 rounded-md overflow-hidden h-20 w-20"
+                        >
+                          <img
+                            src={item.url}
+                            alt={item.kind === 'existing' ? `Client document ${i + 1}` : item.file.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (item.kind === 'existing') {
+                                setExistingUrls((prev) => prev.filter((_, idx) => idx !== i));
+                              } else {
+                                const idx = newFiles.indexOf(item.file);
+                                if (idx > -1) removeNewAt(idx);
+                              }
+                            }}
+                            className="absolute top-1 right-1 hidden group-hover:block bg-white/90 border border-red-200 text-red-600 text-[10px] px-1.5 py-0.5 rounded"
+                            aria-label="Remove image"
+                            title="Remove"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      {Array.from({ length: Math.max(0, MAX_IMAGES - previewItems.length) }).map((_, k) => (
+                        <button
+                          key={`empty-${k}`}
+                          type="button"
+                          onClick={openPicker}
+                          className="h-20 w-20 rounded-md border-2 border-dashed border-gray-300
+                       flex items-center justify-center text-xs text-gray-500
+                       hover:border-gray-400 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          aria-label="Upload image"
+                          title="Upload image"
+                        >
+                          + Upload
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Number of Hotels <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="noOfHotels"
+                    value={formData.noOfHotels}
+                    onChange={handleChange}
+                    placeholder="Enter Number Of Hotels"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/^0+(?=\d)/, '');
+                    }}
+                    required
+                  />
+
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Subscription Duration <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="subscriptionDuration"
+                    value={formData.subscriptionDuration}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    required
+                  >
+                    <option value="yearly">Yearly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Property Count <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    name="propertyCount"
+                    value={formData.propertyCount}
+                    onChange={handleChange}
+                    placeholder="Enter Property Count"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm 
+               focus:outline-none  text-gray-900 placeholder-gray-400 transition-all"
+                    min="0"
+                    onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/^0+(?=\d)/, '');
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Active Status <span className="text-red-500">*</span>
+                  </label>
+
+                  <div
+                    className="w-full flex items-center gap-6 px-3 py-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="isActive"
+                        value="true"
+                        checked={formData.isActive === true}
+                        onChange={() => setFormData((prev: any) => ({ ...prev, isActive: true }))}
+                        className="text-blue-600 focus:ring-blue-500"
+                        required
+                      />
+                      <span className="text-gray-700">Yes</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="isActive"
+                        value="false"
+                        checked={formData.isActive === false}
+                        onChange={() => setFormData((prev: any) => ({ ...prev, isActive: false }))}
+                        className="text-blue-600 focus:ring-blue-500"
+                        required
+                      />
+                      <span className="text-gray-700">No</span>
+                    </label>
+                  </div>
+                </div>
+
+
+                <div className="flex items-end justify-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false);
+                      onSaved?.();
+                    }}
+                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center justify-center">
+                        Processing...
+                      </span>
+                    ) : editingData ? 'Update' : 'Submit'}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
+
 
   );
 };
