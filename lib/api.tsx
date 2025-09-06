@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import get from 'lodash/get';
-const API_BASE_URL = 'http://192.168.1.8:8000/api/v1';
+const API_BASE_URL = 'http://192.168.1.4:8000/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -277,11 +277,13 @@ export const fetchChargesRegisterById = (id: string) =>
 
 // ----------------- Property APIs -----------------
 
-export const fetchProperty = async () => {
-  const response = await api.get("/property");
+// export const fetchProperty = async () => {
+//   const response = await api.get("/property");
 
-  return get(response, "data", []);
-};
+//   return get(response, "data", []);
+// };
+
+export const fetchProperty = () => api.get('/property');
 
 export const createProperty = (formData: FormData) =>
   api.post('/property/create', formData, {

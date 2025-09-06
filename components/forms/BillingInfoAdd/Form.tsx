@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import { createBillingInfo, getBillingInfoById, updateBillingInfo } from '../../../lib/api';
 import { useAuth } from '@/app/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { BillingFormData, ExtraService } from '../../interface/billing';
-import { FaHotel, FaUserFriends, FaTasks } from "react-icons/fa";
+import { BillingFormData, ExtraService } from '../../interface/billing'; 
 
 const initialForm: BillingFormData = {
   hotelDetails: { hotelName: '', hotelAddress: '', hotelMobileNo: '', gstin: '', hsnCode: '' },
@@ -173,9 +172,9 @@ export default function BillingInfoAdd() {
 
 
   const steps = [
-    { label: "Hotel & Invoice", icon: <FaHotel className="text-xl mr-2" /> },
-    { label: "Customer & Stay", icon: <FaUserFriends className="text-xl mr-2" /> },
-    { label: "Extra Services & Amount", icon: <FaTasks className="text-xl mr-2" /> },
+    { label: "Hotel & Invoice" },
+    { label: "Customer & Stay" },
+    { label: "Extra Services & Amount" },
   ];
 
 
@@ -224,7 +223,7 @@ export default function BillingInfoAdd() {
           ))}
         </div>
 
-        {/* Scrollable Content */}
+ 
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
           {/* Step 1 */}
           {step === 1 && (

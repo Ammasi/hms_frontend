@@ -1,4 +1,3 @@
- 
 "use client";
 import React, { createContext, useContext, useState, useMemo } from "react";
 
@@ -8,7 +7,7 @@ export type User = {
   role: string;
   clientId?: string;
   propertyId?: string;
-  isActive?:boolean;
+  isActive?: boolean;
 } | null;
 
 type AuthContextType = {

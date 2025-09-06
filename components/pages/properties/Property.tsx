@@ -42,6 +42,7 @@ export default function PropertyDetails() {
         pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
 
     useEffect(() => {
+        // console.log("Property ID:66666666666666666666666666", propertyId);
         if (!propertyId) return;
 
         const loadData = async () => {
@@ -135,7 +136,7 @@ export default function PropertyDetails() {
                 <div className="shadow-lg rounded-xl m-2 overflow-hidden border border-gray-200">
 
                     <div className="text-center py-2 bg-gradient-to-r from-blue-800 to-blue-600 text-white">
- 
+
                         <h1 className="text-xl font-bold mt-1 flex justify-center items-center gap-2">
                             <Building2 className="w-7 h-7" /> {client.companyName}
                         </h1>

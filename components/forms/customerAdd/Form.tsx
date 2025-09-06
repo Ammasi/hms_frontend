@@ -126,7 +126,7 @@ const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
     setIsLoading(true);
 
     try {
-      const baseUrl = 'http://192.168.1.8:8000/api/v1/customers';
+      const baseUrl = 'http://192.168.1.4:8000/api/v1/customers';
       const url = editingData
         ? `${baseUrl}/update/${editingData.id}`
         : `${baseUrl}/create`;

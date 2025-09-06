@@ -105,8 +105,8 @@ const HotelOwnerAdd = ({ setShowModal, editingData, onSaved }: HotelOwnerAddProp
     setIsLoading(true);
 
     const url = editingData
-      ? `http://192.168.1.8:8000/api/v1/product-subscription/update/${editingData.id}`
-      : `http://192.168.1.8:8000/api/v1/product-subscription/create`;
+      ? `http://192.168.1.4:8000/api/v1/product-subscription/update/${editingData.id}`
+      : `http://192.168.1.4:8000/api/v1/product-subscription/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 

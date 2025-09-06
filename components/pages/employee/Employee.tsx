@@ -23,8 +23,7 @@ type EmployeeData = {
 };
 
 export default function Employee() {
-  const [data, setData] = useState<EmployeeData[]>([]);
-  const [view, setView] = useState<'table' | 'grid'>('table');
+  const [data, setData] = useState<EmployeeData[]>([]); 
   const [editingData, setEditingData] = useState<EmployeeData | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -93,173 +92,130 @@ export default function Employee() {
   };
 
   return (
-    <div className="p-6 flex flex-col items-center">
-      <div className="bg-white  rounded-t-2xl shadow-lg  w-full max-w-7xl">
-        <div className="mb-6 bg-blue-800 p-4 rounded-t-2xl text-white relative">
-          <div className="flex items-center justify-between">
-            <div className="w-1/3"></div>
+  <div className="p-6 flex flex-col items-center">
+  <div className="bg-white rounded-t-2xl shadow-lg w-full max-w-7xl">
+    <div className="mb-6 bg-blue-800 p-4 rounded-t-2xl text-white relative">
+      <div className="flex items-center justify-between">
+        <div className="w-1/3"></div>
 
-            <div className="w-1/3 text-center">
-              <h1 className="text-xl font-bold">Employee Management </h1>
-            </div>
-
-            <div className="w-1/3 flex justify-end gap-2">
-              <button
-                onClick={handleOpen}
-                className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setView('table')}
-                className={`px-4 py-2 rounded-lg ${view === 'table' ? 'bg-blue-700 text-white' : 'bg-blue-900 text-white'}`}
-              >
-                Table View
-              </button>
-              <button
-                onClick={() => setView('grid')}
-                className={`px-4 py-2 rounded-lg ${view === 'grid' ? 'bg-blue-700 text-white' : 'bg-blue-900 text-white'}`}
-              >
-                Grid View
-              </button>
-            </div>
-            {/* Popup Modal */}
-            {showModal && (
-              <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
-                <EmployeeAdd
-                  setShowModal={(val) => {
-                    setShowModal(val);
-                    if (!val) setEditingData(null);
-                  }}
-                  editingData={editingData}
-                  onSaved={() => {
-                    setShowModal(false);
-                    setEditingData(null);
-                  }}
-                  load={load} 
-                />
-
-              </div>
-            )}
-          </div>
+        <div className="w-1/3 text-center">
+          <h1 className="text-xl font-bold">Employee Management</h1>
         </div>
-        <h1 className="text-2xl ms-2 font-bold">Employees</h1>
-        {isLoading ? (
-          <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
-        ) : error ? (
-          <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
-        ) : data.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No  Employee found.</div>
-        ) : view === 'table' ? (
-          <div className="overflow-x-auto  shadow bg-white p-4 mt-2">
-            <table className="min-w-full text-sm text-left">
-              <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
-                <tr>
-                  <th className="px-6 py-4">clientId</th>
-                  <th className="px-6 py-4">propertyId</th>
-                  <th className="px-6 py-4">name</th>
-                  <th className="px-6 py-4">email</th>
-                  <th className="px-6 py-4">mobileNo</th>
-                  <th className="px-6 py-4">gender</th>
-                  <th className="px-6 py-4">department</th>
-                  <th className="px-6 py-4">maritalstatus</th>
-                  <th className="px-6 py-4">address</th>
-                  <th className="px-6 py-4">Active</th>
-                  <th className="px-6 py-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-700">
-                {data.map((item) => (
-                  <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
 
-                    <td className="px-6 py-3">{item.clientId}</td>
-                    <td className="px-6 py-3">{item.propertyId}</td>
-                    <td className="px-6 py-3">{item.name}</td>
-                    <td className="px-6 py-3">{item.email}</td>
-                    <td className="px-6 py-3">{item.mobileNo}</td>
-                    <td className="px-6 py-3">{item.gender}</td>
-                    <td className="px-6 py-3">{item.department}</td>
-                    <td className="px-6 py-3">{item.maritalstatus}</td>
-                    <td className="px-6 py-3">{item.address}</td>
-                    <td className="px-6 py-3">{item.isActive ? 'Yes' : 'No'}</td>
-                    <td className="px-6 py-3 flex rounded-b-2xl items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow transition duration-200"
-                        title="Edit"
-                      >
-                        <FaEdit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(item.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow transition duration-200"
-                        title="Delete"
-                      >
-                        <MdDelete className="h-5 w-5" />
-                      </button>
+        <div className="w-1/3 flex justify-end gap-2">
+          <button
+            onClick={handleOpen}
+            className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow"
+          >
+            Add
+          </button>
+        </div>
 
-                    </td>
-
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Popup Modal */}
+        {showModal && (
+          <div className="fixed inset-0 flex text-black items-center justify-center bg-opacity-50 z-50">
+            <EmployeeAdd
+              setShowModal={(val) => {
+                setShowModal(val);
+                if (!val) setEditingData(null);
+              }}
+              editingData={editingData}
+              onSaved={() => {
+                setShowModal(false);
+                setEditingData(null);
+              }}
+              load={load}
+            />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 p-4 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {data.map((item) => (
-              <div
-                key={item.id}
-                className="p-5 border rounded-lg shadow-md bg-white flex flex-col justify-between space-y-4"
-              >
-
-                <div className=" text-center items-center space-y-2">
-                  <h2 className="text-2xl font-semibold text-blue-700">{item.clientId}</h2>
-                  <p className="text-lg text-gray-600">{item.name}</p>
-                </div>
-
-
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">propertyId:</span> {item.propertyId}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">Mobile:</span> {item.mobileNo}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">Address:</span> {item.address}</p>
-                </div>
-
-                <div className="border-t border-gray-200 pt-2 space-y-1">
-                  <p className="text-sm text-gray-700"><span className="font-medium">gender:</span> {item.gender}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">department:</span> {item.department}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">maritalstatus:</span> {item.maritalstatus}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">address:</span> {item.address}</p>
-                  <p className="text-sm text-gray-700"><span className="font-medium">Active:</span> {item.isActive ? 'Yes' : 'No'}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
         )}
       </div>
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Are you sure you want to delete this record?</h2>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-md"
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-4 py-2 rounded-md"
-              >
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
+
+    <h1 className="text-2xl ms-2 font-bold">Employees</h1>
+
+    {isLoading ? (
+      <div className="text-center py-8 text-blue-600 font-semibold">Loading...</div>
+    ) : error ? (
+      <div className="text-center py-8 text-red-600 font-semibold">{error}</div>
+    ) : data.length === 0 ? (
+      <div className="text-center py-8 text-gray-500">No Employee found.</div>
+    ) : (
+      <div className="overflow-x-auto shadow bg-white p-4 mt-2">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
+            <tr>
+           
+              <th className="px-6 py-4">name</th>
+              <th className="px-6 py-4">email</th>
+              <th className="px-6 py-4">mobileNo</th>
+              <th className="px-6 py-4">gender</th>
+              <th className="px-6 py-4">department</th>
+              <th className="px-6 py-4">maritalstatus</th>
+              <th className="px-6 py-4">address</th>
+              <th className="px-6 py-4">Active</th>
+              <th className="px-6 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="text-gray-700">
+            {data.map((item) => (
+              <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
+        
+                <td className="px-6 py-3">{item.name}</td>
+                <td className="px-6 py-3">{item.email}</td>
+                <td className="px-6 py-3">{item.mobileNo}</td>
+                <td className="px-6 py-3">{item.gender}</td>
+                <td className="px-6 py-3">{item.department}</td>
+                <td className="px-6 py-3">{item.maritalstatus}</td>
+                <td className="px-6 py-3">{item.address}</td>
+                <td className="px-6 py-3">{item.isActive ? 'Yes' : 'No'}</td>
+                <td className="px-6 py-3 flex rounded-b-2xl items-center gap-2">
+                  <button
+                    onClick={() => handleEdit(item.id)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow transition duration-200"
+                    title="Edit"
+                  >
+                    <FaEdit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(item.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow transition duration-200"
+                    title="Delete"
+                  >
+                    <MdDelete className="h-5 w-5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+
+  {deleteTarget && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          Are you sure you want to delete this record?
+        </h2>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={confirmDelete}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-md"
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => setDeleteTarget(null)}
+            className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-4 py-2 rounded-md"
+          >
+            No
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
   );
 }

@@ -58,14 +58,26 @@ export default function Sidebar() {
               </Link>
             </li>
           )}
-            {(["receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+
+          {(["receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link
                 href="/dashboard"
                 className="flex items-center gap-3 p-2 rounded hover:bg-blue-700"
               >
-                <FaUsers className="text-xl" />
+                <FaTasks className="text-xl" />
                 <span className={collapsed ? "hidden" : ""}>Dashboard</span>
+              </Link>
+            </li>
+          )}
+          {(["receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+            <li>
+              <Link
+                href="/checkin"
+                className="flex items-center gap-3 p-2 rounded hover:bg-blue-700"
+              >
+                <FaHotel className="text-xl" />
+                <span className={collapsed ? "hidden" : ""}>Check In</span>
               </Link>
             </li>
           )}

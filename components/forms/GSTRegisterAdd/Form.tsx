@@ -107,8 +107,8 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     e.preventDefault();
     setIsLoading(true);
     const url = editingData
-      ? `http://192.168.1.8:8000/api/v1/gst/update/${editingData.id}`
-      : `http://192.168.1.8:8000/api/v1/gst/create`;
+      ? `http://192.168.1.4:8000/api/v1/gst/update/${editingData.id}`
+      : `http://192.168.1.4:8000/api/v1/gst/create`;
 
 
     const method = editingData ? 'PUT' : 'POST';

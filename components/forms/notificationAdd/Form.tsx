@@ -73,8 +73,8 @@ const NotificationAdd = ({ setShowModal, editingData, onSaved }: NotificationAdd
 
 
       const url = isEdit
-        ? `http://192.168.1.8:8000/api/v1/notification/update/${editingData!.id}`
-        : `http://192.168.1.8:8000/api/v1/notification/create`;
+        ? `http://192.168.1.4:8000/api/v1/notification/update/${editingData!.id}`
+        : `http://192.168.1.4:8000/api/v1/notification/create`;
 
       const method = isEdit ? "PUT" : "POST";
 

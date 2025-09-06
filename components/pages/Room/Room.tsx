@@ -572,9 +572,12 @@ export default function RoomDetailsPage() {
                         onChange={handleFormChange}
                         className="w-full border p-2 rounded"
                       >
-                        <option value="available">Available</option>
+                        <option value="vacant">Vacant</option>
                         <option value="occupied">Occupied</option>
+                        <option value="dirty">Dirty</option>
+                        <option value="block">Block</option>
                         <option value="maintenance">Maintenance</option>
+                        <option value="cleaning">Cleaning</option>
                       </select>
                     </div>
                   </div>

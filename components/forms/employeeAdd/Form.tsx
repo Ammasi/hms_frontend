@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 
 type EmployeeData = {
   id: string;
-  clientId: string;
-  propertyId: string;
+  // clientId: string;
+  // propertyId: string;
   name: string;
   email: string;
   mobileNo: string;
@@ -30,8 +30,8 @@ type EmployeeAddProps = {
 const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddProps) => {
 
   const initialFormData = {
-    clientId: '',
-    propertyId: '',
+    // clientId: '',
+    // propertyId: '',
     name: '',
     email: '',
     mobileNo: '',
@@ -53,8 +53,8 @@ const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddPr
     if (editingData) {
       // Transform API data to match form fields
       const transformedData = {
-        clientId: get(editingData, 'clientId', ''),
-        propertyId: get(editingData, 'propertyId', ''),
+        // clientId: get(editingData, 'clientId', ''),
+        // propertyId: get(editingData, 'propertyId', ''),
         name: get(editingData, 'name', ''),
         email: get(editingData, 'email', ''),
         mobileNo: get(editingData, 'mobileNo', ''),
@@ -85,8 +85,8 @@ const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddPr
     setIsLoading(true);
 
     if (
-      !formData.clientId ||
-      !formData.propertyId ||
+      // !formData.clientId ||
+      // !formData.propertyId ||
       !formData.name ||
       !formData.email ||
       !formData.mobileNo ||
@@ -101,8 +101,8 @@ const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddPr
     }
 
     const url = editingData
-      ? `http://192.168.1.8:8000/api/v1/employee/update/${editingData.id}`
-      : `http://192.168.1.8:8000/api/v1/employee/create`;
+      ? `http://192.168.1.4:8000/api/v1/employee/update/${editingData.id}`
+      : `http://192.168.1.4:8000/api/v1/employee/create`;
 
     const method = editingData ? 'PUT' : 'POST';
 
@@ -116,8 +116,8 @@ const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddPr
         credentials: 'include',
         body: JSON.stringify({
           ...(editingData && { id: editingData.id }),
-          clientId: formData.clientId,
-          propertyId: formData.propertyId,
+          // clientId: formData.clientId,
+          // propertyId: formData.propertyId,
           name: formData.name,
           email: formData.email,
           mobileNo: String(formData.mobileNo),
@@ -169,31 +169,31 @@ const EmployeeAdd = ({ setShowModal, editingData, onSaved, load }: EmployeeAddPr
           </div>
         </div>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+{/* 
           <div>
             <label className="block text-sm font-medium">clientId</label>
             <input
               type="text"
               name="clientId"
-              value={formData.clientId}
-              onChange={handleChange}
+              // value={formData.clientId}
+              // onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded"
               required
             />
-          </div>
+          </div> */}
 
-
+{/* 
           <div>
             <label className="block text-sm font-medium">propertyId</label>
             <input
               type="text"
               name="propertyId"
-              value={formData.propertyId}
-              onChange={handleChange}
+              // value={formData.propertyId}
+              // onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded"
               required
             />
-          </div>
+          </div> */}
 
 
           <div>
