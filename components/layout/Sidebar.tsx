@@ -59,7 +59,7 @@ export default function Sidebar() {
             </li>
           )}
 
-          {(["receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["receptionist","software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link
                 href="/dashboard"
@@ -70,7 +70,7 @@ export default function Sidebar() {
               </Link>
             </li>
           )}
-          {(["receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["receptionist","software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link
                 href="/checkin"
@@ -90,13 +90,13 @@ export default function Sidebar() {
               </Link>
             </li>
           )} */}
-          {/* {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
+          {(["admin", "owner", "software", "receptionist"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
             <li>
               <Link href="/customerManagement" className="flex items-center gap-3 p-2 rounded hover:bg-blue-700">
                 <FaUsers className="text-xl" />
                 <span className={collapsed ? 'hidden' : ''}>Customer Management</span>
               </Link>
-            </li>)} */}
+            </li>)}
 
           {(["software"].includes(user?.role?.toLocaleLowerCase() ?? "")) && (
 

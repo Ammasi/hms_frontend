@@ -4,7 +4,7 @@ import React, { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://192.168.1.4:8000";
-const DEFAULT_COMMON_ID = "cf41cf3e-bb06-409a-84de-4814eba8cf4f";
+const DEFAULT_COMMON_ID = "906e4354-1117-4e25-b423-8dd5930b15cb";
 
 type Room = {
   id?: string;
@@ -104,7 +104,7 @@ function RoomCard({ room }: { room: Room }) {
   return (
     <div
       ref={containerRef}
-      className={`h-25 w-55 relative ${pal.bg} flex items-center gap-3 p-2 rounded-lg shadow-sm transition-all duration-150 cursor-pointer`}
+      className={`h-20 w-50 relative ${pal.bg} flex items-center gap-3 p-2 rounded-lg shadow-sm transition-all duration-150 cursor-pointer`}
       tabIndex={0}
       role="button"
       aria-expanded={open}
@@ -138,7 +138,7 @@ function RoomCard({ room }: { room: Room }) {
 
         {occupied ? (
           <>
-            <div className="mt-0.5 px-2 py-0.5 rounded-md text-xl font-medium text-slate-700">
+            <div className="mt-0.5  px-2 py-0.5 rounded-md text-xl font-medium text-slate-700">
               <span className="block truncate">{guest ?? "Name"}</span>
             </div>
             {amount && <div className="mt-1 text-xl text-slate-800 font-medium truncate">{amount}</div>}
@@ -157,7 +157,7 @@ function RoomCard({ room }: { room: Room }) {
       {open && (
         <div
           ref={popupRef}
-          className="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50"
+          className="absolute  ml-3 top-1/2 -translate-y-1/2 z-50"
           style={{ width: 220 }}
           role="dialog"
           aria-label={`Details for room ${room.roomNumber}`}
@@ -325,184 +325,187 @@ export default function Page(): JSX.Element {
 
   return (
 
-    <div className=" min-h-[calc(100vh-64px)] bg-gray-100 p-3   overflow-hidden">
-      <div className="grid grid-cols-12  ">
+    <>
+      <div className="main min-h-[calc(100vh-64px)] bg-white flex flex-col  ">
+        {/* Top Section (fills available space above fixed bottom) */}
+        <div className="flex  flex-[9] overflow-hidden">
+          {/* LEFT: 80% width, internal scroll area */}
+          <div className="left w-[80%] h-ful  flex flex-col">
+            {/* Make inner container flex-1 + overflow-auto so only this area scrolls */}
+            <div className="flex-1 overflow-auto p-4">
+              {/* Your large content — use min-h-full or min-h-screen depending on needs */}
+              <div className="min-h-[100%]   rounded-lg p-2">
+                <div className="col-span-10">
+                  <div className="max-h-[calc(110vh-220px)] overflow-auto pr-4  ">
+                    {loadingRooms && (
+                      <div className="p-8 bg-white rounded shadow text-center">Loading rooms...</div>
+                    )}
+                    {roomsError && (
+                      <div className="p-4 bg-red-50 text-red-700 rounded">{roomsError}</div>
+                    )}
 
-        <div className="col-span-9 h-full">
-          <div className="max-h-[calc(100vh-220px)] overflow-auto pr-4 h-full">
-            {loadingRooms && <div className="p-8 bg-white rounded shadow text-center">Loading rooms...</div>}
-            {roomsError && <div className="p-4 bg-red-50 text-red-700 rounded">{roomsError}</div>}
-
-            <div className="space-y-2">
-              {floorKeys.map((floor) => {
-                const list = grouped[floor] ?? [];
-                return (
-                  <div key={floor} className="bg-white ab rounded-2xl p-2 shadow-sm border border-gray-200 relative">
-                    {/* Floor label */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-1 h-6 bg-sky-500 rounded-l-md" />
-                      <div className="bg-sky-50 px-2 py-1 rounded text-sky-700 font-medium text-xs border border-sky-200 shadow-sm">
-                        {floor.toUpperCase()}
-                      </div>
-                    </div>
-
-                    {/* Rooms list */}
-                    <div className="flex flex-wrap gap-3 items-center mt-2">
-                      {list.map((room, idx) => {
-                        const key = room.id ?? `${room.roomNumber ?? room.roomName ?? idx}-${idx}`;
+                    <div className="space-y-2">
+                      {floorKeys.map((floor) => {
+                        const list = grouped[floor] ?? [];
                         return (
-                          <div key={key}>
-                            <RoomCard room={room} />
+                          <div key={floor} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200 relative">
+                            <div className="flex items-center gap-3">
+                              <div className="w-1 h-6 bg-sky-500 rounded-l-md" />
+                              <div className="bg-sky-50 px-2 py-1 rounded text-sky-700 font-medium text-xs border border-sky-200 shadow-sm">
+                                {floor.toUpperCase()}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3 items-center mt-2">
+                              {list.map((room, idx) => {
+                                const key = room.id ?? `${room.roomNumber ?? room.roomName ?? idx}-${idx}`;
+                                return (
+                                  <div key={key}>
+                                    <RoomCard room={room} />
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Fixed right widgets (hidden on small screens) */}
-      <div className="">
-        <div className="fixed right-6 top-15 z-40 w-52">
-          {/* Search */}
-          <div className="  rounded   p-2   ">
-            <input placeholder="search" className="px-3 py-2 rounded-full border    text-sm" />
-            <div className="mt-3 flex justify-end">
-              <button className="px-3 py-1 bg-gradient-to-r from-sky-500 to-cyan-400 text-white rounded-full text-xs">Floor Wise</button>
-            </div>
-          </div>
-
-          {/* Rooms In Grace Time */}
-          <div className="bg-white rounded shadow p-4   border border-gray-200">
-            <h3 className="text-sm font-semibold mb-2">Rooms In Grace Time</h3>
-            <div className="h-28 border rounded p-2 text-xs text-gray-500 overflow-auto">No items</div>
-          </div>
-
-          {/* Today's Expected Checkout */}
-          <div className="bg-white rounded shadow p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold mb-2">Today's Expected Checkout</h3>
-            <div className="text-xs text-gray-500 mb-2">{loadingCheckouts ? "Loading..." : ""}</div>
-            <ul className="mt-3 space-y-2 text-sm">
-              {checkouts.map((c, i) => (
-                <li key={i} className="flex justify-between">
-                  <span>{c.roomNo}</span>
-                  <span className="text-gray-500">{c.time}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
- 
-      <div
-        className="fixed left-4 right-4 bottom-4 "
-       
-        aria-label="Quick informatics and reservation panel"
-      >
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white/90 backdrop-blur-sm shadow-lg rounded-2xl border border-gray-200 p-4">
-            <div className="grid grid-cols-12  ">
-
-              {/* Left: Informatics (spans 9 on md+, full width on small screens) */}
-              <div className="col-span-12 md:col-span-9">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold bg-sky-100 text-sky-700 px-3 py-1 rounded-md">Informatics</span>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Make the stats horizontally scrollable on narrow screens to avoid layout break */}
-                <div className="text-xs mb-3">
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[720px]">   
-                      <div className="flex items-center gap-4 mb-2 whitespace-nowrap">
-                        <div className="font-semibold">Type</div>
-                        <div className="font-semibold">Vacant</div>
-                        <div className="font-semibold">Occupied</div>
-                        <div className="font-semibold">Dirty</div>
-                        <div className="font-semibold">Block</div>
-                        <div className="font-semibold">Maint.</div>
-                        <div className="font-semibold">Cleaning</div>
-                        <div className="font-semibold">Total</div>
-                        <div className="font-semibold">Avail Rooms</div>
-                        <div className="font-semibold">ChkIn/ChkOut</div>
-                        <div className="font-semibold">Pax</div>
-                      </div>
-
-                      <div className="flex items-center gap-4 whitespace-nowrap">
-                        <div className="text-sm font-medium">Total</div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-green-400" /> {informatics.vacant}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-red-400" /> {informatics.occupied}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-sky-400" /> {informatics.dirty}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-violet-500" /> {informatics.blocked}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-gray-400" /> {informatics.maintenance}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-slate-200" /> {informatics.cleaning}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-slate-200" /> {informatics.total}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-slate-200" /> {informatics.vacant}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-slate-200" /> {informatics.chkIn}/{informatics.chkOut}
-                        </div>
-
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full">
-                          <span className="w-3 h-3 rounded-full bg-slate-200" />{informatics.pax}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          {/* RIGHT: 20% width, sticky so it visually stays put while left scrolls */}
+          <aside className="right w-[20%] h-full">
+            {/* Use sticky so the sidebar remains in view inside the available vertical space */}
+            <div className="sticky top-4 space-y-4">
+              <div className="rounded p-2">
+                <input placeholder="search" className="px-3 py-2 rounded-full border text-sm w-full" />
+                <div className="mt-3 flex justify-end">
+                  <button className="px-3 py-1 bg-gradient-to-r from-sky-500 to-cyan-400 text-white rounded-full text-xs">Floor Wise</button>
                 </div>
               </div>
 
-             
-              <div className="col-span-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-md">Reservation</span>
-                </div>
+              <div className="bg-white rounded shadow p-4 border border-gray-200">
+                <h3 className="text-sm font-semibold mb-2">Rooms In Grace Time</h3>
+                <div className="h-28 border rounded p-2 text-xs text-gray-500 overflow-auto">No items</div>
+              </div>
 
-                <div className="grid grid-cols-6 gap-2 text-sm mb-3">
-                  {reservationDays.map((d) => (
-                    <div key={d.date} className="bg-gray-50 p-2 rounded text-center">
-                      <div className="text-xs">{d.date.split(",")[0]}</div>
-                      <div className="font-semibold text-sm">{d.count}</div>
-                    </div>
+              <div className="bg-white rounded shadow p-4 border border-gray-200">
+                <h3 className="text-sm font-semibold mb-2">Today's Expected Checkout</h3>
+                <div className="text-xs text-gray-500 mb-2">{loadingCheckouts ? "Loading..." : ""}</div>
+                <ul className="mt-3 space-y-2 text-sm">
+                  {checkouts.map((c, i) => (
+                    <li key={i} className="flex justify-between">
+                      <span>{c.roomNo}</span>
+                      <span className="text-gray-500">{c.time}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
 
-                
+
+        <footer className="bottom-0 flex w-full p-2 gap-2 rounded-xl">
+          {/* Left (70%) */}
+          <div className="w-[70%] bg-white p-2 rounded-xl shadow">
+            {/* Title */}
+            <div className="flex items-center bg-gray-300 justify-center mb-2 rounded-md">
+              <span className="text-sm font-semibold text-sky-700 px-3 py-1">Informatics</span>
+            </div>
+
+            {/* Table */}
+            <div className="text-xs">
+              <div className="grid grid-cols-11 gap-2 font-semibold border-b border-gray-200 pb-1 mb-2">
+                <div>Type</div>
+                <div>Vacant</div>
+                <div>Occupied</div>
+                <div>Dirty</div>
+                <div>Block</div>
+                <div>Maint.</div>
+                <div>Cleaning</div>
+                <div>Total</div>
+                <div>Avail Rooms</div>
+                <div>ChkIn/ChkOut</div>
+                <div>Pax</div>
               </div>
 
+              <div className="grid grid-cols-11 gap-2 text-sm">
+                <div className="font-medium">Total</div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-green-400"></span>
+                  {informatics.vacant}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-red-400"></span>
+                  {informatics.occupied}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-sky-400"></span>
+                  {informatics.dirty}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-violet-500"></span>
+                  {informatics.blocked}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-gray-400"></span>
+                  {informatics.maintenance}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+                  {informatics.cleaning}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+                  {informatics.total}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+                  {informatics.vacant}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+                  {informatics.chkIn}/{informatics.chkOut}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+                  {informatics.pax}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Right (30%) */}
+          <div className="w-[30%] bg-white p-2 rounded-xl shadow">
+            {/* Title */}
+            <div className="flex items-center bg-gray-300 justify-center mb-2 rounded-md">
+              <span className="text-sm font-semibold text-sky-700 px-3 py-1">Reservation</span>
+            </div>
+
+            {/* One Row (No Scrollbar) */}
+            <div className="flex items-center justify-between text-sm gap-2">
+              {reservationDays.map((d) => (
+                <div
+                  key={d.date}
+                  className="flex-1 px-2 py-1 rounded text-center border border-gray-200"
+                >
+                  <div className="text-xs truncate">{d.date.split(",")[0]}</div>
+                  <div className="font-semibold">{d.count}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </footer>
+
       </div>
 
-    </div>
+
+    </>
+
   );
 }

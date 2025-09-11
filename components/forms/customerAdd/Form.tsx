@@ -1,6 +1,6 @@
 'use client';
 
-import {    useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type CustomerData = {
   id: string;
@@ -59,7 +59,7 @@ const CustomerAdd = ({ setShowModal, editingData, onSaved }: CustomerAddProps) =
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const idProofInputRef = useRef<HTMLInputElement>(null);
-const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
+  const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'idProof') => {
     if (e.target.files && e.target.files[0]) {
@@ -168,7 +168,7 @@ const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
 
 
       const result = await response.json();
-       setNewCustomerId(result.id); 
+      setNewCustomerId(result.id);
       alert(editingData ? 'Customer updated successfully!' : 'Customer added successfully!');
       onSaved?.();
       setShowModal(false);
@@ -179,7 +179,7 @@ const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
       setIsLoading(false);
     }
   };
-// customerId={newCustomerId}
+  // customerId={newCustomerId}
   return (
     <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 my-10">

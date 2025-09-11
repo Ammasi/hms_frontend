@@ -115,7 +115,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
                   onChange={(e) =>
                     setFormData({ ...formData, clientId: e.target.value })
                   }
-                  required={showClientAndProperty}
+                  // required={showClientAndProperty}
                 />
               </div>
               <div>
@@ -128,7 +128,7 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
                   onChange={(e) =>
                     setFormData({ ...formData, propertyId: e.target.value })
                   }
-                  required={showClientAndProperty}
+                  // required={showClientAndProperty}
                 />
               </div>
             </>
