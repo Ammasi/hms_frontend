@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCheckInMode } from "../../../lib/api";
-import { BasicGuest, BookingPayload, initialBooking, initialGuest, initialRooms, RoomRow, StayDetailsDto } from "../../interface/Customer";
+import { BasicGuest, BookingPayload, initialBooking, initialGuest, initialRooms, RoomRow, StayDetails } from "../../interface/Customer";
 
 
 /** Component **/
@@ -51,6 +51,12 @@ export default function Form() {
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
 
+
+  // old data show 
+  const [oldCustomersListOpen, setOldCustomersListOpen] = useState(false);
+  const [oldCustomersLoading, setOldCustomersLoading] = useState(false);
+  const [oldCustomersMerged, setOldCustomersMerged] = useState<Array<any>>([]);
+
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://192.168.1.4:8000";
   const DEFAULT_COMMON_ID = "906e4354-1117-4e25-b423-8dd5930b15cb";
   const DEFAULT_CLIENT_ID = "68105f14d6c8c8454185556b";
@@ -70,8 +76,16 @@ export default function Form() {
   const updateGST = (key: keyof BookingPayload["gstInfo"], value: any) => onBooking("gstInfo", { ...booking.gstInfo, [key]: value });
   const updateBusiness = (key: keyof BookingPayload["businessInfo"], value: any) =>
     onBooking("businessInfo", { ...booking.businessInfo, [key]: value });
+  const updatinvoiceOptions = (key: keyof BookingPayload["invoiceOptions"], value: any) =>
+    onBooking("invoiceOptions", { ...booking.invoiceOptions, [key]: value });
 
-  /** Rooms helpers **/
+
+
+
+  const removeRoom = (index: number) => setRooms((rs) => rs.filter((_, i) => i !== index));
+  const updateRoom = (index: number, key: keyof RoomRow, value: any) =>
+    setRooms((rs) => rs.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
+
   const addRoom = () =>
     setRooms((rs) => [
       ...rs,
@@ -80,12 +94,13 @@ export default function Form() {
         roomNo: "",
         ratePlan: "",
         mealPlan: "",
-        guestName: "",
+        guestName: [""],
         contact: "",
         male: 0,
         female: 0,
-        adult: 0,
+        adult: 1,
         child: 0,
+        seniors: 0,
         extra: 0,
         netRate: "",
         discType: "",
@@ -93,12 +108,183 @@ export default function Form() {
         tariff: "",
         applyTariff: "",
         planFood: "",
+        bedType: "",
+        roomFacility: [],
+        status: "",
+        newRentTariff: "",
+        emailId: "",
+        city: "",
+        address: "",
+        pincode: "",
+        state: "",
+        country: "",
+        specialInstructions: "",
       },
     ]);
 
-  const removeRoom = (index: number) => setRooms((rs) => rs.filter((_, i) => i !== index));
-  const updateRoom = (index: number, key: keyof RoomRow, value: any) =>
-    setRooms((rs) => rs.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
+
+
+
+
+
+  // Fetch both APIs and merge by clientId
+  const fetchCustomersAndInfos = async () => {
+    setOldCustomersLoading(true);
+    try {
+      const [custRes, infoRes] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/customers/`, { credentials: "include" }),
+        fetch(`${API_BASE}/api/v1/customer-info/`, { credentials: "include" }),
+      ]);
+
+      if (!custRes.ok) throw new Error(`Customers API failed: ${custRes.status}`);
+      if (!infoRes.ok) throw new Error(`Customer-info API failed: ${infoRes.status}`);
+
+      const customers = (await custRes.json()) || [];
+      const infos = (await infoRes.json()) || [];
+
+      // Normalize arrays (if API returns {data: []} adjust accordingly)
+      const custArr = Array.isArray(customers) ? customers : customers.data ?? [];
+      const infoArr = Array.isArray(infos) ? infos : infos.data ?? [];
+
+      // Build a map of infos by clientId (there may be multiple infos per clientId; keep the latest/first)
+      const infoByClient = new Map<string, any>();
+      for (const info of infoArr) {
+        const cid = info?.hotelDetails?.clientId;
+        if (!cid) continue;
+        // prefer existing or set (you could choose latest by createdAt if available)
+        if (!infoByClient.has(cid)) infoByClient.set(cid, info);
+      }
+
+      // Merge each customer with its info (if found)
+      const merged = custArr.map((c: any) => {
+        const cid = c?.clientId;
+        const matchedInfo = infoByClient.get(cid) ?? null;
+        return {
+          customer: c,
+          info: matchedInfo,
+        };
+      });
+
+      setOldCustomersMerged(merged);
+      // open the dropdown right away
+      setOldCustomersListOpen(true);
+    } catch (err) {
+      console.error("Failed to load old customers:", err);
+      alert("Failed to load old customers. See console for details.");
+    } finally {
+      setOldCustomersLoading(false);
+    }
+  };
+
+  /** Convert API result → your UI form shapes.
+   *  This maps primary pieces: guest, booking.hotelDetails.customerId, booking.bookingDetails (reservation etc),
+   *  and rooms from info.stayDetails (if present).
+   */
+  const mapCustomerInfoToForm = (mergedItem: { customer: any; info: any }) => {
+    const { customer, info } = mergedItem;
+
+    // guest fields (BasicGuest)
+    const guestFromApi: Partial<BasicGuest> = {
+      id: customer?.id || customer?._id || "",
+      clientId: customer?.clientId || "",
+      propertyId: customer?.propertyId || "",
+      firstName: customer?.firstName || "",
+      lastName: customer?.lastName || "",
+      title: customer?.title || "Mr",
+      isVIP: Boolean(customer?.isVIP),
+      isForeignCustomer: Boolean(customer?.isForeignCustomer),
+      email: customer?.email || "",
+      gender: customer?.gender || "Male",
+      mobileNo: customer?.mobileNo || "",
+      nationality: customer?.nationality || "",
+      idType: customer?.idType || "",
+      idNumber: customer?.idNumber || "",
+      image: customer?.image || "",
+      idProof: customer?.idProof || "",
+      address: customer?.address || "",
+      isActive: customer?.isActive ?? true,
+    };
+
+    // booking.hotelDetails (keep existing hotelDetails but set clientId/propertyId/customerId)
+    const hotelDetailsFromApi = {
+      clientId: (info?.hotelDetails?.clientId || customer?.clientId) || booking.hotelDetails.clientId || DEFAULT_CLIENT_ID,
+      propertyId: (info?.hotelDetails?.propertyId || customer?.propertyId) || booking.hotelDetails.propertyId || DEFAULT_PROPERTY_ID,
+      customerId: info?.hotelDetails?.customerId || customer?.id || booking.hotelDetails.customerId || "",
+      hotelName: info?.hotelDetails?.hotelName || booking.hotelDetails.hotelName || "CJ",
+      hotelAddress: info?.hotelDetails?.hotelAddress || booking.hotelDetails.hotelAddress || "",
+      hotelMobileNo: info?.hotelDetails?.hotelMobileNo || booking.hotelDetails.hotelMobileNo || "",
+      gstin: booking.hotelDetails.gstin || "",
+      hsnCode: booking.hotelDetails.hsnCode || "",
+    };
+
+    // bookingDetails: copy existing from info.bookingDetails if present
+    const bookingDetailsFromApi = {
+      ...booking.bookingDetails,
+      ...(info?.bookingDetails ?? {}),
+    };
+
+    // stayDetails -> rooms mapping (convert stayDetails into your RoomRow[] UI shape)
+    const stayDetailsApi: any[] = info?.stayDetails ?? [];
+    const mappedRooms: RoomRow[] = (stayDetailsApi.length ? stayDetailsApi : []).map((sd: any, idx: number) => {
+      // pick first guest entry for names/contact
+      const firstGuest = Array.isArray(sd.guests) && sd.guests.length ? sd.guests[0] : undefined;
+      const guestNameFromApi = firstGuest ? (Array.isArray(firstGuest.guestName) ? firstGuest.guestName[0] : String(firstGuest.guestName || "")) : `${customer?.firstName || ""} ${customer?.lastName || ""}`.trim();
+
+      return {
+        roomType: sd.roomType || "",
+        roomNo: sd.roomNo || String(sd.roomNo || `R${idx + 1}`),
+        ratePlan: sd.ratePlan || "",
+        mealPlan: sd.mealPlan || sd.planFood || "",
+        guestName: guestNameFromApi || "",
+        contact: firstGuest?.phoneNo || customer?.mobileNo || "",
+        male: 0,
+        female: 0,
+        adult: (sd.numberOfGuests?.adult && Number(sd.numberOfGuests.adult)) || 1,
+        child: (sd.numberOfGuests?.child && Number(sd.numberOfGuests.child)) || 0,
+        extra: sd.extraPax || 0,
+        netRate: sd.ratePlan || "",
+        discType: "",
+        discVal: "",
+        tariff: sd.tariff || " ",
+        applyTariff: sd.applyTariff || " ",
+        planFood: sd.planFood || "",
+        bedType: sd.bedType || " ",
+        roomFacility: sd.roomFacility || [],
+        status: sd.status || " ",
+        newRentTariff: sd.newRentTariff || "",
+      } as RoomRow;
+    });
+
+    return {
+      guestFromApi,
+      hotelDetailsFromApi,
+      bookingDetailsFromApi,
+      mappedRooms,
+    };
+  };
+
+  /** When user selects an old customer from the dropdown, apply the data to the form */
+  const applyOldCustomer = (mergedItem: any) => {
+    const { guestFromApi, hotelDetailsFromApi, bookingDetailsFromApi, mappedRooms } = mapCustomerInfoToForm(mergedItem);
+
+    // Apply guest (atomic)
+    setGuest((g) => ({ ...g, ...guestFromApi }));
+
+    // Apply hotelDetails and bookingDetails atomically (use onBooking to replace top-level objects)
+    onBooking("hotelDetails", { ...booking.hotelDetails, ...hotelDetailsFromApi });
+    onBooking("bookingDetails", { ...booking.bookingDetails, ...bookingDetailsFromApi });
+
+    // Replace rooms with mappedRooms (UI uses RoomRow[])
+    setRooms(mappedRooms.length ? mappedRooms : initialRooms);
+
+    // Close list
+    setOldCustomersListOpen(false);
+  };
+
+
+
+
+
 
 
 
@@ -267,6 +453,7 @@ trailer
 startxref
 360
 %%EOF`;
+
     const uint8 = new TextEncoder().encode(pdfText);
     return new File([uint8], name, { type: "application/pdf" });
   }
@@ -443,7 +630,7 @@ startxref
         isActive: true,
         status: (r as any).status || "CheckedIn",
         guests: guestsArr,
-      } as unknown as StayDetailsDto;
+      } as unknown as StayDetails;
     });
 
     const noOfPax = rooms.reduce((s, r) => s + (Number(r.adult || 0) + Number(r.child || 0) + Number(r.extra || 0)), 0);
@@ -501,19 +688,19 @@ startxref
         complimentary: booking.guestInfo?.complimentary || "",
         vechileDetails: booking.guestInfo?.vechileDetails || "",
       },
-      paymentDetails: {
-        paymentType: booking.paymentDetails?.paymentType || "",
-        paymentBy: booking.paymentDetails?.paymentBy || "",
-        allowCredit: booking.paymentDetails?.allowCredit || undefined,
-        paidAmount: Number(booking.paymentDetails?.paidAmount || 0),
-        balanceAmount: Number(booking.paymentDetails?.balanceAmount || 0),
-        discType: booking.paymentDetails?.discType || undefined,
-        discValue: booking.paymentDetails?.discValue || undefined,
-        netRate: booking.paymentDetails?.netRate || undefined,
-        allowChargesPosting: booking.paymentDetails?.allowChargesPosting || undefined,
-        enablePaxwise: Boolean(booking.paymentDetails?.enablePaxwise),
-        paxwiseBillAmount: booking.paymentDetails?.paxwiseBillAmount || undefined,
-      },
+      // paymentDetails: {
+      //   paymentType: booking.paymentDetails?.paymentType || "",
+      //   paymentBy: booking.paymentDetails?.paymentBy || "",
+      //   allowCredit: booking.paymentDetails?.allowCredit || undefined,
+      //   paidAmount: Number(booking.paymentDetails?.paidAmount || 0),
+      //   balanceAmount: Number(booking.paymentDetails?.balanceAmount || 0),
+      //   discType: booking.paymentDetails?.discType || undefined,
+      //   discValue: booking.paymentDetails?.discValue || undefined,
+      //   netRate: booking.paymentDetails?.netRate || undefined,
+      //   allowChargesPosting: booking.paymentDetails?.allowChargesPosting || undefined,
+      //   enablePaxwise: Boolean(booking.paymentDetails?.enablePaxwise),
+      //   paxwiseBillAmount: booking.paymentDetails?.paxwiseBillAmount || undefined,
+      // },
       addressInfo: {
         city: booking.addressInfo?.city || "",
         pinCode: booking.addressInfo?.pinCode || "",
@@ -574,6 +761,48 @@ startxref
     return res.json();
   };
 
+  const stayDetails = rooms.map((r, idx) => {
+    const adult = Number(r.adult || 0);
+    const child = Number(r.child || 0);
+    const extra = Number(r.extra || 0);
+    const seniors = Number(r.seniors || 0);
+
+    // build guests array: we keep single guest object per room, but guestName is string[]
+    const guestsArr = [
+      {
+        guestName: Array.isArray(r.guestName) ? r.guestName.filter(Boolean) : [String(r.guestName || "")].filter(Boolean),
+        phoneNo: r.contact || guest.mobileNo || "",
+        emailId: r.emailId || guest.email || "",
+        city: r.city || booking.addressInfo?.city || "",
+        address: r.address || guest.address || "",
+        pincode: r.pincode || booking.addressInfo?.pinCode || "",
+        state: r.state || booking.addressInfo?.state || "",
+        country: r.country || booking.addressInfo?.country || "",
+        payPerRoom: "",
+        specialInstructions: r.specialInstructions || booking.guestInfo?.specialRequests || "",
+      },
+    ];
+
+    return {
+      roomNo: String(r.roomNo || `R${idx + 1}`),
+      bedType: r.bedType || "Single",
+      roomType: r.roomType || "",
+      roomFacility: r.roomFacility || [],
+      planFood: r.planFood || "",
+      mealPlan: r.mealPlan || "",
+      ratePlan: r.ratePlan || "",
+      tariff: r.tariff || "Inclusive",
+      newRentTariff: r.newRentTariff || undefined,
+      applyTariff: r.applyTariff || "Rent",
+      numberOfGuests: { adult, child, seniors },
+      noOfPax: adult + child + extra,
+      childPax: child,
+      extraPax: extra,
+      isActive: true,
+      status: r.status || "CheckedIn",
+      guests: guestsArr,
+    } as StayDetails;
+  });
 
 
 
@@ -669,6 +898,19 @@ startxref
     setIdProofFile(file);
   };
 
+  const handleReservationToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+
+    const newBookingDetails = {
+      ...booking.bookingDetails,
+      isReservation: checked,
+      reservationNo: checked ? booking.bookingDetails.reservationNo : "", // clear when unchecked
+    };
+
+    onBooking("bookingDetails", newBookingDetails);
+  };
+
+
   /** Small UI helpers (kept minimal) **/
   function RoundIconButton({ title, onClick, children }: { title?: string; onClick?: () => void; children: React.ReactNode }) {
     return (
@@ -708,34 +950,36 @@ startxref
                 <div className="w-full p-2 border border-gray-300 rounded flex items-center">
                   <input
                     type="checkbox"
-                    checked={booking.bookingDetails.isReservation}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      updateBookingDetails("isReservation", checked);
-                      if (!checked) {
-                        // clear reservationNo if unchecked
-                        updateBookingDetails("reservationNo", "");
-                      }
-                    }}
+                    checked={!!booking.bookingDetails.isReservation}
+                    onChange={handleReservationToggle}
                     className="mr-2"
                   />
-                  <span className="text-sm">{booking.bookingDetails.isReservation ? "Yes" : "No"}</span>
+                  <span className="text-sm">
+                    {booking.bookingDetails.isReservation ? "Yes" : "No"}
+                  </span>
                 </div>
               </div>
 
-              {/* Reservation Number */}
               <div className="col-span-3">
                 <label className="block text-sm font-medium">Reservation Number</label>
                 <input
                   type="text"
                   name="reservationNo"
-                  value={booking.bookingDetails.reservationNo}
-                  onChange={(e) => updateBookingDetails("reservationNo", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
+                  value={booking.bookingDetails.reservationNo || ""}
+                  onChange={(e) =>
+                    onBooking("bookingDetails", {
+                      ...booking.bookingDetails,
+                      reservationNo: e.target.value,
+                    })
+                  }
+                  className={`w-full p-2 border border-gray-300 rounded
+      ${booking.bookingDetails.isReservation
+                      ? "bg-white text-gray-900"
+                      : "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    }`}
                   disabled={!booking.bookingDetails.isReservation}
                 />
               </div>
-
 
               {/* Arrival Mode */}
               <div className="col-span-3">
@@ -745,19 +989,33 @@ startxref
                   onChange={(e) => updateBookingDetails("arrivalMode", e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded"
                 >
-                  <option>Walk-In/Direct</option>
-                  <option>OTA</option>
-                  <option>Travel Desk</option>
-                  <option>BE</option>
-                  <option>Company</option>
+                  <option value="">Select Arrival Mode</option>
+                  <option value="WALKIN">Walk-In/Direct</option>
+                  <option value="OTA">OTA</option>
+                  <option value="TRAVEL_DESK">Travel Desk</option>
+                  <option value="BE">BE</option>
+                  <option value="COMPANY">Company</option>
                 </select>
               </div>
+
 
               {/* OTA */}
               <div className="col-span-3">
                 <label className="block text-sm font-medium">OTA</label>
-                <input type="text" name="otaName" value={booking.bookingDetails.otaName} onChange={(e) => updateBookingDetails("otaName", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                <input
+                  type="text"
+                  name="otaName"
+                  value={booking.bookingDetails.otaName}
+                  onChange={(e) => updateBookingDetails("otaName", e.target.value)}
+                  className={`w-full p-2 border border-gray-300 rounded 
+      ${booking.bookingDetails.arrivalMode === "OTA"
+                      ? "bg-white text-gray-900"
+                      : "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    }`}
+                  disabled={booking.bookingDetails.arrivalMode !== "OTA"}
+                />
               </div>
+
 
               {/* Booking ID */}
               <div className="col-span-3">
@@ -767,7 +1025,7 @@ startxref
 
               {/* Contact No (country code + number) */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">Contact No.</label>
+                <label className="block text-sm font-medium">Contact No.<span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-3">
                     <input type="text" readOnly value="91" className="w-full p-2 border border-gray-300 rounded" />
@@ -780,62 +1038,176 @@ startxref
 
               {/* Title */}
               <div className="col-span-2">
-                <label className="block text-sm font-medium">Title</label>
-                <select value={guest.title} onChange={(e) => onGuest("title", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option>Mr</option>
-                  <option>Dr</option>
-                  <option>Ms</option>
-                  <option>Captain</option>
-                  <option>Miss</option>
-                  <option>Master</option>
-                  <option>Others</option>
+                <label className="block text-sm font-medium">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={guest.title}
+                  onChange={(e) => onGuest("title", e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="">Select Title</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Dr">Dr</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Captain">Captain</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Master">Master</option>
+                  <option value="Others">Others</option>
                 </select>
               </div>
 
+
               {/* First Name */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">firstName</label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={guest.firstName}
-                  onChange={(e) => onGuest("firstName", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  required
-                />
+              {/* First Name with old-customer + clear icons */}
+              <div className="col-span-3 relative" ref={/* optional ref if you want click-outside behavior */ null}>
+                <label className="block text-sm font-medium">First Name <span className="text-red-500">*</span></label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={guest.firstName}
+                    onChange={(e) => onGuest("firstName", e.target.value)}
+                    className="flex-1 w-full p-2 border border-gray-300 rounded"
+                    required
+                  />
+
+                  {/* Old-customer icon (fetch + open list) */}
+                  <button
+                    type="button"
+                    title="Choose old customer"
+                    onClick={async () => {
+                      // load then toggle open
+                      if (oldCustomersMerged.length === 0) await fetchCustomersAndInfos();
+                      else setOldCustomersListOpen((s) => !s);
+                    }}
+                    className="h-8 w-8 rounded-full bg-white ring-2 ring-sky-300/70 shadow-sm flex items-center justify-center text-sky-700 hover:scale-105 transition-transform"
+                  >
+                    {/* search svg */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+                    </svg>
+                  </button>
+
+                  {/* Clear / New customer icon */}
+                  <button
+                    type="button"
+                    title="Clear guest"
+                    onClick={() => {
+                      setGuest(initialGuest);
+                      setRooms(initialRooms);
+                      onBooking("bookingDetails", initialBooking.bookingDetails);
+                      onBooking("hotelDetails", initialBooking.hotelDetails);
+                    }}
+                    className="h-8 w-8 rounded-full bg-white ring-2 ring-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:scale-105 transition-transform"
+                  >
+                    {/* clear svg */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                      <path strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Dropdown list (simple) */}
+                {oldCustomersListOpen && (
+                  <div className="absolute z-50 mt-2 w-full max-h-64 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <strong>Previous customers</strong>
+                      {oldCustomersLoading ? <span className="text-xs text-slate-500">Loading…</span> : null}
+                    </div>
+
+                    {oldCustomersMerged.length === 0 && !oldCustomersLoading && <div className="text-xs text-slate-500">No customers found.</div>}
+
+                    <ul>
+                      {oldCustomersMerged.map((m: any, i: number) => {
+                        const c = m.customer;
+                        const info = m.info;
+                        return (
+                          <li
+                            key={c?.id ?? c?._id ?? i}
+                            className="p-2 rounded hover:bg-slate-50 flex flex-col gap-1 cursor-pointer"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-medium">{c?.firstName} {c?.lastName}</div>
+                                <div className="text-xs text-slate-500">{c?.mobileNo ?? c?.email}</div>
+
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => applyOldCustomer(m)}
+                                  className="text-xs rounded bg-sky-600 text-white px-2 py-1"
+                                >
+                                  Select
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // quick fill name only
+                                    onGuest("firstName", c?.firstName || "");
+                                    onGuest("lastName", c?.lastName || "");
+                                    setOldCustomersListOpen(false);
+                                  }}
+                                  className="text-xs rounded border px-2 py-1"
+                                >
+                                  Fill name
+                                </button>
+                              </div>
+                            </div>
+                            {info && (
+                              <div className="mt-1 text-xs text-slate-500">
+                                Hotel: {info?.hotelDetails?.hotelName ?? "-"} • Reservation: {info?.bookingDetails?.reservationNo ?? "-"}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    <div className="pt-2 text-right">
+                      <button type="button" onClick={() => setOldCustomersListOpen(false)} className="text-xs px-2 py-1 rounded hover:bg-gray-100">
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Last Name */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">lastName</label>
+                <label className="block text-sm font-medium">lastName <span className="text-red-500">*</span></label>
                 <input type="text" name="lastName" value={guest.lastName} onChange={(e) => onGuest("lastName", e.target.value)} className="w-full p-2 border border-gray-300 rounded" required />
               </div>
 
               {/* Gender */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">Gender</label>
-                <select value={guest.gender} onChange={(e) => onGuest("gender", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option>Male</option>
-                  <option>Female</option>
-                  <option>Other</option>
+                <label className="block text-sm font-medium">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={guest.gender}
+                  onChange={(e) => onGuest("gender", e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
-              {/* City */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">City</label>
-                <input type="text" name="city" value={booking.addressInfo.city} onChange={(e) => updateAddress("city", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
+
 
               {/* ID No */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">ID No. (Aadhaar, Other)</label>
+                <label className="block text-sm font-medium">ID No. (Aadhaar, Other)<span className="text-red-500">*</span></label>
                 <input type="text" name="idNumber" value={guest.idNumber} onChange={(e) => onGuest("idNumber", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
               {/* Email */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">Email</label>
+                <label className="block text-sm font-medium">Email<span className="text-red-500">*</span></label>
                 <input type="email" name="email" value={guest.email} onChange={(e) => onGuest("email", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
@@ -853,40 +1225,35 @@ startxref
                 {checkInModesLoading && <div className="text-xs text-slate-500 mt-1">Loading modes...</div>}
               </div>
 
-              {/* Allow Credit */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">Allow Credit</label>
-                <select value={booking.paymentDetails.allowCredit} onChange={(e) => updatePayment("allowCredit", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option>No</option>
-                  <option>Yes</option>
-                </select>
+                <label className="block text-sm font-medium">Booking Instructions</label>
+                <input type="text" value={booking.bookingDetails.bookingInstruction} onChange={(e) => updateBookingDetails("bookingInstruction", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
               {/* Foreign Guest */}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">Foreign Guest</label>
+                <label className="block text-sm font-medium">Foreign Guest<span className="text-red-500">*</span></label>
                 <select value={guest.nationality === "Indian" ? "No" : "Yes"} onChange={(e) => onGuest("nationality", e.target.value === "Yes" ? "Foreign" : "Indian")} className="w-full p-2 border border-gray-300 rounded">
                   <option>No</option>
                   <option>Yes</option>
                 </select>
               </div>
 
-              {/* Segment Name */}
+              {/* VIP*/}
               <div className="col-span-3">
-                <label className="block text-sm font-medium">Segment Name</label>
-                <select value={booking.businessInfo.segmentName} onChange={(e) => updateBusiness("segmentName", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option value="">Select Segment</option>
-                  <option>CORPORATE</option>
-                  <option>RETAIL</option>
-                  <option>OTA</option>
+                <label className="block text-sm font-medium">
+                  Is VIP <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={guest.isVIP ? "Yes" : "No"}
+                  onChange={(e) => onGuest("isVIP", e.target.value === "Yes")}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option>No</option>
+                  <option>Yes</option>
                 </select>
               </div>
 
-              {/* Business Source */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Business Source</label>
-                <input type="text" value={booking.businessInfo.bussinessSource} onChange={(e) => updateBusiness("bussinessSource", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
               <div className="col-span-3">
                 <label className="block text-sm font-medium">Id Type</label>
                 <select value={guest.idType} onChange={(e) => onGuest("idType", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
@@ -897,6 +1264,62 @@ startxref
                   <option>Licence Card</option>
                 </select>
               </div>
+
+              {/* business Info */}
+              {/* Segment Name */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Segment Name</label>
+                <select
+                  value={booking.businessInfo.segmentName}
+                  onChange={(e) => updateBusiness("segmentName", e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="">Select Segment</option>
+                  <option value="CORPORATE">CORPORATE</option>
+                  <option value="RETAIL">RETAIL</option>
+                  <option value="OTA">OTA</option>
+                </select>
+              </div>
+
+
+
+              {/* Business Source */}
+
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Business Source</label>
+                <input type="text" value={booking.businessInfo.bussinessSource} onChange={(e) => updateBusiness("bussinessSource", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+              </div>
+              {/* Guest Company */}
+
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Guest Company</label>
+                <input value={booking.businessInfo.customerComapny} onChange={(e) => updateBusiness("customerComapny", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+              </div>
+              {/* Visiting Purpose*/}
+
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Purpose of Visit</label>
+                <select
+                  value={booking.businessInfo.purposeOfVisit}
+                  onChange={(e) => updateBusiness("purposeOfVisit", e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="">Select Visiting Purpose</option>
+                  <option value="Business">Business</option>
+                  <option value="Leisure">Leisure</option>
+                  <option value="Conference">Conference</option>
+                </select>
+              </div>
+
+
+              {/*visitRemark */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Visit Remark</label>
+                <input value={booking.businessInfo.visitRemark} onChange={(e) => updateBusiness("visitRemark", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+              </div>
+
+
+
             </div>
 
             {/* Right side actions (camera + scan files) — unchanged visuals */}
@@ -1022,33 +1445,39 @@ startxref
               {fileError && <div className="text-xs text-rose-600 mt-1">{fileError}</div>}
             </div>
 
-            {/* Rooms grid (kept same structure but using simpler inputs) */}
             <div className="col-span-12">
               <div className="overflow-auto rounded-md border border-slate-200">
-                <table className="min-w-[1600px] w-full text-sm">
+                <table className="min-w-[2500px] w-full text-sm">
                   <thead className="bg-slate-100 text-left">
                     <tr>
                       {[
+                        "Room No",
                         "Room Type",
-                        "Room No.",
+                        "Bed Type",
+                        "Room Facility",
                         "Rate Plan",
                         "Meal Plan",
-                        "Guest Name",
-                        "Contact",
-                        "Male",
-                        "Female",
+                        "Plan Food",
+                        "Tariff",
+                        "New Rent Tariff",
+                        "Apply Tariff",
                         "Adult",
                         "Child",
-                        "Extra",
-                        "Net Rate",
-                        "Disc. Type",
-                        "Disc. Val",
-                        "Tariff",
-                        "Apply Tariff",
-                        "Plan Food",
-                        "",
+                        "Seniors",
+                        "No Of Pax",
+                        "Guest Names",
+                        "Contact",
+                        "Email",
+                        "City",
+                        "Address",
+                        "Pincode",
+                        "State",
+                        "Country",
+                        "Special Instructions",
+                        "Status",
+                        "Action",
                       ].map((h) => (
-                        <th key={h} className="whitespace-nowrap px-2 py-2 font-semibold text-slate-700">
+                        <th key={h} className="whitespace-nowrap px-1 py-2 font-semibold text-slate-700">
                           {h}
                         </th>
                       ))}
@@ -1057,25 +1486,8 @@ startxref
                   <tbody>
                     {rooms.map((r, idx) => (
                       <tr key={idx} className="odd:bg-white even:bg-slate-50">
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.roomType || ""}
-                            onChange={(e) => {
-                              const selectedType = e.target.value;
-                              updateRoom(idx, "roomType", selectedType);
-                            }}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Room Type</option>
-                            {Array.from(new Set(availableRooms.map((a: any) => a.roomType))).map((t: any) => (
-                              <option key={t} value={t}>
-                                {t}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-
-                        <td className="px-2 py-1">
+                        {/* Room No */}
+                        <td className="px-1 py-1">
                           <select
                             value={r.roomNo || ""}
                             onChange={(e) => updateRoom(idx, "roomNo", e.target.value)}
@@ -1090,29 +1502,107 @@ startxref
                           </select>
                         </td>
 
+                        {/* Room Type */}
+                        <td className="px-2 py-1">
+                          <select
+                            value={r.roomType || ""}
+                            onChange={(e) => updateRoom(idx, "roomType", e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                          >
+                            <option value="">Select Room Type</option>
+                            {Array.from(new Set(availableRooms.map((a: any) => a.roomType))).map((t: any) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Bed Type */}
+                        <td className="px-2 py-1">
+                          <select
+                            value={r.bedType || ""}
+                            onChange={(e) => updateRoom(idx, "bedType", e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                          >
+                            <option>Single</option>
+                            <option>Double</option>
+                            <option>Queen</option>
+                            <option>King</option>
+                          </select>
+                        </td>
+
+                        {/* Room Facility */}
+                        <td className="px-2 py-1">
+                          <input
+                            value={(r.roomFacility || []).join(", ")}
+                            onChange={(e) => updateRoom(idx, "roomFacility", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                            className="w-full p-2 border border-gray-300 rounded"
+                            placeholder="Comma separated"
+                          />
+
+                        </td>
+
+                        {/* Rate Plan */}
                         <td className="px-2 py-1">
                           <input value={r.ratePlan} onChange={(e) => updateRoom(idx, "ratePlan", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
                         </td>
+
+                        {/* Meal Plan */}
                         <td className="px-2 py-1">
-                          <select value={r.mealPlan} onChange={(e) => updateRoom(idx, "mealPlan", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                            <option>EP</option>
-                            <option>CP</option>
-                            <option>MAP</option>
-                            <option>AP</option>
+                          <select
+                            value={r.mealPlan || ""}
+                            onChange={(e) => updateRoom(idx, "mealPlan", e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                          >
+                            <option value="">Select Meal Plan</option>
+                            <option value="EP">EP</option>
+                            <option value="CP">CP</option>
+                            <option value="MAP">MAP</option>
+                            <option value="AP">AP</option>
                           </select>
                         </td>
+
+
+                        {/* Plan Food */}
                         <td className="px-2 py-1">
-                          <input value={r.guestName} onChange={(e) => updateRoom(idx, "guestName", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                          <input value={r.planFood} onChange={(e) => updateRoom(idx, "planFood", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
                         </td>
+
+                        {/* Tariff */}
                         <td className="px-2 py-1">
-                          <input value={r.contact} onChange={(e) => updateRoom(idx, "contact", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                          <select
+                            value={r.tariff || ""}
+                            onChange={(e) => updateRoom(idx, "tariff", e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                          >
+                            <option value="">Select Tariff</option>
+                            <option value="Inclusive">Inclusive</option>
+                            <option value="Exclusive">Exclusive</option>
+                          </select>
                         </td>
+
+
+                        {/* New Rent Tariff */}
                         <td className="px-2 py-1">
-                          <input type="number" value={r.male} onChange={(e) => updateRoom(idx, "male", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
+                          <input value={r.newRentTariff || ""} onChange={(e) => updateRoom(idx, "newRentTariff", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
                         </td>
+
+                        {/* Apply Tariff */}
                         <td className="px-2 py-1">
-                          <input type="number" value={r.female} onChange={(e) => updateRoom(idx, "female", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
+                          <select
+                            value={r.applyTariff || ""}
+                            onChange={(e) => updateRoom(idx, "applyTariff", e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                          >
+                            <option value="">Select Apply Tariff</option>
+                            <option value="Rent">Rent</option>
+                            <option value="Complimentary">Complimentary</option>
+                          </select>
                         </td>
+
+
+                        {/* Number of Guests */}
                         <td className="px-2 py-1">
                           <input type="number" value={r.adult} onChange={(e) => updateRoom(idx, "adult", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
                         </td>
@@ -1120,36 +1610,77 @@ startxref
                           <input type="number" value={r.child} onChange={(e) => updateRoom(idx, "child", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
                         </td>
                         <td className="px-2 py-1">
-                          <input type="number" value={r.extra} onChange={(e) => updateRoom(idx, "extra", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
+                          <input type="number" value={r.seniors || 0} onChange={(e) => updateRoom(idx, "seniors", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
                         </td>
                         <td className="px-2 py-1">
-                          <input value={r.netRate} onChange={(e) => updateRoom(idx, "netRate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                          {Number(r.adult || 0) + Number(r.child || 0) + Number(r.seniors || 0) + Number(r.extra || 0)}
                         </td>
+
+                        {/* Guests */}
+                        <input
+                          value={Array.isArray(r.guestName) ? r.guestName.join(", ") : (r.guestName || "")}
+                          onChange={(e) => updateRoom(idx, "guestName", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                          className="w-full p-2 border border-gray-300 rounded"
+                          placeholder="Comma separated"
+                        />
+
+
+                        {/* Contact */}
                         <td className="px-2 py-1">
-                          <select value={r.discType} onChange={(e) => updateRoom(idx, "discType", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                            <option>No Disc</option>
-                            <option>Flat</option>
-                            <option>% Percent</option>
+                          <input value={r.contact} onChange={(e) => updateRoom(idx, "contact", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* Email */}
+                        <td className="px-2 py-1">
+                          <input value={r.emailId || ""} onChange={(e) => updateRoom(idx, "emailId", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* City */}
+                        <td className="px-2 py-1">
+                          <input value={r.city || ""} onChange={(e) => updateRoom(idx, "city", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* Address */}
+                        <td className="px-2 py-1">
+                          <input value={r.address || ""} onChange={(e) => updateRoom(idx, "address", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* Pincode */}
+                        <td className="px-2 py-1">
+                          <input value={r.pincode || ""} onChange={(e) => updateRoom(idx, "pincode", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* State */}
+                        <td className="px-2 py-1">
+                          <input value={r.state || ""} onChange={(e) => updateRoom(idx, "state", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* Country */}
+                        <td className="px-2 py-1">
+                          <input value={r.country || ""} onChange={(e) => updateRoom(idx, "country", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* Special Instructions */}
+                        <td className="px-2 py-1">
+                          <input value={r.specialInstructions || ""} onChange={(e) => updateRoom(idx, "specialInstructions", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-2 py-1">
+                          <select
+                            value={r.status || ""}
+                            onChange={(e) => updateRoom(idx, "status", e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                          >
+                            <option value="">Select Status</option>
+                            <option value="CheckedIn">CheckedIn</option>
+                            <option value="Reserved">Reserved</option>
+                            <option value="Cancelled">Cancelled</option>
                           </select>
                         </td>
-                        <td className="px-2 py-1">
-                          <input value={r.discVal} onChange={(e) => updateRoom(idx, "discVal", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-                        <td className="px-2 py-1">
-                          <select value={r.tariff} onChange={(e) => updateRoom(idx, "tariff", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                            <option>Inclusive</option>
-                            <option>Exclusive</option>
-                          </select>
-                        </td>
-                        <td className="px-2 py-1">
-                          <select value={r.applyTariff} onChange={(e) => updateRoom(idx, "applyTariff", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                            <option>Rent</option>
-                            <option>Complimentary</option>
-                          </select>
-                        </td>
-                        <td className="px-2 py-1">
-                          <input value={r.planFood} onChange={(e) => updateRoom(idx, "planFood", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
+
+
+                        {/* Remove */}
                         <td className="px-2 py-1">
                           <button onClick={() => removeRoom(idx)} className="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700">
                             Remove
@@ -1175,6 +1706,7 @@ startxref
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -1188,38 +1720,46 @@ startxref
               <div className="grid grid-cols-12 gap-3">
                 <div className="col-span-3">
                   <label className="block text-sm font-medium">Check-in Type</label>
-                  <select value={booking.bookingDetails.checkInType} onChange={(e) => updateBookingDetails("checkInType", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                    <option>24 Hours CheckIn</option>
-                    <option>Fixed 12PM</option>
+                  <select
+                    value={booking.bookingDetails.checkInType || ""}
+                    onChange={(e) => updateBookingDetails("checkInType", e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded"
+                  >
+                    <option value="">Select Check-in Type</option>
+                    <option value="24 Hours CheckIn">24 Hours CheckIn</option>
+                    <option value="Fixed 12PM">Fixed 12PM</option>
                   </select>
                 </div>
+
                 <div className="col-span-3">
                   <label className="block text-sm font-medium">Check-in Date & Time</label>
                   <input type="datetime-local" value={booking.checkin.checkinDate} onChange={(e) => updateCheckin("checkinDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium">Check-out  Date & Time</label>
+                  <input type="datetime-local" value={booking.checkin.checkoutDate} onChange={(e) => updateCheckin("checkoutDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium"> Arrival Date</label>
+                  <input type="datetime-local" value={booking.checkin.arrivalDate} onChange={(e) => updateCheckin("arrivalDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium">Depature Date</label>
+                  <input type="datetime-local" value={booking.checkin.depatureDate} onChange={(e) => updateCheckin("depatureDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium">No.of Days</label>
                   <input type="number" value={booking.bookingDetails.noOfDays} onChange={(e) => updateBookingDetails("noOfDays", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
                 </div>
-                <div className="col-span-3">
-                  <label className="block text-sm font-medium">Check-out Date & Time</label>
-                  <input type="datetime-local" value={booking.checkin.checkoutDate} onChange={(e) => updateCheckin("checkoutDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                </div>
+
                 <div className="col-span-2">
                   <label className="block text-sm font-medium">Check-out Grace Time</label>
                   <input value={booking.bookingDetails.graceTime} onChange={(e) => updateBookingDetails("graceTime", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium">Payment By</label>
-                  <select value={booking.paymentDetails.paymentBy} onChange={(e) => updatePayment("paymentBy", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                    <option>Direct</option>
-                    <option>Company</option>
-                    <option>OTA</option>
-                  </select>
-                </div>
+
                 <div className="col-span-3">
                   <label className="block text-sm font-medium">Check-in User</label>
-                  <input value={booking.bookingDetails.checkInUser} readOnly className="w-full p-2 border border-gray-300 rounded bg-gray-50" />
+                  <input value={booking.bookingDetails.checkInUser} onChange={(e) => updateBookingDetails("checkInUser", e.target.value)} className="w-full p-2 border border-gray-300 rounded bg-gray-50" />
                 </div>
 
                 <div className="col-span-6 flex items-end gap-4">
@@ -1248,19 +1788,19 @@ startxref
           <div className="px-3 py-2 rounded-t-lg bg-slate-100 text-sm font-semibold text-slate-900">Address Details</div>
           <div className="p-3">
             <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-3">
+              {/* <div className="col-span-3">
                 <label className="block text-sm font-medium">GST Number</label>
                 <input value={booking.gstInfo.gstNumber} onChange={(e) => updateGST("gstNumber", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-              <div className="col-span-3">
+              </div> */}
+              {/* <div className="col-span-3">
                 <label className="block text-sm font-medium">GST Type</label>
                 <select value={booking.gstInfo.gstType} onChange={(e) => updateGST("gstType", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
                   <option>UNREGISTERED</option>
                   <option>REGISTERED</option>
                 </select>
-              </div>
+              </div> */}
               <div className="col-span-6">
-                <label className="block text-sm font-medium">Address</label>
+                <label className="block text-sm font-medium">Address<span className="text-red-500">*</span></label>
                 <input value={guest.address} onChange={(e) => onGuest("address", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
@@ -1268,6 +1808,8 @@ startxref
                 <label className="block text-sm font-medium">City</label>
                 <input value={booking.addressInfo.city} onChange={(e) => updateAddress("city", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
               </div>
+
+
               <div className="col-span-2">
                 <label className="block text-sm font-medium">Pin Code</label>
                 <input value={booking.addressInfo.pinCode} onChange={(e) => updateAddress("pinCode", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
@@ -1281,10 +1823,6 @@ startxref
                 <input value={booking.addressInfo.country} onChange={(e) => updateAddress("country", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Guest Company *</label>
-                <input value={booking.businessInfo.customerComapny} onChange={(e) => updateBusiness("customerComapny", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium">Date of Birth</label>
@@ -1296,30 +1834,21 @@ startxref
                 <input value={booking.personalInfo.age} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, age: e.target.value })} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Purpose of Visit</label>
-                <select value={booking.businessInfo.purposeOfVisit} onChange={(e) => updateBusiness("purposeOfVisit", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option value="">Select Visiting Purpose</option>
-                  <option>Business</option>
-                  <option>Leisure</option>
-                  <option>Conference</option>
-                </select>
+              <div className="col-span-1">
+                <label className="block text-sm font-medium">company Anniversary</label>
+                <input type="date" value={booking.personalInfo.companyAnniversary} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, companyAnniversary: e.target.value })} className="w-full p-2 border border-gray-300 rounded" />
               </div>
 
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Visit Remark</label>
-                <input value={booking.businessInfo.visitRemark} onChange={(e) => updateBusiness("visitRemark", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
 
-              <div className="col-span-6">
-                <label className="block text-sm font-medium">Booking Instructions</label>
-                <textarea value={booking.bookingDetails.bookingInstruction} onChange={(e) => updateBookingDetails("bookingInstruction", e.target.value)} className="h-20 w-full p-2 border border-gray-300 rounded" />
-              </div>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={!!booking.invoiceOptions.printOption} onChange={(e) => updatinvoiceOptions("printOption", e.target.checked)} />
+                <span className="text-sm">print Option</span>
+              </label>
 
-              <div className="col-span-6">
-                <label className="block text-sm font-medium">Guest Special Instructions</label>
-                <textarea value={booking.guestInfo.specialRequests} onChange={(e) => updateGuestInfo("specialRequests", e.target.value)} className="h-20 w-full p-2 border border-gray-300 rounded" />
-              </div>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={!!booking.invoiceOptions.pdfSaveOption} onChange={(e) => updatinvoiceOptions("pdfSaveOption", e.target.checked)} />
+                <span className="text-sm">pdf Save Option</span>
+              </label>
             </div>
           </div>
         </div>

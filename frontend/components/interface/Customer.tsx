@@ -41,7 +41,7 @@ export type StayNumberOfGuests = {
   seniors?: number;
 };
 
-export type StayDetailsDto = {
+export type StayDetails = {
   roomNo: string;
   bedType: string;
   roomType: string;
@@ -95,7 +95,7 @@ export type BookingPayload = {
   };
   // keep checkin dates as strings in the UI state (convert to Date when sending)
   checkin: { checkinDate: string; checkoutDate: string; arrivalDate: string; depatureDate: string };
-  stayDetails: StayDetailsDto[];   // updated
+  stayDetails: StayDetails[];   // updated
   guestInfo: {
     numberOfGuests: { adult: number; child: number; seniors: number };
     noOfPax: number;
@@ -135,11 +135,19 @@ export type BookingPayload = {
 
 /** RoomRow: UI editing shape (keeps same fields + some optional additions) */
 export type RoomRow = {
+  specialInstructions: string;
+  country: string;
+  state: string;
+  pincode: string;
+  address: string;
+  city: string;
+  emailId: string;
+  seniors: number;
   roomType: string;
   roomNo: string;
   ratePlan: string;
   mealPlan: string;
-  guestName: string;
+  guestName: string[];
   contact: string;
   male: number;
   female: number;
@@ -166,11 +174,11 @@ export const initialGuest: BasicGuest = {
   propertyId: "",
   firstName: "",
   lastName: "",
-  title: "Mr",
+  title: "",
   email: "",
-  gender: "Male",
+  gender: "",
   mobileNo: "",
-  nationality: "Indian",
+  nationality: "",
   idType: "",
   idNumber: "",
   address: "",
@@ -196,20 +204,20 @@ export const initialBooking: BookingPayload = {
   bookingDetails: {
     isReservation: false,
     bookingId: "",
-    noOfDays: "1",
-    noOfRooms: "1",
-    graceTime: "00:30",
-    checkInType: "24 Hours CheckIn",
+    noOfDays: "",
+    noOfRooms: "",
+    graceTime: "",
+    checkInType: "",
     checkInMode: "",
-    checkInUser: "Demo",
+    checkInUser: "",
     roomStatus: "",
-    arrivalMode: "Walk-In/Direct",
+    arrivalMode: "",
     otaName: "",
     bookingInstruction: "",
     enableRoomSharing: false,
-    bookingThrough: "Self",
+    bookingThrough: "",
     preferredRooms: "",
-    reservedBy: "Demo",
+    reservedBy: "",
     reservedStatus: "",
     reservationNo: "",
   },
@@ -231,19 +239,19 @@ export const initialBooking: BookingPayload = {
   },
   paymentDetails: {
     paymentType: "",
-    paymentBy: "Direct",
-    allowCredit: "No",
+    paymentBy: "",
+    allowCredit: "",
     paidAmount: 0,
     balanceAmount: 0,
     discType: "",
     discValue: "",
     netRate: "",
-    allowChargesPosting: "No",
+    allowChargesPosting: "",
     enablePaxwise: false,
     paxwiseBillAmount: "",
   },
-  addressInfo: { city: "", pinCode: "", state: "Tamil Nadu", country: "India" },
-  gstInfo: { gstNumber: "", gstType: "UNREGISTERED" },
+  addressInfo: { city: "", pinCode: "", state: "", country: "" },
+  gstInfo: { gstNumber: "", gstType: "" },
   personalInfo: { dob: "", age: "", companyAnniversary: "" },
   businessInfo: { segmentName: "", bussinessSource: "", customerComapny: "", purposeOfVisit: "", visitRemark: "" },
   invoiceOptions: { printOption: true, pdfSaveOption: true },
@@ -251,28 +259,37 @@ export const initialBooking: BookingPayload = {
   meta: { rating: "", isCancelled: false, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 };
 
+ 
 export const initialRooms: RoomRow[] = [
   {
     roomType: "",
     roomNo: "",
     ratePlan: "",
     mealPlan: "EP",
-    guestName: "",
+    guestName: [""],
     contact: "",
     male: 0,
     female: 0,
-    adult: 1,
+    adult: 0,
     child: 0,
+    seniors: 0,
     extra: 0,
     netRate: "",
     discType: "",
     discVal: "",
-    tariff: "Inclusive",
-    applyTariff: "Rent",
+    tariff: "",
+    applyTariff: "",
     planFood: "",
-    // optional defaults
-    bedType: "Single",
+    bedType: "",
     roomFacility: [],
-    status: "CheckedIn",
+    status: "",
+    newRentTariff: "",
+    emailId: "",
+    city: "",
+    address: "",
+    pincode: "",
+    state: "",
+    country: "",
+    specialInstructions: "",
   },
 ];
