@@ -1,21 +1,22 @@
 /** @type {import('next').NextConfig} */
+
+const  BACKEND = process.env.NEXT_PUBLIC_API_BACKEND;  
+
+// console.log("process.env.API_BACKEND",process.env.NEXT_PUBLIC_API_BACKEND);
+
+// console.log("BACKEND", BACKEND);
+
 const nextConfig = {
   reactStrictMode: true,
- 
-  allowedDevOrigins: [
-    'http://192.168.1.11:3000',  
-    'http://localhost:3000',    
-    'http://192.168.1.4:8000',  
-  ],
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: 'http://192.168.1.4:8000/api/:path*',
+        source: "/api/:path*",
+        
+        destination: `${BACKEND}/api/:path*`,
       },
     ];
   },
-  experimental: {},
 };
 
 export default nextConfig;

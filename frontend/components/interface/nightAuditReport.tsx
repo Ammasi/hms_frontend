@@ -12,7 +12,8 @@ export type NightAuditCustomer = {
 };
 
 export  type NightAuditResponse = {
-  date: string;  
+  date: any;
+ 
   totalCheckouts: number;
   customers: NightAuditCustomer[];
 };

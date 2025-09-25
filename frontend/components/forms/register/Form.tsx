@@ -1,13 +1,17 @@
+// 16-9-2025 receptionist or manager   show name, clientId, propertyId, email, password 
+// 16-9-2025  owner   show name, clientId, email, password .  software   show name, email, password ,handleSubmit function move 
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { RegisterUser } from '../../../lib/api';
 
 interface RegisterFormProps {
   onLoginClick: () => void;
 }
 
 export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
-  const [submitting, setSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     role: '',
     name: '',
@@ -17,55 +21,57 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
     password: '',
   });
 
-  // Show Client/Property only when role is NOT software
-  const showClientAndProperty = useMemo(
-    () => formData.role.toLowerCase() !== 'software',
-    [formData.role]
+  // derived booleans for which fields to show / require
+  const roleLower = (formData.role || '').toLowerCase();
+
+  const showClientId = useMemo(
+    () => roleLower === 'owner' || roleLower === 'manager' || roleLower === 'receptionist',
+    [roleLower]
+  );
+  const showPropertyId = useMemo(
+    () => roleLower === 'manager' || roleLower === 'receptionist',
+    [roleLower]
   );
 
-  // If user switches to software, clear client/property so they won't be submitted
+  // when role changes and a field is no longer relevant, clear it
   useEffect(() => {
-    if (!showClientAndProperty && (formData.clientId || formData.propertyId)) {
-      setFormData((prev) => ({ ...prev, clientId: '', propertyId: '' }));
-    }
-  }, [showClientAndProperty]); // eslint-disable-line react-hooks/exhaustive-deps
+    setFormData((prev) => {
+      let next = { ...prev };
+      if (!showClientId && next.clientId) next.clientId = '';
+      if (!showPropertyId && next.propertyId) next.propertyId = '';
+      return next;
+    });
+  }, [showClientId, showPropertyId]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
+
 
     try {
-      // Build payload WITHOUT clientId/propertyId for software role
+
       const { role, name, email, password, clientId, propertyId } = formData;
       const payload: Record<string, string> = { role, name, email, password };
-      if (showClientAndProperty) {
-        payload.clientId = clientId;
-        payload.propertyId = propertyId;
-      }
 
-      const response = await fetch('http://192.168.1.4:8000/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (showClientId) payload.clientId = clientId;
+      if (showPropertyId) payload.propertyId = propertyId;
 
-      const result = await response.json();
 
-      if (response.ok) {
-        alert('Registration successful');
-        console.log(result);
-        onLoginClick();
-      } else {
-        alert(`Error: ${result.message || 'Registration failed'}`);
-        console.log(result.message);
-      }
-    } catch (error) {
-      console.error('Error during registration:', error);
-      alert('Something went wrong');
-    } finally {
-      setSubmitting(false);
+      const { data } = await RegisterUser(payload);
+
+      alert('Registration successful');
+      console.log(data);
+      onLoginClick();
+    } catch (error: any) {
+
+      const message =
+        error.response?.data?.message || error.message || 'Registration failed';
+      alert(`Error: ${message}`);
+      console.error('Register error:', error);
     }
   };
+
 
   return (
     <div className="flex items-center justify-center h-screen">
@@ -102,36 +108,34 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
             />
           </div>
 
-          {/* Only show when role is NOT software */}
-          {showClientAndProperty && (
-            <>
-              <div>
-                <input
-                  id="clientId"
-                  type="text"
-                  className="border p-2 rounded w-full"
-                  placeholder="Enter your client Id"
-                  value={formData.clientId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clientId: e.target.value })
-                  }
-                  // required={showClientAndProperty}
-                />
-              </div>
-              <div>
-                <input
-                  id="propertyId"
-                  type="text"
-                  className="border p-2 rounded w-full"
-                  placeholder="Enter your property Id"
-                  value={formData.propertyId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, propertyId: e.target.value })
-                  }
-                  // required={showClientAndProperty}
-                />
-              </div>
-            </>
+          {/* Client ID (owner/manager/receptionist) */}
+          {showClientId && (
+            <div>
+              <input
+                id="clientId"
+                type="text"
+                className="border p-2 rounded w-full"
+                placeholder="Enter your client Id"
+                value={formData.clientId}
+                onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                required
+              />
+            </div>
+          )}
+
+          {/* Property ID (manager/receptionist only) */}
+          {showPropertyId && (
+            <div>
+              <input
+                id="propertyId"
+                type="text"
+                className="border p-2 rounded w-full"
+                placeholder="Enter your property Id"
+                value={formData.propertyId}
+                onChange={(e) => setFormData({ ...formData, propertyId: e.target.value })}
+                required
+              />
+            </div>
           )}
 
           <div>
@@ -153,19 +157,17 @@ export const RegisterForm = ({ onLoginClick }: RegisterFormProps) => {
               className="border p-2 rounded w-full"
               placeholder="Enter your password"
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
           </div>
 
           <button
             type="submit"
-            disabled={submitting}
+
             className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
           >
-            {submitting ? 'Registering...' : 'Register'}
+            Register
           </button>
         </form>
       </div>

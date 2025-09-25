@@ -1,11 +1,21 @@
+// 13-9-2025 login,verityUser,logout funcrion update     
+// 16-9-2025 customer ,customer info,room, RegisterUser  funcrion update 
+// 23-9-2025 fetchStayReport , fetchReservationReport , function update  
+// 25-9-2025  .env file create
+
+// lib/api.tsx 
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import get from 'lodash/get';
-const API_BASE_URL = 'http://192.168.1.4:8000/api/v1';
+
+// const API_BASE_URL = 'http://165.232.190.31:8000/api/v1';
+ 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BACKEND;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -13,9 +23,9 @@ const api = axios.create({
 });
 
 
-//  attach token automatically if present
+// attach token from cookies if present
 api.interceptors.request.use((config) => {
-  const token = Cookies.get('auth_token');
+  const token = Cookies.get("auth_token");
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
@@ -23,31 +33,37 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ----------------- Auth APIs -----------------
+// ---- Auth APIs ----
 export const login = (email: string, password: string) =>
-  api.post('/auth/login', { email, password });
+  api.post("/auth/login", { email, password });
 
+// verify user using token from cookie (set in login)
 export const verifyUser = async () => {
   const res = await api.get("/auth/verify");
-  return res.data;
+  return res.data; // { user: {...} }
 };
+/**
+ * Logout: remove cookies
+ */
 
-// export const verifyUser = async () => {
-//   const res = await api.get("/auth/verify");
-
-//   return get(res, "data", null);
-// };
 
 export const logout = async () => {
   try {
     await api.post("/auth/logout");
-  } catch (err) {
-    console.error("Logout API error:", err);
+  } catch {
+    // ignore
   } finally {
-    localStorage.removeItem("user");
     Cookies.remove("auth_token");
+    Cookies.remove("auth_role");
+    localStorage.removeItem("user");
   }
 };
+
+export const RegisterUser = (formData: any) =>
+  api.post('/auth/register', {
+    ...formData,
+  });
+// export const RegisterUser = (formData: any) => api.post('/auth/register', formData); 
 
 // ----------------- Subscription APIs -----------------
 export const fetchSubscriptions = async () => {
@@ -99,9 +115,9 @@ export const getSubscriptionUrlAndMethod = (editingData?: EditingData) => {
 
 // ----------------- Customer APIs -----------------
 
-export const fetchCustomer = () => api.get('/customers');
+export const fetchCustomers = () => api.get('/customers');
 
-export const createCustomer = (formData: any) =>
+export const createCustomers = (formData: any) =>
   api.post('/customers/create', {
     ...formData
 
@@ -234,11 +250,7 @@ export const fetchGSTRegisterById = (id: string) =>
 
 export const fetchEmployee = () => api.get('/employee');
 
-export const createEmployee = (formData: any, payload: { clientId: string; propertyId: string; legalName: string; tradeName: string; gstNumber: string; panNumber: string; gstType: string; businessType: string; email: string; phoneNo: string; gstStateCode: string; cgst: string; sgst: string; igst: number; registrationDate: string; taxJurisdiction: number; propertyAddress: boolean; gstCertificateUrl: string | undefined; isActive: boolean; }) =>
-  api.post('/employee/create', { //http://192.168.1.14:8000/api/v1/employee/update/
-    ...formData
 
-  });
 
 export const updateEmployee = (id: string, data: any) =>
   api.put(`/employee/update/${id}`, {
@@ -413,13 +425,7 @@ export const fetchNotificationById = async (id: string) => {
 };
 // ----------------- CustomerInfo APIs -----------------
 
-export const fetchCustomerInfo = () => api.get('/customer-info');
 
-export const createCustomerInfo = (formData: any) =>
-  api.post('/customer-info/create', {
-    ...formData
-
-  });
 
 export const updateCustomerInfo = (id: string, data: any) =>
   api.put(`/customer-info/update/${id}`, {
@@ -438,6 +444,13 @@ export const fetchRoomsByCommonId = async (commonId: string) => {
   const res = await api.get(`/room/property/${commonId}`);
   return res.data;
 };
+
+export const fetchRoomsForPropertyApi = async (commonId: string) => {
+
+  const res = await api.get(`/room/property/${encodeURIComponent(commonId)}`);
+  return res.data;
+};
+
 export const fetchRoomsNumber = (number: number) => {
   api.get(`/room/${number}`).then(res => res.data)
 }
@@ -500,125 +513,26 @@ export const fetchReport = async ({
 };
 
 // ----------------- Night Audit Report API -----------------
-export const fetchNightAuditReport = async ({
-  clientId,
-  propertyId,
-  fromDate,
-  toDate,
-}: {
-  clientId: string;
-  propertyId: string;
-  fromDate?: string;
-  toDate?: string;
-}) => {
-  try {
-    const params = new URLSearchParams();
-    params.set("clientId", clientId);
-    params.set("propertyId", propertyId);
 
-    if (fromDate) params.set("fromDate", fromDate);
-    if (toDate) params.set("toDate", toDate);
-
-    const res = await api.get(`/reports/night-audit?${params.toString()}`);
-    return get(res, "data", null);
-  } catch (error: any) {
-    throw new Error(
-      error?.response?.data?.message ||
-      error?.message ||
-      "Failed to fetch night audit report."
-    );
-  }
+export const fetchNightAuditReport = async (params: any) => {
+  const res = await api.get("/reports/night-audit", { params });  
+ return res.data;
 };
 
 // ----------------- Reservation Report API -----------------
-export const fetchReservationReport = async ({
-  clientId,
-  propertyId,
-  arrivalFrom,
-  arrivalTo,
-  bookedFrom,
-  bookedTo,
-  cancelFrom,
-  cancelTo,
-  showList,
-  arrivalMode,
-  timewise,
-}: {
-  clientId: string;
-  propertyId: string;
-  arrivalFrom?: string;
-  arrivalTo?: string;
-  bookedFrom?: string;
-  bookedTo?: string;
-  cancelFrom?: string;
-  cancelTo?: string;
-  showList?: string;
-  arrivalMode?: string;
-  timewise?: string;
-}) => {
-  try {
-    const params = new URLSearchParams();
-    params.set("clientId", clientId);
-    params.set("propertyId", propertyId);
 
-    if (arrivalFrom) params.set("arrivalFrom", arrivalFrom);
-    if (arrivalTo) params.set("arrivalTo", arrivalTo);
-    if (bookedFrom) params.set("bookedFrom", bookedFrom);
-    if (bookedTo) params.set("bookedTo", bookedTo);
-    if (cancelFrom) params.set("cancelFrom", cancelFrom);
-    if (cancelTo) params.set("cancelTo", cancelTo);
-    if (showList) params.set("showList", showList);
-    if (arrivalMode) params.set("arrivalMode", arrivalMode);
-    if (timewise) params.set("timewise", timewise);
-
-    const res = await api.get(`/reports/reservation?${params.toString()}`);
-    return get(res, "data", []);
-  } catch (error: any) {
-    throw new Error(
-      error?.response?.data?.message ||
-      error?.message ||
-      "Failed to fetch reservation report."
-    );
-  }
-};
+export const fetchReservationReport = async (params: any) => {
+  const res = await api.get("/report/reservations/", { params })
+  return get(res, "data.data", []);
+}
 
 
 // ----------------- Stay Report API -----------------
-export const fetchStayReport = async ({
-  clientId,
-  propertyId,
-  fromDate,
-  toDate,
-  roomType,
-  customerName,
-}: {
-  clientId: string;
-  propertyId: string;
-  fromDate?: string;
-  toDate?: string;
-  roomType?: string;
-  customerName?: string;
-}) => {
-  try {
-    const params = new URLSearchParams();
-    params.set("clientId", clientId);
-    params.set("propertyId", propertyId);
 
-    if (fromDate) params.set("fromDate", fromDate);
-    if (toDate) params.set("toDate", toDate);
-    if (roomType && roomType !== "all") params.set("roomType", roomType);
-    if (customerName?.trim()) params.set("customerName", customerName.trim());
-
-    const res = await api.get(`/reports/stay?${params.toString()}`);
-    return get(res, "data.data", []);
-  } catch (error: any) {
-    throw new Error(
-      error?.response?.data?.message ||
-      error?.message ||
-      "Failed to fetch stay report."
-    );
-  }
-};
+export const fetchStayReport = async (params: any) => {
+  const res = await api.get("/stay-report/", { params })
+  return get(res, "data.data", []);
+}
 
 // ----------------- BillingInfo APIs -----------------
 
@@ -632,20 +546,104 @@ export const updateBillingInfo = async (id: string, payload: any) => {
   const res = await api.put(`/billing-info/update/${id}`, payload);
   return res.data;
 };
- 
+
 
 export const fetchBillingInfos = async () => {
   const res = await api.get('/billing-info/');
   return get(res, 'data', []);
 };
 
- 
+
 export const getBillingInfoById = async (id: string) => {
   const res = await api.get(`/billing-info/${id}`);
   return get(res, 'data', []);
 };
- 
+
 export const deleteBillingInfo = async (id: string) => {
   const res = await api.delete(`/billing-info/delete/${id}`);
   return res.data;
 }
+
+
+export const getCustomers = async (signal?: AbortSignal) => {
+  const res = await api.get("/customers/", { signal });
+  // axios response data shape may be {data: [...] } or [...]
+  return get(res, "data", []) as any[];
+};
+
+export const getCustomerInfos = async (signal?: AbortSignal) => {
+  const res = await api.get("/customer-info/", { signal });
+  return get(res, "data", []) as any[];
+};
+
+/**
+ * Fetch customers and infos in parallel and merge by clientId.
+ * Returns: Array<{ customer: any, info: any | null }>
+ */
+export const getMergedCustomersAndInfos = async (signal?: AbortSignal) => {
+  // Make parallel requests (pass AbortSignal through axios config)
+  const [custRes, infoRes] = await Promise.all([
+    api.get("/customers/", { signal }),
+    api.get("/customer-info/", { signal }),
+  ]);
+
+  const customers = get(custRes, "data", []) as any[];
+  const infos = get(infoRes, "data", []) as any[];
+
+  const custArr = Array.isArray(customers) ? customers : (customers as any).data ?? [];
+  const infoArr = Array.isArray(infos) ? infos : (infos as any).data ?? [];
+
+  // Build map of info by clientId (keep first occurrence)
+  const infoByClient = new Map<string, any>();
+  for (const info of infoArr) {
+    const cid = info?.hotelDetails?.clientId;
+    if (!cid) continue;
+    if (!infoByClient.has(cid)) infoByClient.set(cid, info);
+  }
+
+  // Merge
+  const merged = custArr.map((c: any) => {
+    const cid = c?.clientId;
+    const matchedInfo = infoByClient.get(cid) ?? null;
+    return { customer: c, info: matchedInfo };
+  });
+
+  return merged;
+};
+
+// ----------------- Customer APIs ----------------- 
+
+
+export const createCustomer = async (formData: FormData) => {
+  const res = await api.post("/customers/create", formData, { //customers/create
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+export const createCustomerInfo = async (payload: any) => {
+  const res = await api.post("/customer-info/create", payload); //customer-info/create
+  return res.data;
+};
+
+export const createCustomerApi = async (formData: FormData) => {
+  const res = await api.post("/customers/create", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+export const createCustomerInfoApi = async (payload: any) => {
+  const res = await api.post("/customer-info/create", payload);
+  return res.data;
+};
+
+export const CheckOut = async (id: string, payload: any) => {
+  const res = await api.post(`/customer-info/checkout/${id}`, payload);
+  return res.data;
+
+};
+export default api;
+
+
+
