@@ -1,8 +1,21 @@
+// 15-9-2025  Room Type, Room Number, and Bed Type select add ,customer info paymenttype deatils add in input and label  ,old custom image id proof check in not update   suriya
+// 15-9-2025 guestinfo adult child senios  total count funcation add
+// 16-9-2025 gstInfo input and label add , toggle  function add in show or not,   function change to common code in API ,
+// 18-9-2025 check in form toggle button hide and show  Quick Check-In , Check in Details .Address Details, checkin form / Success — navigate to /dashboard. input box color.
+// 19-9-2025 checkboxes to update  
+// 20-9-2025  hotel Details to pass hotel datas 
+// 24-9-2025   Filter by logged-in user's clientId + propertyId
+
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { fetchCheckInMode } from "../../../lib/api";
+import { createCustomerApi, createCustomerInfoApi, fetchCheckInMode, fetchHotelOwnerById, fetchPropertyById, fetchRoomsForPropertyApi, getMergedCustomersAndInfos } from "../../../lib/api";
 import { BasicGuest, BookingPayload, initialBooking, initialGuest, initialRooms, RoomRow, StayDetails } from "../../interface/Customer";
-
+import { Book, ChevronDownIcon, DeleteIcon, FileText, PrinterIcon, Upload, User, Video, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { HiOutlineDocumentArrowUp } from "react-icons/hi2";
+import { IoAdd } from "react-icons/io5";
+import { useAuth } from "@/app/context/AuthContext";
+import { PropertyData } from "../../interface/property";
 
 /** Component **/
 export default function Form() {
@@ -10,19 +23,16 @@ export default function Form() {
   const [guest, setGuest] = useState<BasicGuest>(initialGuest);
   const [booking, setBooking] = useState<BookingPayload>(initialBooking);
   const [rooms, setRooms] = useState<RoomRow[]>(initialRooms);
-  const [submitting, setSubmitting] = useState(false);
+
   const [message, setMessage] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [submittedPayload, setSubmittedPayload] = useState<any | null>(null);
+
 
   // rooms
   const [availableRooms, setAvailableRooms] = useState<Array<any>>([]);
-  const [roomsLoading, setRoomsLoading] = useState(false);
 
   // check-in modes
   const [checkInModeList, setCheckInModeList] = useState<string[]>([]);
-  const [checkInModesLoading, setCheckInModesLoading] = useState(false);
-
 
 
   // camera + files
@@ -33,7 +43,7 @@ export default function Form() {
 
   const imageFileRef = useRef<File | null>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
-  const [camError, setCamError] = useState<string | null>(null);
+
   const [capturedDataUrl, setCapturedDataUrl] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
@@ -42,14 +52,20 @@ export default function Form() {
   const [scannedFileName, setScannedFileName] = useState<string | null>(null);
   const [scannedFilePreview, setScannedFilePreview] = useState<string | null>(null);
 
+  // Hid
+  const [showPayment, setShowPayment] = useState(true);
+  const [showCheckinDetails, setCheckinDetails] = useState(true);
+  const [showAddressDetails, setAddressDetails] = useState(true);
+  const [showCheckin, setshowCheckin] = useState(true);
+
 
   const totalAdults = useMemo(() => rooms.reduce((s, r) => s + (Number(r.adult) || 0), 0), [rooms]);
   const totalChildren = useMemo(() => rooms.reduce((s, r) => s + (Number(r.child) || 0), 0), [rooms]);
-
+  const totalSeniors = useMemo(() => rooms.reduce((s, r) => s + (Number(r.seniors) || 0), 0), [rooms]);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
-  const [newCustomerId, setNewCustomerId] = useState<string | null>(null);
+  const [, setNewCustomerId] = useState<string | null>(null);
 
 
   // old data show 
@@ -57,10 +73,14 @@ export default function Form() {
   const [oldCustomersLoading, setOldCustomersLoading] = useState(false);
   const [oldCustomersMerged, setOldCustomersMerged] = useState<Array<any>>([]);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://192.168.1.4:8000";
-  const DEFAULT_COMMON_ID = "906e4354-1117-4e25-b423-8dd5930b15cb";
-  const DEFAULT_CLIENT_ID = "68105f14d6c8c8454185556b";
-  const DEFAULT_PROPERTY_ID = "68105f24d6c8c8454185556d";
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const { user, } = useAuth();
+
+  const [HotelsDetails, setHotelsDetails] = useState(false);
+  const [PropertyDetails, setPropertyDetails] = useState<PropertyData | null>(null);
+
+  const COMMON_ID =  PropertyDetails?.commonId;
 
   /** Basic setters **/
   const onGuest = (key: keyof BasicGuest, value: any) => setGuest((g) => ({ ...g, [key]: value }));
@@ -76,29 +96,30 @@ export default function Form() {
   const updateGST = (key: keyof BookingPayload["gstInfo"], value: any) => onBooking("gstInfo", { ...booking.gstInfo, [key]: value });
   const updateBusiness = (key: keyof BookingPayload["businessInfo"], value: any) =>
     onBooking("businessInfo", { ...booking.businessInfo, [key]: value });
-  const updatinvoiceOptions = (key: keyof BookingPayload["invoiceOptions"], value: any) =>
-    onBooking("invoiceOptions", { ...booking.invoiceOptions, [key]: value });
-
-
-
+  const updateInvoiceOptions = (key: keyof BookingPayload["invoiceOptions"], value: any) => onBooking("invoiceOptions", { ...booking.invoiceOptions, [key]: value, });
 
   const removeRoom = (index: number) => setRooms((rs) => rs.filter((_, i) => i !== index));
   const updateRoom = (index: number, key: keyof RoomRow, value: any) =>
     setRooms((rs) => rs.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
+  // unique id generator (module scope)
+  let __nextIdCounter = Date.now();
+  const nextId = () => {
+    __nextIdCounter += 1;
+    return __nextIdCounter;
+  };
 
   const addRoom = () =>
     setRooms((rs) => [
       ...rs,
       {
+        id: nextId(),
         roomType: "",
         roomNo: "",
         ratePlan: "",
         mealPlan: "",
         guestName: [""],
         contact: "",
-        male: 0,
-        female: 0,
-        adult: 1,
+        adult: 0,
         child: 0,
         seniors: 0,
         extra: 0,
@@ -120,61 +141,241 @@ export default function Form() {
         country: "",
         specialInstructions: "",
       },
-    ]);
+    ]); 
+
+useEffect(() => {
+  let mounted = true;
+
+  // click-outside (attach only when open)
+  function handleClickOutside(event: MouseEvent) {
+    if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+      setOldCustomersListOpen(false);
+    }
+  }
+
+  const run = async () => {
+    // 1) sessionStorage → apply selected room once
+    try {
+      const raw = sessionStorage.getItem("selectedRoom");
+      if (raw) {
+        const data = JSON.parse(raw);
+        setRooms((rs) => {
+          if (rs.length > 0) {
+            const updated = [...rs];
+            updated[0] = {
+              ...updated[0],
+              roomNo: data.roomNo ?? updated[0].roomNo,
+              roomType: data.roomType ?? updated[0].roomType,
+              bedType: data.bedType ?? updated[0].bedType,
+            };
+            return updated;
+          }
+          return [
+            {
+              id: nextId(),
+              roomType: data.roomType || "",
+              roomNo: data.roomNo || "",
+              ratePlan: "",
+              mealPlan: "",
+              guestName: [""],
+              contact: "",
+              adult: 0,
+              child: 0,
+              seniors: 0,
+              extra: 0,
+              netRate: "",
+              discType: "",
+              discVal: "",
+              tariff: "",
+              applyTariff: "",
+              planFood: "",
+              bedType: data.bedType || "",
+              roomFacility: [],
+              status: "",
+              newRentTariff: "",
+              emailId: "",
+              city: "",
+              address: "",
+              pincode: "",
+              state: "",
+              country: "",
+              specialInstructions: "",
+            },
+          ];
+        });
+        sessionStorage.removeItem("selectedRoom");
+      }
+    } catch (err) {
+      console.warn("sessionStorage read error", err);
+    }
+
+    // 2) fetch property (to get commonId) and owner (gst, etc.)
+    let commonIdToUse: string | undefined = undefined;
+
+    try {
+      if (user?.propertyId) {
+        const prop = await fetchPropertyById(user.propertyId);
+        if (!mounted) return;
+        setPropertyDetails(prop);
+        commonIdToUse = prop?.commonId ?? commonIdToUse;
+      }
+    } catch (e) {
+      console.warn("fetchPropertyById failed:", e);
+    }
+
+    try {
+      if (user?.clientId) {
+        const owner = await fetchHotelOwnerById(user.clientId);
+        if (!mounted) return;
+        setHotelsDetails(owner);
+      }
+    } catch (e) {
+      console.warn("fetchHotelOwnerById failed:", e);
+    }
+
+    // 3) fallback to existing COMMON_ID from state if property fetch didn’t set it
+    commonIdToUse = commonIdToUse ?? COMMON_ID;
+
+    // 4) fetch rooms only when we have a valid commonId
+    if (commonIdToUse) {
+      try {
+        await fetchRoomsForProperty(commonIdToUse);
+      } catch (e) {
+        console.warn("fetchRoomsForProperty failed:", e);
+      }
+    }
+
+    // 5) other startup tasks
+    loadCheckInModes().catch((e) => console.warn("loadCheckInModes failed:", e));
+  };
+
+  // run sequence
+  run();
+
+  // attach/detach outside-click listener based on popup state
+  if (oldCustomersListOpen) {
+    document.addEventListener("mousedown", handleClickOutside);
+  }
+
+  // cleanup
+  return () => {
+    mounted = false;
+    document.removeEventListener("mousedown", handleClickOutside);
+    try {
+      stopCamera();
+    } catch {}
+  };
+// deps: user ids + popup open state (COMMON_ID derived inside; prevents double fetch)
+}, [user?.propertyId, user?.clientId, oldCustomersListOpen]);
 
 
+ 
+  async function fetchFileFromUrl(url: string) {
+    try {
+      // try to fetch remote file as blob
+      const res = await fetch(url, { mode: "cors" }); // mode:cors - might still fail due to CORS
+      if (!res.ok) throw new Error(`fetch failed ${res.status}`);
+      const blob = await res.blob();
+      // derive a sensible filename and type
+      const filename = fileNameFromUrl(url) || `file-${Date.now()}`;
+      const file = new File([blob], filename, { type: blob.type || "application/octet-stream" });
+      return file;
+    } catch (err) {
+      console.warn("Could not fetch remote file:", err);
+      return null;
+    }
+  }
+
+  function fileNameFromUrl(url: string) {
+    try {
+      const parsed = new URL(url, window.location.href);
+      const parts = parsed.pathname.split("/");
+      const last = parts.pop() || "";
+      // if last contains query params fallback
+      return last.split("?")[0] || null;
+    } catch (e) {
+      // fallback: try simple split
+      return url.split("/").pop()?.split("?")[0] ?? null;
+    }
+  }
 
 
+  const applyOldCustomer = async (mergedItem: any) => {
+    const { guestFromApi, hotelDetailsFromApi, bookingDetailsFromApi, mappedRooms } = mapCustomerInfoToForm(mergedItem);
+    const customer = mergedItem.customer || {};
+    const info = mergedItem.info || {};
 
+    // Apply guest (atomic)
+    setGuest((g) => ({ ...g, ...guestFromApi }));
 
-  // Fetch both APIs and merge by clientId
+    // Apply hotel + booking details
+    onBooking("hotelDetails", { ...booking.hotelDetails, ...hotelDetailsFromApi });
+    onBooking("bookingDetails", { ...booking.bookingDetails, ...bookingDetailsFromApi });
+
+    // Apply mapped rooms (if any) else single empty row
+    // setRooms(mappedRooms && mappedRooms.length ? mappedRooms : initialRooms);
+
+    // Show previews for customer's image and idProof (if available)
+    const imageUrl = customer?.image || info?.image || customer?.photo || null;
+    const idProofUrl = customer?.idProof || info?.idProof || customer?.idproof || null;
+
+    // set previews immediately (fast UI feedback) — only set capturedDataUrl for images
+    if (imageUrl && /(jpg|jpeg|png|gif|bmp|webp)$/i.test(imageUrl)) {
+      setCapturedDataUrl(imageUrl);
+    } else {
+      setCapturedDataUrl(null);
+    }
+
+    if (idProofUrl) {
+      setScannedFilePreview(idProofUrl);
+      setScannedFileName(fileNameFromUrl(idProofUrl) || `idproof-${Date.now()}.pdf`);
+    } else {
+      setScannedFilePreview(null);
+      setScannedFileName(null);
+    }
+
+    // Try to fetch remote files in parallel (may fail due to CORS)
+    try {
+      const [fetchedImage, fetchedId] = await Promise.all([
+        imageUrl ? fetchFileFromUrl(imageUrl) : Promise.resolve(null),
+        idProofUrl ? fetchFileFromUrl(idProofUrl) : Promise.resolve(null),
+      ]);
+
+      if (fetchedImage) {
+        setImageFile(fetchedImage);
+      } else {
+        setImageFile(null);
+      }
+
+      if (fetchedId) {
+        setIdProofFile(fetchedId);
+        if (fetchedId.type.startsWith("image/")) {
+          setScannedFilePreview(URL.createObjectURL(fetchedId));
+        }
+      } else {
+        setIdProofFile(null);
+      }
+    } catch (err) {
+      console.warn("applyOldCustomer: error fetching remote files", err);
+    }
+
+    setOldCustomersListOpen(false);
+  };
   const fetchCustomersAndInfos = async () => {
     setOldCustomersLoading(true);
     try {
-      const [custRes, infoRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/customers/`, { credentials: "include" }),
-        fetch(`${API_BASE}/api/v1/customer-info/`, { credentials: "include" }),
-      ]);
-
-      if (!custRes.ok) throw new Error(`Customers API failed: ${custRes.status}`);
-      if (!infoRes.ok) throw new Error(`Customer-info API failed: ${infoRes.status}`);
-
-      const customers = (await custRes.json()) || [];
-      const infos = (await infoRes.json()) || [];
-
-      // Normalize arrays (if API returns {data: []} adjust accordingly)
-      const custArr = Array.isArray(customers) ? customers : customers.data ?? [];
-      const infoArr = Array.isArray(infos) ? infos : infos.data ?? [];
-
-      // Build a map of infos by clientId (there may be multiple infos per clientId; keep the latest/first)
-      const infoByClient = new Map<string, any>();
-      for (const info of infoArr) {
-        const cid = info?.hotelDetails?.clientId;
-        if (!cid) continue;
-        // prefer existing or set (you could choose latest by createdAt if available)
-        if (!infoByClient.has(cid)) infoByClient.set(cid, info);
-      }
-
-      // Merge each customer with its info (if found)
-      const merged = custArr.map((c: any) => {
-        const cid = c?.clientId;
-        const matchedInfo = infoByClient.get(cid) ?? null;
-        return {
-          customer: c,
-          info: matchedInfo,
-        };
-      });
-
+      const merged = await getMergedCustomersAndInfos();
       setOldCustomersMerged(merged);
-      // open the dropdown right away
+      
       setOldCustomersListOpen(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load old customers:", err);
       alert("Failed to load old customers. See console for details.");
     } finally {
       setOldCustomersLoading(false);
     }
   };
+
 
   /** Convert API result → your UI form shapes.
    *  This maps primary pieces: guest, booking.hotelDetails.customerId, booking.bookingDetails (reservation etc),
@@ -190,11 +391,11 @@ export default function Form() {
       propertyId: customer?.propertyId || "",
       firstName: customer?.firstName || "",
       lastName: customer?.lastName || "",
-      title: customer?.title || "Mr",
+      title: customer?.title || "",
       isVIP: Boolean(customer?.isVIP),
       isForeignCustomer: Boolean(customer?.isForeignCustomer),
       email: customer?.email || "",
-      gender: customer?.gender || "Male",
+      gender: customer?.gender || "",
       mobileNo: customer?.mobileNo || "",
       nationality: customer?.nationality || "",
       idType: customer?.idType || "",
@@ -207,12 +408,12 @@ export default function Form() {
 
     // booking.hotelDetails (keep existing hotelDetails but set clientId/propertyId/customerId)
     const hotelDetailsFromApi = {
-      clientId: (info?.hotelDetails?.clientId || customer?.clientId) || booking.hotelDetails.clientId || DEFAULT_CLIENT_ID,
-      propertyId: (info?.hotelDetails?.propertyId || customer?.propertyId) || booking.hotelDetails.propertyId || DEFAULT_PROPERTY_ID,
-      customerId: info?.hotelDetails?.customerId || customer?.id || booking.hotelDetails.customerId || "",
-      hotelName: info?.hotelDetails?.hotelName || booking.hotelDetails.hotelName || "CJ",
-      hotelAddress: info?.hotelDetails?.hotelAddress || booking.hotelDetails.hotelAddress || "",
-      hotelMobileNo: info?.hotelDetails?.hotelMobileNo || booking.hotelDetails.hotelMobileNo || "",
+      clientId: (info?.hotelDetails?.clientId || customer?.clientId) || booking.hotelDetails.clientId || user?.clientId,
+      propertyId: (info?.hotelDetails?.propertyId || customer?.propertyId) || booking.hotelDetails.propertyId || user?.propertyId,
+      customerId: info?.hotelDetails?.customerId || customer?.id || booking.hotelDetails.customerId || PropertyDetails?.commonId,
+      hotelName: info?.hotelDetails?.hotelName || booking.hotelDetails.hotelName || PropertyDetails?.propertyName,
+      hotelAddress: info?.hotelDetails?.hotelAddress || booking.hotelDetails.hotelAddress || PropertyDetails?.propertyAddress,
+      hotelMobileNo: info?.hotelDetails?.hotelMobileNo || booking.hotelDetails.hotelMobileNo || PropertyDetails?.propertyContact,
       gstin: booking.hotelDetails.gstin || "",
       hsnCode: booking.hotelDetails.hsnCode || "",
     };
@@ -237,9 +438,7 @@ export default function Form() {
         mealPlan: sd.mealPlan || sd.planFood || "",
         guestName: guestNameFromApi || "",
         contact: firstGuest?.phoneNo || customer?.mobileNo || "",
-        male: 0,
-        female: 0,
-        adult: (sd.numberOfGuests?.adult && Number(sd.numberOfGuests.adult)) || 1,
+        adult: (sd.numberOfGuests?.adult && Number(sd.numberOfGuests.adult)) || 0,
         child: (sd.numberOfGuests?.child && Number(sd.numberOfGuests.child)) || 0,
         extra: sd.extraPax || 0,
         netRate: sd.ratePlan || "",
@@ -263,47 +462,43 @@ export default function Form() {
     };
   };
 
-  /** When user selects an old customer from the dropdown, apply the data to the form */
-  const applyOldCustomer = (mergedItem: any) => {
-    const { guestFromApi, hotelDetailsFromApi, bookingDetailsFromApi, mappedRooms } = mapCustomerInfoToForm(mergedItem);
-
-    // Apply guest (atomic)
-    setGuest((g) => ({ ...g, ...guestFromApi }));
-
-    // Apply hotelDetails and bookingDetails atomically (use onBooking to replace top-level objects)
-    onBooking("hotelDetails", { ...booking.hotelDetails, ...hotelDetailsFromApi });
-    onBooking("bookingDetails", { ...booking.bookingDetails, ...bookingDetailsFromApi });
-
-    // Replace rooms with mappedRooms (UI uses RoomRow[])
-    setRooms(mappedRooms.length ? mappedRooms : initialRooms);
-
-    // Close list
-    setOldCustomersListOpen(false);
-  };
 
 
-
-
-
-
-
-
-  // capture and optionally auto-stop / auto-send
+  // safer capturePhoto (replace your current function)
   const capturePhoto = async () => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video) {
+      console.warn("capturePhoto: video element not available");
+      setFileError("Camera not available.");
+      return;
+    }
+
     setIsCapturing(true);
     try {
-      const video = videoRef.current;
-      // give a tiny delay to let user remove finger/hand after pressing button
+      // small delay to allow video to render frames (important on slow devices)
       await new Promise((res) => setTimeout(res, 150));
 
-      // ensure video has valid dimensions
+      // if dimensions are not yet available, wait briefly up to 1s
+      const waitForDims = async () => {
+        const start = Date.now();
+        while ((video.videoWidth === 0 || video.videoHeight === 0) && Date.now() - start < 1000) {
+          // give video a bit of time
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((r) => setTimeout(r, 50));
+        }
+      };
+      await waitForDims();
+
+      // ensure we have fallback sizes
       const w = video.videoWidth || 1280;
       const h = video.videoHeight || 720;
+
       const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Failed to get canvas context for capture.");
+
       ctx.drawImage(video, 0, 0, w, h);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
@@ -326,10 +521,12 @@ export default function Form() {
       stopCamera();
     } catch (err) {
       console.error("capture error", err);
+      setFileError((err as Error).message || "Failed to capture photo.");
     } finally {
       setIsCapturing(false);
     }
   };
+
 
   // retake: clear captured data and restart camera
   const retake = async () => {
@@ -346,7 +543,6 @@ export default function Form() {
       console.warn("Failed to restart camera:", err);
     }
   };
-
   // toggle camera (keep as before) but ensure stream is cleaned up
   const switchCamera = async () => {
     const newMode = facingMode === "environment" ? "user" : "environment";
@@ -355,45 +551,66 @@ export default function Form() {
     // small delay to let hardware settle on some devices
     setTimeout(() => startCamera(newMode), 150);
   };
-
-
-
   /** Fetch rooms (minimal) **/
-  const fetchRoomsForProperty = async (commonId: string = DEFAULT_COMMON_ID) => {
-    setRoomsLoading(true);
+  const fetchRoomsForProperty = async (COMMON_ID: any) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/room/property/${commonId}`);
-      if (!res.ok) throw new Error("Failed to fetch rooms");
-      const data = await res.json();
-      const available = (data || []).filter((r: any) => (r.roomStatus || "").toLowerCase() === "available");
+      // call shared API helper
+      const data = await fetchRoomsForPropertyApi(COMMON_ID);
+
+      // server might respond with an array or { data: [...] }, so normalize:
+      const roomsArray: any[] =
+        Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+
+      const available = roomsArray.filter((r: any) => ["available", "vacant"].includes((r.roomStatus || "").toLowerCase()));
       setAvailableRooms(available);
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      setRoomsLoading(false);
+    } catch (err) {
+      console.warn("fetchRoomsForProperty failed:", err);
+      // optionally set an error state here
     }
   };
+  // convert an ISO/date-like string (or Date) to a datetime-local value string
+  function toDatetimeLocalInputValue(d?: string | Date | null): string {
+    if (!d) return "";
+    const date = typeof d === "string" ? new Date(d) : d;
+    if (Number.isNaN(date.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
 
-  useEffect(() => {
-    fetchRoomsForProperty(DEFAULT_COMMON_ID);
-  }, []);
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    // include seconds only if you want; minutes is enough for most UIs:
+    // const seconds = pad(date.getSeconds());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+
+  // compute selected room numbers (strings) once per render
+  const selectedRoomNumbers = new Set(
+    rooms.map((rr) => (rr.roomNo ?? "").toString()).filter(Boolean)
+  );
 
   /** Checkin modes **/
-  const loadCheckInModes = async () => {
-    setCheckInModesLoading(true);
-    try {
-      const res = await fetchCheckInMode();
-      const data = Array.isArray(res) ? res : (res as any)?.data || [];
-      setCheckInModeList((data || []).map((d: any) => String(d.checkInMode || "")));
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      setCheckInModesLoading(false);
-    }
-  };
-  useEffect(() => {
-    loadCheckInModes();
-  }, []);
+const loadCheckInModes = async () => {
+  try {
+    const res = await fetchCheckInMode();
+
+    // Normalize the response into an array
+    const data = Array.isArray(res) ? res : (res as any)?.data || [];
+
+    //   Filter by logged-in user's clientId + propertyId
+    const filtered = (data || []).filter(
+      (d: any) =>
+        d.clientId === user?.clientId && d.propertyId === user?.propertyId
+    );
+
+    //  Store only the checkInMode strings
+    setCheckInModeList(filtered.map((d: any) => String(d.checkInMode || "")));
+  } catch (e) {
+    console.warn(e);
+  }
+};
 
 
   /** File validation helper **/
@@ -418,69 +635,16 @@ export default function Form() {
   function makePlaceholderImageFile(name = "no-photo.png") {
     return dataURLtoFile(PLACEHOLDER_PNG, name);
   }
-
-  // minimal PDF placeholder
-  function makePlaceholderPdfFile(name = "no-id.pdf") {
-    const pdfText = `%PDF-1.1
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Count 1 /Kids [3 0 R] >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length 44 >>
-stream
-BT /F1 12 Tf 72 120 Td (ID) Tj ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000010 00000 n 
-0000000061 00000 n 
-0000000116 00000 n 
-0000000231 00000 n 
-0000000300 00000 n 
-trailer
-<< /Root 1 0 R >>
-startxref
-360
-%%EOF`;
-
-    const uint8 = new TextEncoder().encode(pdfText);
-    return new File([uint8], name, { type: "application/pdf" });
-  }
-
-
+  
 
   /** Main submit: create customer -> then customer-info with returned id **/
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e && typeof (e as any).preventDefault === "function") (e as any).preventDefault();
-    setSubmitting(true);
+
     setMessage(null);
     setFileError(null);
 
     try {
-      // local validation of required guest fields (simple)
-      if (!guest.firstName) throw new Error("First name is required.");
-      if (!guest.lastName) throw new Error("Last name is required.");
-      if (!guest.mobileNo) throw new Error("Mobile number is required.");
-
-      // validate files
-      const validation = validateFilesLocal(imageFile, idProofFile);
-      if (!validation.ok) {
-        setFileError(validation.message ?? null);
-        setSubmitting(false);
-        return;
-      }
-
 
       // 1. create customer (multipart)
       const customerId = await createCustomer();
@@ -488,7 +652,9 @@ startxref
       // 2. create customer-info using returned id
       // after createCustomerInfo(customerId) (inside try)
       await createCustomerInfo(customerId);
-
+      // Success — navigate to dashboard
+      // use router.replace if you don't want back-button to return to the form.
+      router.push("/dashboard");
       // show success
       setMessage(" Customer and customer-info created successfully.");
 
@@ -513,30 +679,20 @@ startxref
       console.error(err);
       const msg = err?.message || "Unknown error";
       setMessage(`X ${msg}`);
-      if (msg.toLowerCase().includes("image") || msg.toLowerCase().includes("id proof") || msg.toLowerCase().includes("missing")) {
-        setFileError(msg);
-      } else {
-        alert(msg);
-      }
-    } finally {
-      setSubmitting(false);
+
     }
   };
-
   /** Create customer (multipart/form-data) **/
   const createCustomer = async (): Promise<string> => {
-    // still validate any provided files
     const v = validateFilesLocal(imageFile, idProofFile);
     if (!v.ok) throw new Error(v.message);
 
-    const url = `${API_BASE}/api/v1/customers/create`;
     const fd = new FormData();
+    const clientId = booking.hotelDetails.clientId || user?.clientId;
+    const propertyId = booking.hotelDetails.propertyId || user?.propertyId;
 
-    const clientId = booking.hotelDetails.clientId || DEFAULT_CLIENT_ID;
-    const propertyId = booking.hotelDetails.propertyId || DEFAULT_PROPERTY_ID;
-
-    fd.append("clientId", clientId);
-    fd.append("propertyId", propertyId);
+    fd.append("clientId", clientId || "");
+    fd.append("propertyId", propertyId || "");
     fd.append("firstName", guest.firstName || "");
     fd.append("lastName", guest.lastName || "");
     fd.append("title", guest.title || "");
@@ -551,122 +707,102 @@ startxref
     fd.append("isForeignCustomer", guest.nationality && guest.nationality.toLowerCase() === "indian" ? "false" : "true");
     fd.append("isActive", "true");
 
-    // Append image and idproof — use provided files or placeholders
-    if (imageFile) {
-      fd.append("image", imageFile);
-    } else {
-      fd.append("image", makePlaceholderImageFile("no-photo.png"));
+    if (imageFile) fd.append("image", imageFile);
+    else fd.append("image", makePlaceholderImageFile("no-photo.png"));
+
+    if (idProofFile) fd.append("idproof", idProofFile); v
+    try {
+      const data = await createCustomerApi(fd);
+      const newId = data.id || data._id || data.data?.id || data.data?.customerId || data.customerId;
+      if (!newId) throw new Error("Customer created but server did not return an id.");
+      setNewCustomerId(newId);
+      return newId;
+    } catch (err: any) {
+      const msg = (err);
+      throw new Error(`Customer create failed: ${msg}`);
     }
-
-    if (idProofFile) {
-      fd.append("idproof", idProofFile);
-    } else {
-      // prefer a PDF placeholder, but if your server expects an image you can use makePlaceholderImageFile instead
-      fd.append("idproof", makePlaceholderPdfFile("no-id.pdf"));
-    }
-
-    const res = await fetch(url, {
-      method: "POST",
-      body: fd,
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      let errMsg = `Customer create failed: ${res.status}`;
-      try {
-        const j = await res.json();
-        if (j.message) errMsg = j.message;
-      } catch (e) { }
-      throw new Error(errMsg);
-    }
-
-    const json = await res.json();
-    const newId = json.id || json._id || json.data?.id || json.data?.customerId || json.customerId;
-    if (!newId) throw new Error("Customer created but server did not return an id.");
-    setNewCustomerId(newId);
-    return newId;
   };
-  /** Create customer-info (JSON) **/
-  // replace your createCustomerInfo with this implementation
+
   /** Create customer-info (JSON) **/
   const createCustomerInfo = async (customerId: string) => {
-    const infoUrl = `${API_BASE}/api/v1/customer-info/create`;
+    const toDateOrUndefined = (v?: string) => (v ? new Date(v) : undefined);
 
     const stayDetails = rooms.map((r, idx) => {
       const adult = Number(r.adult || 0);
       const child = Number(r.child || 0);
+      const seniors = Number(r.seniors || 0);
       const extra = Number(r.extra || 0);
-      const seniors = 0;
+
       const guestsArr = [
         {
-          guestName: [(r.guestName && String(r.guestName).trim()) || `${guest.firstName || ""} ${guest.lastName || ""}`.trim()].filter(Boolean),
+          guestName: Array.isArray(r.guestName)
+            ? r.guestName.filter(Boolean)
+            : [(r.guestName && String(r.guestName).trim()) || `${guest.firstName || ""} ${guest.lastName || ""}`.trim()].filter(Boolean),
           phoneNo: r.contact || guest.mobileNo || "",
-          emailId: guest.email || "",
-          city: booking.addressInfo?.city || "",
-          address: guest.address || "",
-          pincode: booking.addressInfo?.pinCode || "",
-          state: booking.addressInfo?.state || "",
-          country: booking.addressInfo?.country || "",
+          emailId: r.emailId || guest.email || "",
+          city: r.city || booking.addressInfo?.city || "",
+          address: r.address || guest.address || "",
+          pincode: r.pincode || booking.addressInfo?.pinCode || "",
+          state: r.state || booking.addressInfo?.state || "",
+          country: r.country || booking.addressInfo?.country || "",
           payPerRoom: "",
-          specialInstructions: booking.guestInfo?.specialRequests || "",
+          specialInstructions: r.specialInstructions || booking.guestInfo?.specialRequests || "",
         },
       ];
 
       return {
         roomNo: String(r.roomNo || `R${idx + 1}`),
-        bedType: (r as any).bedType || "Single",
+        bedType: (r as any).bedType || "",
         roomType: r.roomType || "",
         roomFacility: (r as any).roomFacility || [],
         planFood: r.planFood || "",
         mealPlan: r.mealPlan || "",
         ratePlan: r.ratePlan || "",
-        tariff: r.tariff || "Inclusive",
-        newRentTariff: (r as any).newRentTariff || undefined,
-        applyTariff: r.applyTariff || "Rent",
+        tariff: r.tariff || "",
+        newRentTariff: (r as any).newRentTariff || "",
+        applyTariff: r.applyTariff || "",
         numberOfGuests: { adult, child, seniors },
-        noOfPax: adult + child + extra,
+        noOfPax: adult + child + seniors + extra,
         childPax: child,
-        extraPax: extra,
+        extraPax: child + seniors,
         isActive: true,
-        status: (r as any).status || "CheckedIn",
+        status: (r as any).status || "",
         guests: guestsArr,
       } as unknown as StayDetails;
     });
 
     const noOfPax = rooms.reduce((s, r) => s + (Number(r.adult || 0) + Number(r.child || 0) + Number(r.extra || 0)), 0);
 
-    const toDateOrUndefined = (v?: string) => (v ? new Date(v) : undefined);
-
     const payload = {
       hotelDetails: {
-        clientId: booking.hotelDetails.clientId || DEFAULT_CLIENT_ID,
-        propertyId: booking.hotelDetails.propertyId || DEFAULT_PROPERTY_ID,
-        customerId: customerId || "",
-        hotelName: booking.hotelDetails.hotelName || "CJ",
-        hotelAddress: booking.hotelDetails.hotelAddress || "salem",
-        hotelMobileNo: booking.hotelDetails.hotelMobileNo || "0987654321",
-        gstin: booking.hotelDetails.gstin || undefined,
-        hsnCode: booking.hotelDetails.hsnCode || undefined,
+        clientId: booking.hotelDetails.clientId || user?.clientId,
+        propertyId: booking.hotelDetails.propertyId || user?.propertyId,
+        customerId: customerId || PropertyDetails?.commonId,
+        hotelName: booking.hotelDetails.hotelName || PropertyDetails?.propertyName,
+        hotelAddress: booking.hotelDetails.hotelAddress || PropertyDetails?.propertyAddress,
+        hotelMobileNo: booking.hotelDetails.hotelMobileNo || PropertyDetails?.propertyContact,
+        gstin: booking.hotelDetails.gstin || "",
+        hsnCode: booking.hotelDetails.hsnCode || "",
       },
       bookingDetails: {
         isReservation: Boolean(booking.bookingDetails.isReservation),
         bookingId: booking.bookingDetails.bookingId || "",
         noOfDays: String(booking.bookingDetails.noOfDays || ""),
         noOfRooms: String(rooms.length || booking.bookingDetails.noOfRooms || ""),
-        graceTime: booking.bookingDetails.graceTime || undefined,
+        graceTime: booking.bookingDetails.graceTime || "",
         checkInType: booking.bookingDetails.checkInType || "",
         checkInMode: booking.bookingDetails.checkInMode || "",
         checkInUser: booking.bookingDetails.checkInUser || "",
-        roomStatus: booking.bookingDetails.roomStatus || undefined,
-        arrivalMode: booking.bookingDetails.arrivalMode || undefined,
-        otaName: booking.bookingDetails.otaName || undefined,
-        bookingInstruction: booking.bookingDetails.bookingInstruction || undefined,
+        roomStatus: booking.bookingDetails.roomStatus || "",
+        arrivalMode: booking.bookingDetails.arrivalMode || "",
+        otaName: booking.bookingDetails.otaName || "",
+        bookingInstruction: booking.bookingDetails.bookingInstruction || "",
         enableRoomSharing: Boolean(booking.bookingDetails.enableRoomSharing),
-        bookingThrough: booking.bookingDetails.bookingThrough || undefined,
-        preferredRooms: booking.bookingDetails.preferredRooms || undefined,
-        reservedBy: booking.bookingDetails.reservedBy || undefined,
-        reservedStatus: booking.bookingDetails.reservedStatus || undefined,
-        reservationNo: booking.bookingDetails.reservationNo || undefined,
+        bookingThrough: booking.bookingDetails.bookingThrough || "",
+        preferredRooms: booking.bookingDetails.preferredRooms || "",
+        reservedBy: booking.bookingDetails.reservedBy || "",
+        reservedStatus: booking.bookingDetails.reservedStatus || "",
+        reservationNo: booking.bookingDetails.reservationNo || "",
       },
       checkin: {
         checkinDate: toDateOrUndefined(booking.checkin.checkinDate),
@@ -679,7 +815,7 @@ startxref
         numberOfGuests: {
           adult: totalAdults || 0,
           child: totalChildren || 0,
-          seniors: booking.guestInfo?.numberOfGuests?.seniors || 0,
+          seniors: totalSeniors || 0,
         },
         noOfPax,
         childPax: booking.guestInfo?.childPax || 0,
@@ -688,19 +824,19 @@ startxref
         complimentary: booking.guestInfo?.complimentary || "",
         vechileDetails: booking.guestInfo?.vechileDetails || "",
       },
-      // paymentDetails: {
-      //   paymentType: booking.paymentDetails?.paymentType || "",
-      //   paymentBy: booking.paymentDetails?.paymentBy || "",
-      //   allowCredit: booking.paymentDetails?.allowCredit || undefined,
-      //   paidAmount: Number(booking.paymentDetails?.paidAmount || 0),
-      //   balanceAmount: Number(booking.paymentDetails?.balanceAmount || 0),
-      //   discType: booking.paymentDetails?.discType || undefined,
-      //   discValue: booking.paymentDetails?.discValue || undefined,
-      //   netRate: booking.paymentDetails?.netRate || undefined,
-      //   allowChargesPosting: booking.paymentDetails?.allowChargesPosting || undefined,
-      //   enablePaxwise: Boolean(booking.paymentDetails?.enablePaxwise),
-      //   paxwiseBillAmount: booking.paymentDetails?.paxwiseBillAmount || undefined,
-      // },
+      paymentDetails: {
+        paymentType: booking.paymentDetails?.paymentType || "",
+        paymentBy: booking.paymentDetails?.paymentBy || "",
+        allowCredit: booking.paymentDetails?.allowCredit || "",
+        paidAmount: Number(booking.paymentDetails?.paidAmount || 0),
+        balanceAmount: Number(booking.paymentDetails?.balanceAmount || 0),
+        discType: booking.paymentDetails?.discType || "",
+        discValue: booking.paymentDetails?.discValue || "",
+        netRate: booking.paymentDetails?.netRate || "",
+        allowChargesPosting: booking.paymentDetails?.allowChargesPosting || "",
+        enablePaxwise: Boolean(booking.paymentDetails?.enablePaxwise),
+        paxwiseBillAmount: booking.paymentDetails?.paxwiseBillAmount || "",
+      },
       addressInfo: {
         city: booking.addressInfo?.city || "",
         pinCode: booking.addressInfo?.pinCode || "",
@@ -708,20 +844,20 @@ startxref
         country: booking.addressInfo?.country || "",
       },
       gstInfo: {
-        gstNumber: booking.gstInfo?.gstNumber || undefined,
-        gstType: booking.gstInfo?.gstType || undefined,
+        gstNumber: booking.gstInfo?.gstNumber || "",
+        gstType: booking.gstInfo?.gstType || "",
       },
       personalInfo: {
-        dob: booking.personalInfo?.dob || undefined,
-        age: booking.personalInfo?.age || undefined,
-        companyAnniversary: booking.personalInfo?.companyAnniversary || undefined,
+        dob: booking.personalInfo?.dob || "",
+        age: booking.personalInfo?.age || "",
+        companyAnniversary: booking.personalInfo?.companyAnniversary || "",
       },
       businessInfo: {
-        segmentName: booking.businessInfo?.segmentName || undefined,
-        bussinessSource: booking.businessInfo?.bussinessSource || undefined,
-        customerComapny: booking.businessInfo?.customerComapny || undefined,
-        purposeOfVisit: booking.businessInfo?.purposeOfVisit || undefined,
-        visitRemark: booking.businessInfo?.visitRemark || undefined,
+        segmentName: booking.businessInfo?.segmentName || "",
+        bussinessSource: booking.businessInfo?.bussinessSource || "",
+        customerComapny: booking.businessInfo?.customerComapny || "",
+        purposeOfVisit: booking.businessInfo?.purposeOfVisit || "",
+        visitRemark: booking.businessInfo?.visitRemark || "",
       },
       invoiceOptions: {
         printOption: booking.invoiceOptions?.printOption ?? true,
@@ -737,73 +873,45 @@ startxref
       },
     };
 
-    // set payload into state for preview (so UI can show values)
-    setSubmittedPayload(payload);
-
-    console.debug("createCustomerInfo payload:", payload);
-
-    const res = await fetch(infoUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      let errMsg = `Customer-info create failed: ${res.status}`;
-      try {
-        const j = await res.json();
-        if (j.message) errMsg = j.message;
-      } catch (e) { }
-      throw new Error(errMsg);
+    try {
+      const result = await createCustomerInfoApi(payload);
+      return result;
+    } catch (err: any) {
+      const msg = (err);
+      throw new Error(`Customer-info create failed: ${msg}`);
     }
-
-    return res.json();
   };
 
-  const stayDetails = rooms.map((r, idx) => {
-    const adult = Number(r.adult || 0);
-    const child = Number(r.child || 0);
-    const extra = Number(r.extra || 0);
-    const seniors = Number(r.seniors || 0);
 
-    // build guests array: we keep single guest object per room, but guestName is string[]
-    const guestsArr = [
-      {
-        guestName: Array.isArray(r.guestName) ? r.guestName.filter(Boolean) : [String(r.guestName || "")].filter(Boolean),
-        phoneNo: r.contact || guest.mobileNo || "",
-        emailId: r.emailId || guest.email || "",
-        city: r.city || booking.addressInfo?.city || "",
-        address: r.address || guest.address || "",
-        pincode: r.pincode || booking.addressInfo?.pinCode || "",
-        state: r.state || booking.addressInfo?.state || "",
-        country: r.country || booking.addressInfo?.country || "",
-        payPerRoom: "",
-        specialInstructions: r.specialInstructions || booking.guestInfo?.specialRequests || "",
-      },
-    ];
+  // put near other helpers in the component
+  function clearGuest() {
+    // revoke any blob object URLs we created (only revoke blob: URLs)
+    try {
+      if (capturedDataUrl && capturedDataUrl.startsWith("blob:")) URL.revokeObjectURL(capturedDataUrl);
+      if (scannedFilePreview && scannedFilePreview.startsWith("blob:")) URL.revokeObjectURL(scannedFilePreview);
+    } catch (e) {
+      console.warn("Failed to revoke object URLs", e);
+    }
+    // reset form pieces
+    setGuest(initialGuest);
+    setRooms(initialRooms);
+    onBooking("bookingDetails", initialBooking.bookingDetails);
+    onBooking("hotelDetails", initialBooking.hotelDetails);
 
-    return {
-      roomNo: String(r.roomNo || `R${idx + 1}`),
-      bedType: r.bedType || "Single",
-      roomType: r.roomType || "",
-      roomFacility: r.roomFacility || [],
-      planFood: r.planFood || "",
-      mealPlan: r.mealPlan || "",
-      ratePlan: r.ratePlan || "",
-      tariff: r.tariff || "Inclusive",
-      newRentTariff: r.newRentTariff || undefined,
-      applyTariff: r.applyTariff || "Rent",
-      numberOfGuests: { adult, child, seniors },
-      noOfPax: adult + child + extra,
-      childPax: child,
-      extraPax: extra,
-      isActive: true,
-      status: r.status || "CheckedIn",
-      guests: guestsArr,
-    } as StayDetails;
-  });
+    // clear file state + refs + previews
+    setImageFile(null);
+    setIdProofFile(null);
+    imageFileRef.current = null;
+    setCapturedDataUrl(null);
+    setScannedFilePreview(null);
+    setScannedFileName(null);
+    setNewCustomerId(null);
 
+    // clear hidden file inputs (so browser won't keep selected file)
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (idProofInputRef.current) idProofInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
 
   /** Camera behavior **/
@@ -832,35 +940,77 @@ startxref
     }
   };
 
+  // safer startCamera (replace your current function)
   const startCamera = async (useFacing?: "environment" | "user") => {
     try {
-      setCamError(null);
+
       await ensureGetUserMedia();
       const mode = useFacing || facingMode;
       const constraints: MediaStreamConstraints = {
         video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       };
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      const video = videoRef.current!;
+
+      const video = videoRef.current;
+      if (!video) {
+        // Video element not mounted — stop stream to avoid leak and exit
+        stream.getTracks().forEach((t) => t.stop());
+
+
+        setIsCameraOn(false);
+        return;
+      }
+
+      // attach stream
       video.srcObject = stream;
-      await new Promise<void>((res) => {
+
+      // wait until metadata loaded (but with timeout fallback)
+      await new Promise<void>((res, rej) => {
+        let settled = false;
         const onLoaded = () => {
+          if (settled) return;
+          settled = true;
           video.removeEventListener("loadedmetadata", onLoaded);
           res();
         };
         video.addEventListener("loadedmetadata", onLoaded);
+
+        // fallback timeout (in case loadedmetadata never fires)
+        const to = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          video.removeEventListener("loadedmetadata", onLoaded);
+          // still resolve — we will try to play, but dims may be default
+          res();
+        }, 2000);
+
+        // clean timeout when resolved
+        res = ((origRes) => () => {
+          clearTimeout(to);
+          origRes();
+        })(res) as any;
       });
-      await video.play();
+
+      // attempt to play
+      try {
+        await video.play();
+      } catch (playErr) {
+        // some browsers require user gesture to play; that's OK — we still consider camera active
+        console.warn("video.play() failed:", playErr);
+      }
+
       setIsCameraOn(true);
       setCapturedDataUrl(null);
       setFacingMode(mode);
     } catch (err: any) {
       console.error(err);
-      setCamError(err?.message || "Camera access denied/unavailable.");
+
       setIsCameraOn(false);
     }
   };
+
 
   const stopCamera = () => {
     const video = videoRef.current;
@@ -869,8 +1019,6 @@ startxref
     if (video) video.srcObject = null;
     setIsCameraOn(false);
   };
-
-  useEffect(() => () => stopCamera(), []);
 
   // convert data URL -> File
   function dataURLtoFile(dataurl: string, filename: string) {
@@ -910,15 +1058,34 @@ startxref
     onBooking("bookingDetails", newBookingDetails);
   };
 
-
   /** Small UI helpers (kept minimal) **/
-  function RoundIconButton({ title, onClick, children }: { title?: string; onClick?: () => void; children: React.ReactNode }) {
+  function RoundIconButton({
+    title,
+    onClick,
+    children,
+    size = "sm",
+    className = "",
+  }: {
+    title?: string;
+    onClick?: () => void;
+    children: React.ReactNode;
+    size?: "xs" | "sm" | "md";
+    className?: string;
+  }) {
+    const sizes: Record<string, string> = {
+      xs: "h-6 w-6 text-xs",
+      sm: "h-7 w-7 text-sm",
+      md: "h-10 w-10 text-base",
+    };
+    const sizeCls = sizes[size] ?? sizes.sm;
+
     return (
       <button
         type="button"
         title={title}
+        aria-label={title}
         onClick={onClick}
-        className="h-8 w-8 rounded-full bg-white ring-2 ring-sky-300/70 shadow-sm flex items-center justify-center text-sky-700 hover:scale-105 transition-transform"
+        className={`rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 flex items-center justify-center shadow-sm hover:scale-105 transition-transform ${sizeCls} ${className}`}
       >
         {children}
       </button>
@@ -930,958 +1097,1429 @@ startxref
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-800">Check-in</h1>
         <div className="flex gap-2">
-          <button onClick={handleSubmit} disabled={submitting} className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50">
-            {submitting ? "Processing..." : "Create Check-in"}
+          <button onClick={handleSubmit} className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50">
+            Create Check-in
           </button>
-
         </div>
       </div>
 
       {/* QUICK CHECK-IN (green) */}
-      <div className="rounded-lg border bg-green-50 border-green-200">
-        <div className="px-3 py-2 rounded-t-lg bg-green-100 text-sm font-semibold text-green-900">Quick Check-In</div>
-        <div className="p-3">
-          <div className="grid grid-cols-12 gap-3">
-            {/* Left block inputs (each input rendered using your requested div/label/input pattern) */}
-            <div className="col-span-9 grid grid-cols-12 gap-3">
-              {/* Is Reservation */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Is Reservation</label>
-                <div className="w-full p-2 border border-gray-300 rounded flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={!!booking.bookingDetails.isReservation}
-                    onChange={handleReservationToggle}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">
-                    {booking.bookingDetails.isReservation ? "Yes" : "No"}
-                  </span>
-                </div>
-              </div>
 
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Reservation Number</label>
-                <input
-                  type="text"
-                  name="reservationNo"
-                  value={booking.bookingDetails.reservationNo || ""}
-                  onChange={(e) =>
-                    onBooking("bookingDetails", {
-                      ...booking.bookingDetails,
-                      reservationNo: e.target.value,
-                    })
-                  }
-                  className={`w-full p-2 border border-gray-300 rounded
-      ${booking.bookingDetails.isReservation
-                      ? "bg-white text-gray-900"
-                      : "bg-gray-100 text-gray-500 cursor-not-allowed"
-                    }`}
-                  disabled={!booking.bookingDetails.isReservation}
-                />
-              </div>
+      <div className="rounded-lg border  bg-green-50 border-green-200">
 
-              {/* Arrival Mode */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Arrival Mode</label>
-                <select
-                  value={booking.bookingDetails.arrivalMode}
-                  onChange={(e) => updateBookingDetails("arrivalMode", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Arrival Mode</option>
-                  <option value="WALKIN">Walk-In/Direct</option>
-                  <option value="OTA">OTA</option>
-                  <option value="TRAVEL_DESK">Travel Desk</option>
-                  <option value="BE">BE</option>
-                  <option value="COMPANY">Company</option>
-                </select>
-              </div>
+        <div className="rounded-lg   bg-green-50 ">
+          <div className="flex items-center bg-green-100 justify-between pb-2">
 
-
-              {/* OTA */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">OTA</label>
-                <input
-                  type="text"
-                  name="otaName"
-                  value={booking.bookingDetails.otaName}
-                  onChange={(e) => updateBookingDetails("otaName", e.target.value)}
-                  className={`w-full p-2 border border-gray-300 rounded 
-      ${booking.bookingDetails.arrivalMode === "OTA"
-                      ? "bg-white text-gray-900"
-                      : "bg-gray-100 text-gray-500 cursor-not-allowed"
-                    }`}
-                  disabled={booking.bookingDetails.arrivalMode !== "OTA"}
-                />
-              </div>
-
-
-              {/* Booking ID */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Booking ID</label>
-                <input type="text" name="bookingId" value={booking.bookingDetails.bookingId} onChange={(e) => updateBookingDetails("bookingId", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-
-              {/* Contact No (country code + number) */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Contact No.<span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-12 gap-2">
-                  <div className="col-span-3">
-                    <input type="text" readOnly value="91" className="w-full p-2 border border-gray-300 rounded" />
-                  </div>
-                  <div className="col-span-9">
-                    <input type="text" name="mobileNo" value={guest.mobileNo} onChange={(e) => onGuest("mobileNo", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+            <div className="px-3 py-2 rounded-t-lg  text-sm font-semibold text-green-900">Quick Check-In</div>
+            <button
+              type="button"
+              onClick={() => setshowCheckin(!showCheckin)}
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-shadow
+                 bg-white border border-slate-200 hover:shadow-sm focus:outline-none"
+              aria-expanded={showCheckin}
+            >
+              <ChevronDownIcon
+                className={`h-4 w-4 transform transition-transform duration-200 ${showCheckin ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+          {showCheckin && (
+            <div className="grid grid-cols-5   p-2">
+              {/* Left block inputs (each input rendered using your requested div/label/input pattern) */}
+              <div className="col-span-9 grid grid-cols-15 gap-3">
+                {/* Is Reservation */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Is Reservation</label>
+                  <div className="w-full p-2   rounded flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={!!booking.bookingDetails.isReservation}
+                      onChange={handleReservationToggle}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      {booking.bookingDetails.isReservation ? "Yes" : "No"}
+                    </span>
                   </div>
                 </div>
-              </div>
 
-              {/* Title */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={guest.title}
-                  onChange={(e) => onGuest("title", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Title</option>
-                  <option value="Mr">Mr</option>
-                  <option value="Dr">Dr</option>
-                  <option value="Ms">Ms</option>
-                  <option value="Captain">Captain</option>
-                  <option value="Miss">Miss</option>
-                  <option value="Master">Master</option>
-                  <option value="Others">Others</option>
-                </select>
-              </div>
-
-
-              {/* First Name */}
-              {/* First Name with old-customer + clear icons */}
-              <div className="col-span-3 relative" ref={/* optional ref if you want click-outside behavior */ null}>
-                <label className="block text-sm font-medium">First Name <span className="text-red-500">*</span></label>
-                <div className="flex items-center gap-2">
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Reservation Number</label>
                   <input
                     type="text"
-                    name="firstName"
-                    value={guest.firstName}
-                    onChange={(e) => onGuest("firstName", e.target.value)}
-                    className="flex-1 w-full p-2 border border-gray-300 rounded"
-                    required
+                    name="reservationNo"
+                    value={booking.bookingDetails.reservationNo || ""}
+                    onChange={(e) =>
+                      onBooking("bookingDetails", {
+                        ...booking.bookingDetails,
+                        reservationNo: e.target.value,
+                      })
+                    }
+                    className={`w-full p-2 border border-gray-300 rounded
+                         ${booking.bookingDetails.isReservation
+                        ? "w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                        : "w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all cursor-not-allowed"
+                      }`}
+                    placeholder="Is Reservation Yes"
+                    disabled={!booking.bookingDetails.isReservation}
                   />
-
-                  {/* Old-customer icon (fetch + open list) */}
-                  <button
-                    type="button"
-                    title="Choose old customer"
-                    onClick={async () => {
-                      // load then toggle open
-                      if (oldCustomersMerged.length === 0) await fetchCustomersAndInfos();
-                      else setOldCustomersListOpen((s) => !s);
-                    }}
-                    className="h-8 w-8 rounded-full bg-white ring-2 ring-sky-300/70 shadow-sm flex items-center justify-center text-sky-700 hover:scale-105 transition-transform"
-                  >
-                    {/* search svg */}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-                    </svg>
-                  </button>
-
-                  {/* Clear / New customer icon */}
-                  <button
-                    type="button"
-                    title="Clear guest"
-                    onClick={() => {
-                      setGuest(initialGuest);
-                      setRooms(initialRooms);
-                      onBooking("bookingDetails", initialBooking.bookingDetails);
-                      onBooking("hotelDetails", initialBooking.hotelDetails);
-                    }}
-                    className="h-8 w-8 rounded-full bg-white ring-2 ring-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:scale-105 transition-transform"
-                  >
-                    {/* clear svg */}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-                      <path strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
                 </div>
 
-                {/* Dropdown list (simple) */}
-                {oldCustomersListOpen && (
-                  <div className="absolute z-50 mt-2 w-full max-h-64 overflow-auto bg-white border border-gray-200 rounded shadow p-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <strong>Previous customers</strong>
-                      {oldCustomersLoading ? <span className="text-xs text-slate-500">Loading…</span> : null}
+                {/* Arrival Mode */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Arrival Mode</label>
+                  <select
+                    value={booking.bookingDetails.arrivalMode}
+                    onChange={(e) => updateBookingDetails("arrivalMode", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  >
+                    <option value="">Select Arrival Mode</option>
+                    <option value="WALKIN">Walk-In/Direct</option>
+                    <option value="OTA">OTA</option>
+                    <option value="TRAVEL_DESK">Travel Desk</option>
+                    <option value="BE">BE</option>
+                    <option value="COMPANY">Company</option>
+                  </select>
+                </div>
+
+
+                {/* OTA */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">OTA</label>
+                  <input
+                    type="text"
+                    name="otaName"
+                    value={booking.bookingDetails.otaName}
+                    onChange={(e) => updateBookingDetails("otaName", e.target.value)}
+                    className={`w-full p-2 border border-gray-300 rounded 
+                         ${booking.bookingDetails.arrivalMode === "OTA"
+                        ? "w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                        : "w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all cursor-not-allowed"
+                      }`}
+                    disabled={booking.bookingDetails.arrivalMode !== "OTA"}
+                    placeholder="OTA Selet Type "
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Contact No.<span className="text-red-500">*</span></label>
+                  <input type="text" name="bookingId" value={guest.mobileNo} onChange={(e) => onGuest("mobileNo", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Enter Mobile Number" />
+                </div>
+                {/* Booking ID */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Booking ID</label>
+                  <input type="text" name="bookingId" value={booking.bookingDetails.bookingId} onChange={(e) => updateBookingDetails("bookingId", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Booking Number" />
+                </div>
+                {/* Right side actions (camera + scan files) — unchanged visuals */}
+                {/* camera + idproof row: responsive + tiny-screen friendly */}
+
+                <div className="col-span-3 col-start-13 row-start-1 row-end-3">
+                  <div className="grid grid-cols-2 gap-3 items-start">
+                    {/* ----- LEFT: Camera preview ----- */}
+                    <div className="sm:col-span-1 flex flex-col items-center gap-2">
+                      <div className="text-sm mb-3 font-medium text-slate-600 self-start">
+                        Take Photo <span className="text-rose-600">*</span>
+                      </div>
+
+                      {/* preview container (grouped so icons can appear above) */}
+                      <div className="relative group">
+                        {/* lift icons visually above the preview by translating up */}
+                        <div className="absolute -top-5 right-0 z-40 flex w-full justify-between px-2">
+                          {/* small camera icon (switch) */}
+                          <RoundIconButton
+                            title="Switch camera"
+                            onClick={switchCamera}
+                            size="xs"
+                            className="shadow-md"
+                          >
+                            <Video className="h-4 w-4 text-gray-600" />
+                          </RoundIconButton>
+
+                          {/* upload image icon */}
+                          <RoundIconButton
+                            title="Upload photo"
+                            onClick={() => imageInputRef.current?.click()}
+                            size="xs"
+                            className="shadow-md"
+                          >
+                            <Upload className="h-4 w-4 text-gray-600" />
+                          </RoundIconButton>
+                        </div>
+
+
+                        <div className="relative h-15 w-full max-w-[100px] sm:h-20 sm:max-w-[80px] rounded-md border border-slate-300 bg-slate-100 overflow-hidden flex items-center justify-center">
+                          {capturedDataUrl ? (
+                            <img src={capturedDataUrl} alt="Captured" className="h-full w-full object-cover" />
+                          ) : (
+                            <>
+                              <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
+                              {!isCameraOn && (
+                                <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-[11px] px-1 text-center">
+                                  <User className="h-12 w-12 text-slate-400" />
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* camera small controls (below preview) */}
+                      <div className="flex gap-2 mt-1">
+                        {!isCameraOn ? (
+                          <button
+                            type="button"
+                            onClick={() => startCamera()}
+                            className="rounded bg-sky-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-sky-700"
+                          >
+                            Start
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={stopCamera}
+                            className="rounded bg-slate-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-slate-700"
+                          >
+                            Stop
+                          </button>
+                        )}
+
+                        {isCameraOn && !capturedDataUrl && (
+                          <button
+                            type="button"
+                            onClick={capturePhoto}
+                            className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {isCapturing ? "Taking..." : "Take"}
+                          </button>
+                        )}
+
+                        {capturedDataUrl && (
+                          <button
+                            type="button"
+                            onClick={retake}
+                            className="rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-amber-700"
+                          >
+                            Retake
+                          </button>
+                        )}
+                      </div>
+
+
+                      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e as any, "image")} />
+
+
+                      {/* ----- MIDDLE (optional helper column) ----- */}
+                      <div className="sm:col-span-1 flex flex-col items-center justify-center gap-2">
+                        {/* small label or keep empty — icons live above previews now */}
+                        {/* on xs show compact duplicates (useful if top icons are off-screen) */}
+                        <div className="flex sm:hidden gap-2">
+                          <button
+                            type="button"
+                            onClick={switchCamera}
+                            aria-label="Switch camera"
+                            className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"
+                          >
+                            <Video className="h-4 w-4 text-gray-600" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => imageInputRef.current?.click()}
+                            aria-label="Upload photo"
+                            className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"
+                          >
+                            <Upload className="h-4 w-4 text-gray-600" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={onUploadClick}
+                            aria-label="Upload document"
+                            className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"
+                          >
+                            <FileText className="h-4 w-4 text-gray-600" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
-                    {oldCustomersMerged.length === 0 && !oldCustomersLoading && <div className="text-xs text-slate-500">No customers found.</div>}
+                    {/* ----- RIGHT: scanned-file preview ----- */}
+                    <div className="sm:col-span-1 flex flex-col items-center gap-2">
+                      <div className="w-full mb-3 text-sm font-medium text-slate-600 self-start">
+                        Scan Files <span className="text-rose-600">*</span>
+                        <PrinterIcon className="h-4 w-4  inline text-gray-600" />
+                        <HiOutlineDocumentArrowUp className="h-5 w-5 inline text-gray-600" />
+                      </div>
 
-                    <ul>
-                      {oldCustomersMerged.map((m: any, i: number) => {
-                        const c = m.customer;
-                        const info = m.info;
-                        return (
-                          <li
-                            key={c?.id ?? c?._id ?? i}
-                            className="p-2 rounded hover:bg-slate-50 flex flex-col gap-1 cursor-pointer"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="font-medium">{c?.firstName} {c?.lastName}</div>
-                                <div className="text-xs text-slate-500">{c?.mobileNo ?? c?.email}</div>
+                      <div className="relative group">
+                        {/* single small icon above preview */}
+                        <div className="absolute -top-5 right-0 z-40 pointer-coarse">
+                          <RoundIconButton title="Upload document" onClick={onUploadClick} size="xs" className="shadow-md">
+                            <Upload className="h-4 w-4 text-gray-600" />
+                          </RoundIconButton>
+                        </div>
 
-                              </div>
-                              <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-center h-15 w-full max-w-[160px] sm:h-20 sm:max-w-[200px] rounded-md border border-dashed border-slate-300 bg-slate-50 overflow-hidden">
+                          {scannedFilePreview ? (
+                            <img src={scannedFilePreview} alt="Scanned preview" className="h-full w-full object-contain bg-white p-2" />
+                          ) : (
+                            <div className="text-center text-xs text-slate-400 flex flex-col items-center px-2">
+                              <FileText className="h-8 w-8 mb-1 text-slate-400" />
+                              {scannedFileName ? <div className="text-xs text-slate-600 truncate w-28">{scannedFileName}</div> : <div>Document</div>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <input ref={fileInputRef} type="file" className="hidden" onChange={onFileChange} />
+                    </div>
+                  </div>
+
+                  {/* file error (full width below the columns) */}
+                  {fileError && <div className="mt-2 text-xs text-rose-600">{fileError}</div>}
+                </div>
+                {/* Title */}
+                <div className="col-span-1">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={guest.title}
+                    onChange={(e) => onGuest("title", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  >
+                    <option value="">Select Title</option>
+                    <option value="Mr">Mr</option>
+                    <option value="Dr">Dr</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Captain">Captain</option>
+                    <option value="Miss">Miss</option>
+                    <option value="Master">Master</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+
+
+                {/* First Name */}
+                {/* First Name with old-customer + clear icons */}
+                <div className="col-span-3 relative" ref={/* optional ref if you want click-outside behavior */ null}>
+                  <label className="text-sm font-semibold text-gray-700">First Name <span className="text-red-500">*</span></label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={guest.firstName}
+                      onChange={(e) => onGuest("firstName", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                      required placeholder="Enter First Name "
+                    />
+
+                    {/* Old-customer icon (fetch + open list) */}
+                    <button
+                      type="button"
+                      title="Choose old customer"
+                      onClick={async () => {
+                        // load then toggle open
+                        if (oldCustomersMerged.length === 0) await fetchCustomersAndInfos();
+                        else setOldCustomersListOpen((s) => !s);
+                      }}
+                      className="h-4 w-4 rounded-full bg-white ring-2 ring-sky-300/70 shadow-sm flex items-center justify-center text-sky-700 hover:scale-105 transition-transform"
+                    >
+                      {/* search svg */}
+                      <Book className="h-4 w-4 text-gray-600" />
+                    </button>
+
+                    {/* Clear / New customer icon */}
+                    <button
+                      type="button"
+                      title="Clear guest"
+                      onClick={clearGuest}
+                      className="h-4 w-4 rounded-full bg-white ring-2 ring-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:scale-105 transition-transform"
+                    >
+                      <X className="h-4 w-4 text-gray-600" />
+                    </button>
+
+                  </div>
+
+                  {/* Dropdown list (simple) */}
+                  {oldCustomersListOpen && (
+                    <div
+                      ref={popupRef}
+                      className="absolute z-50 mt-2 w-full max-h-64 overflow-auto bg-white border border-gray-200 rounded shadow p-2"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <strong>Previous customers</strong>
+                        {oldCustomersLoading ? <span className="text-xs text-slate-500">Loading…</span> : null}
+                      </div>
+
+                      {oldCustomersMerged.length === 0 && !oldCustomersLoading && (
+                        <div className="text-xs text-slate-500">No customers found.</div>
+                      )}
+                      <ul>
+                        {Array.from(
+                          new Map(
+                            oldCustomersMerged.map((m: any) => [
+                              // use mobileNo as key, fallback to email
+                              m.customer?.mobileNo || m.customer?.email || m.customer?.id,
+                              m,
+                            ])
+                          ).values()
+                        ).map((m: any, i: number) => {
+                          const c = m.customer;
+
+                          return (
+                            <li
+                              key={c?.id ?? c?._id ?? i}
+                              className="p-2 rounded hover:bg-slate-100 flex flex-col gap-1 cursor-pointer"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium">
+                                    {c?.firstName} {c?.lastName}
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    {c?.mobileNo ?? c?.email}
+                                  </div>
+                                </div>
                                 <button
+                                  title="select"
                                   type="button"
                                   onClick={() => applyOldCustomer(m)}
-                                  className="text-xs rounded bg-sky-600 text-white px-2 py-1"
+                                  className="text-xs rounded bg-sky-600 text-white px-2 py-1 hover:bg-sky-700"
                                 >
                                   Select
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    // quick fill name only
-                                    onGuest("firstName", c?.firstName || "");
-                                    onGuest("lastName", c?.lastName || "");
-                                    setOldCustomersListOpen(false);
-                                  }}
-                                  className="text-xs rounded border px-2 py-1"
-                                >
-                                  Fill name
-                                </button>
                               </div>
-                            </div>
-                            {info && (
-                              <div className="mt-1 text-xs text-slate-500">
-                                Hotel: {info?.hotelDetails?.hotelName ?? "-"} • Reservation: {info?.bookingDetails?.reservationNo ?? "-"}
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                            </li>
 
-                    <div className="pt-2 text-right">
-                      <button type="button" onClick={() => setOldCustomersListOpen(false)} className="text-xs px-2 py-1 rounded hover:bg-gray-100">
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                          );
+                        })}
+                      </ul>
 
-              {/* Last Name */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">lastName <span className="text-red-500">*</span></label>
-                <input type="text" name="lastName" value={guest.lastName} onChange={(e) => onGuest("lastName", e.target.value)} className="w-full p-2 border border-gray-300 rounded" required />
-              </div>
-
-              {/* Gender */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">
-                  Gender <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={guest.gender}
-                  onChange={(e) => onGuest("gender", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-
-
-              {/* ID No */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">ID No. (Aadhaar, Other)<span className="text-red-500">*</span></label>
-                <input type="text" name="idNumber" value={guest.idNumber} onChange={(e) => onGuest("idNumber", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-
-              {/* Email */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Email<span className="text-red-500">*</span></label>
-                <input type="email" name="email" value={guest.email} onChange={(e) => onGuest("email", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-
-              {/* Check-In Mode */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Check-In Mode</label>
-                <select value={booking.bookingDetails.checkInMode || ""} onChange={(e) => updateBookingDetails("checkInMode", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option value="">Select Mode</option>
-                  {checkInModeList.map((m, i) => (
-                    <option key={i} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                {checkInModesLoading && <div className="text-xs text-slate-500 mt-1">Loading modes...</div>}
-              </div>
-
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Booking Instructions</label>
-                <input type="text" value={booking.bookingDetails.bookingInstruction} onChange={(e) => updateBookingDetails("bookingInstruction", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-
-              {/* Foreign Guest */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Foreign Guest<span className="text-red-500">*</span></label>
-                <select value={guest.nationality === "Indian" ? "No" : "Yes"} onChange={(e) => onGuest("nationality", e.target.value === "Yes" ? "Foreign" : "Indian")} className="w-full p-2 border border-gray-300 rounded">
-                  <option>No</option>
-                  <option>Yes</option>
-                </select>
-              </div>
-
-              {/* VIP*/}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">
-                  Is VIP <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={guest.isVIP ? "Yes" : "No"}
-                  onChange={(e) => onGuest("isVIP", e.target.value === "Yes")}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option>No</option>
-                  <option>Yes</option>
-                </select>
-              </div>
-
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Id Type</label>
-                <select value={guest.idType} onChange={(e) => onGuest("idType", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option value="">Select ID Type</option>
-                  <option>Aadhar Card</option>
-                  <option>Pan Card</option>
-                  <option>Election Card</option>
-                  <option>Licence Card</option>
-                </select>
-              </div>
-
-              {/* business Info */}
-              {/* Segment Name */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Segment Name</label>
-                <select
-                  value={booking.businessInfo.segmentName}
-                  onChange={(e) => updateBusiness("segmentName", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Segment</option>
-                  <option value="CORPORATE">CORPORATE</option>
-                  <option value="RETAIL">RETAIL</option>
-                  <option value="OTA">OTA</option>
-                </select>
-              </div>
-
-
-
-              {/* Business Source */}
-
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Business Source</label>
-                <input type="text" value={booking.businessInfo.bussinessSource} onChange={(e) => updateBusiness("bussinessSource", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-              {/* Guest Company */}
-
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Guest Company</label>
-                <input value={booking.businessInfo.customerComapny} onChange={(e) => updateBusiness("customerComapny", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-              {/* Visiting Purpose*/}
-
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Purpose of Visit</label>
-                <select
-                  value={booking.businessInfo.purposeOfVisit}
-                  onChange={(e) => updateBusiness("purposeOfVisit", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Visiting Purpose</option>
-                  <option value="Business">Business</option>
-                  <option value="Leisure">Leisure</option>
-                  <option value="Conference">Conference</option>
-                </select>
-              </div>
-
-
-              {/*visitRemark */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium">Visit Remark</label>
-                <input value={booking.businessInfo.visitRemark} onChange={(e) => updateBusiness("visitRemark", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div>
-
-
-
-            </div>
-
-            {/* Right side actions (camera + scan files) — unchanged visuals */}
-            <div className="col-span-3 flex flex-col items-center gap-6">
-              {/* TAKE PHOTO */}
-              <div className="flex flex-col items-center gap-3 relative w-full">
-                <div className="text-sm font-medium text-slate-600 self-start">Take Photo <span className="text-rose-600">*</span></div>
-
-                <div className="absolute -top-4 right-3 flex gap-2 z-20">
-                  <RoundIconButton title="Toggle camera (front/back)" onClick={switchCamera}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14" />
-                      <rect x="3" y="6" width="12" height="12" rx="2" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </RoundIconButton>
-
-                  <RoundIconButton title="Upload photo file" onClick={() => imageInputRef.current?.click()}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M12 3v12" />
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M8 7l4-4 4 4" />
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M21 21H3" />
-                    </svg>
-                  </RoundIconButton>
-                </div>
-
-                <div className="relative h-40 w-32 rounded-md border border-slate-300 bg-slate-100 overflow-hidden flex items-center justify-center">
-                  {capturedDataUrl ? (
-                    <img src={capturedDataUrl} alt="Captured" className="h-full w-full object-cover" />
-                  ) : (
-                    <>
-                      <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
-                      {!isCameraOn && <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-xs px-2 text-center">{camError ? camError : "Camera is off"}</div>}
-                    </>
-                  )}
-                </div>
-
-                {/* Camera action buttons */}
-                <div className="flex flex-wrap gap-2">
-                  {/* Start / Stop camera toggle */}
-                  {!isCameraOn ? (
-                    <button
-                      type="button"
-                      onClick={() => startCamera()}
-                      className="rounded bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-700"
-                      disabled={isCapturing || submitting}
-                    >
-                      Start
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={stopCamera}
-                      className="rounded bg-slate-600 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700"
-                      disabled={isCapturing || submitting}
-                    >
-                      Stop
-                    </button>
-                  )}
-
-                  {/* Take Image (auto-send) */}
-                  {isCameraOn && !capturedDataUrl && (
-                    <button
-                      type="button"
-                      onClick={capturePhoto}
-                      disabled={isCapturing || submitting}
-                      className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {isCapturing ? "Taking..." : "Take Image"}
-                    </button>
-                  )}
-
-                  {/* Retake */}
-                  {capturedDataUrl && (
-                    <button
-                      type="button"
-                      onClick={retake}
-                      disabled={isCapturing || submitting}
-                      className="rounded bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
-                    >
-                      Retake
-                    </button>
-                  )}
-                </div>
-
-
-
-                <div className="text-[10px] text-slate-500 self-start">Tip: Use HTTPS (or localhost). iOS requires tapping buttons (user gesture).</div>
-                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e as any, "image")} />
-                <input ref={idProofInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFileChange(e as any, "idProof")} />
-              </div>
-
-              {/* SCAN FILES */}
-              <div className="flex flex-col items-center gap-3 relative w-full">
-                <div className="text-sm font-medium text-slate-600 self-start">Scan Files <span className="text-rose-600">*</span></div>
-
-                <div className="absolute -top-4 right-3 flex gap-2 z-20">
-                  <RoundIconButton title="Upload document" onClick={onUploadClick}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M7 10l5-5 5 5" />
-                      <path strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" d="M12 5v14" />
-                    </svg>
-                  </RoundIconButton>
-                </div>
-
-                <div className="flex items-center justify-center h-40 w-32 rounded-md border border-dashed border-slate-300 bg-slate-50 overflow-hidden">
-                  {scannedFilePreview ? (
-                    <img src={scannedFilePreview} alt="Scanned preview" className="h-full w-full object-contain bg-white p-2" />
-                  ) : (
-                    <div className="text-center text-xs text-slate-400 flex flex-col items-center px-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 17v-6h13M5 17h2m4 0h2m4 0h2m-8 4h8a2 2 0 002-2v-8.586a1 1 0 00-.293-.707l-6.414-6.414A1 1 0 0012.586 3H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {scannedFileName ? <div className="text-xs text-slate-600 truncate w-28">{scannedFileName}</div> : <div>Document Placeholder</div>}
                     </div>
                   )}
+
                 </div>
 
-                <input ref={fileInputRef} type="file" className="hidden" onChange={onFileChange} />
-              </div>
+                {/* Last Name */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">lastName <span className="text-red-500">*</span></label>
+                  <input type="text" name="lastName" value={guest.lastName} onChange={(e) => onGuest("lastName", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Enter Last Name " required />
+                </div>
 
-              {/* file error */}
-              {fileError && <div className="text-xs text-rose-600 mt-1">{fileError}</div>}
-            </div>
-
-            <div className="col-span-12">
-              <div className="overflow-auto rounded-md border border-slate-200">
-                <table className="min-w-[2500px] w-full text-sm">
-                  <thead className="bg-slate-100 text-left">
-                    <tr>
-                      {[
-                        "Room No",
-                        "Room Type",
-                        "Bed Type",
-                        "Room Facility",
-                        "Rate Plan",
-                        "Meal Plan",
-                        "Plan Food",
-                        "Tariff",
-                        "New Rent Tariff",
-                        "Apply Tariff",
-                        "Adult",
-                        "Child",
-                        "Seniors",
-                        "No Of Pax",
-                        "Guest Names",
-                        "Contact",
-                        "Email",
-                        "City",
-                        "Address",
-                        "Pincode",
-                        "State",
-                        "Country",
-                        "Special Instructions",
-                        "Status",
-                        "Action",
-                      ].map((h) => (
-                        <th key={h} className="whitespace-nowrap px-1 py-2 font-semibold text-slate-700">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rooms.map((r, idx) => (
-                      <tr key={idx} className="odd:bg-white even:bg-slate-50">
-                        {/* Room No */}
-                        <td className="px-1 py-1">
-                          <select
-                            value={r.roomNo || ""}
-                            onChange={(e) => updateRoom(idx, "roomNo", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Room No</option>
-                            {availableRooms.map((room: any) => (
-                              <option key={room.roomNumber} value={room.roomNumber}>
-                                {room.roomNumber}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-
-                        {/* Room Type */}
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.roomType || ""}
-                            onChange={(e) => updateRoom(idx, "roomType", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Room Type</option>
-                            {Array.from(new Set(availableRooms.map((a: any) => a.roomType))).map((t: any) => (
-                              <option key={t} value={t}>
-                                {t}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-
-                        {/* Bed Type */}
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.bedType || ""}
-                            onChange={(e) => updateRoom(idx, "bedType", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option>Single</option>
-                            <option>Double</option>
-                            <option>Queen</option>
-                            <option>King</option>
-                          </select>
-                        </td>
-
-                        {/* Room Facility */}
-                        <td className="px-2 py-1">
-                          <input
-                            value={(r.roomFacility || []).join(", ")}
-                            onChange={(e) => updateRoom(idx, "roomFacility", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-                            className="w-full p-2 border border-gray-300 rounded"
-                            placeholder="Comma separated"
-                          />
-
-                        </td>
-
-                        {/* Rate Plan */}
-                        <td className="px-2 py-1">
-                          <input value={r.ratePlan} onChange={(e) => updateRoom(idx, "ratePlan", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Meal Plan */}
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.mealPlan || ""}
-                            onChange={(e) => updateRoom(idx, "mealPlan", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Meal Plan</option>
-                            <option value="EP">EP</option>
-                            <option value="CP">CP</option>
-                            <option value="MAP">MAP</option>
-                            <option value="AP">AP</option>
-                          </select>
-                        </td>
+                {/* Gender */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Gender <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={guest.gender}
+                    onChange={(e) => onGuest("gender", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
 
 
-                        {/* Plan Food */}
-                        <td className="px-2 py-1">
-                          <input value={r.planFood} onChange={(e) => updateRoom(idx, "planFood", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
 
-                        {/* Tariff */}
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.tariff || ""}
-                            onChange={(e) => updateRoom(idx, "tariff", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Tariff</option>
-                            <option value="Inclusive">Inclusive</option>
-                            <option value="Exclusive">Exclusive</option>
-                          </select>
-                        </td>
+                {/* ID No */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">ID No.(Aadhaar)<span className="text-red-500">*</span></label>
+                  <input type="text" name="idNumber" value={guest.idNumber} onChange={(e) => onGuest("idNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Aadhaar or Other " />
+                </div>
 
+                {/* Email */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Email<span className="text-red-500">*</span></label>
+                  <input type="email" name="email" value={guest.email} onChange={(e) => onGuest("email", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Enter Email" />
+                </div>
 
-                        {/* New Rent Tariff */}
-                        <td className="px-2 py-1">
-                          <input value={r.newRentTariff || ""} onChange={(e) => updateRoom(idx, "newRentTariff", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Apply Tariff */}
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.applyTariff || ""}
-                            onChange={(e) => updateRoom(idx, "applyTariff", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Apply Tariff</option>
-                            <option value="Rent">Rent</option>
-                            <option value="Complimentary">Complimentary</option>
-                          </select>
-                        </td>
-
-
-                        {/* Number of Guests */}
-                        <td className="px-2 py-1">
-                          <input type="number" value={r.adult} onChange={(e) => updateRoom(idx, "adult", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-                        <td className="px-2 py-1">
-                          <input type="number" value={r.child} onChange={(e) => updateRoom(idx, "child", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-                        <td className="px-2 py-1">
-                          <input type="number" value={r.seniors || 0} onChange={(e) => updateRoom(idx, "seniors", Number(e.target.value))} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-                        <td className="px-2 py-1">
-                          {Number(r.adult || 0) + Number(r.child || 0) + Number(r.seniors || 0) + Number(r.extra || 0)}
-                        </td>
-
-                        {/* Guests */}
-                        <input
-                          value={Array.isArray(r.guestName) ? r.guestName.join(", ") : (r.guestName || "")}
-                          onChange={(e) => updateRoom(idx, "guestName", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-                          className="w-full p-2 border border-gray-300 rounded"
-                          placeholder="Comma separated"
-                        />
-
-
-                        {/* Contact */}
-                        <td className="px-2 py-1">
-                          <input value={r.contact} onChange={(e) => updateRoom(idx, "contact", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Email */}
-                        <td className="px-2 py-1">
-                          <input value={r.emailId || ""} onChange={(e) => updateRoom(idx, "emailId", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* City */}
-                        <td className="px-2 py-1">
-                          <input value={r.city || ""} onChange={(e) => updateRoom(idx, "city", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Address */}
-                        <td className="px-2 py-1">
-                          <input value={r.address || ""} onChange={(e) => updateRoom(idx, "address", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Pincode */}
-                        <td className="px-2 py-1">
-                          <input value={r.pincode || ""} onChange={(e) => updateRoom(idx, "pincode", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* State */}
-                        <td className="px-2 py-1">
-                          <input value={r.state || ""} onChange={(e) => updateRoom(idx, "state", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Country */}
-                        <td className="px-2 py-1">
-                          <input value={r.country || ""} onChange={(e) => updateRoom(idx, "country", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Special Instructions */}
-                        <td className="px-2 py-1">
-                          <input value={r.specialInstructions || ""} onChange={(e) => updateRoom(idx, "specialInstructions", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-2 py-1">
-                          <select
-                            value={r.status || ""}
-                            onChange={(e) => updateRoom(idx, "status", e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                          >
-                            <option value="">Select Status</option>
-                            <option value="CheckedIn">CheckedIn</option>
-                            <option value="Reserved">Reserved</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
-                        </td>
-
-
-                        {/* Remove */}
-                        <td className="px-2 py-1">
-                          <button onClick={() => removeRoom(idx)} className="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700">
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
+                {/* Check-In Mode */}
+                <div className="col-span-3">
+                  <label className="text-sm font-semibold text-gray-700">Check-In Mode</label>
+                  <select value={booking.bookingDetails.checkInMode || ""} onChange={(e) => updateBookingDetails("checkInMode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all">
+                    <option value="">Select Mode</option>
+                    {checkInModeList.map((m, i) => (
+                      <option key={i} value={m}>
+                        {m}
+                      </option>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </select>
+                </div>
 
-              <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
-                <button onClick={addRoom} className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-slate-100">
-                  + Add Room
-                </button>
-                <div className="flex gap-4">
-                  <span>
-                    Total Adults: <b>{totalAdults}</b>
-                  </span>
-                  <span>
-                    Total Children: <b>{totalChildren}</b>
-                  </span>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Instructions</label>
+                  <input type="text" value={booking.bookingDetails.bookingInstruction} onChange={(e) => updateBookingDetails("bookingInstruction", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Booking Instructions" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Reserved By</label>
+                  <input type="text" value={booking.bookingDetails.reservedBy} onChange={(e) => updateBookingDetails("reservedBy", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Booking Reserved By" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Booking Through</label>
+                  <input type="text" value={booking.bookingDetails.bookingThrough} onChange={(e) => updateBookingDetails("bookingThrough", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Booking Through" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Preferred Rooms</label>
+                  <input type="text" value={booking.bookingDetails.preferredRooms} onChange={(e) => updateBookingDetails("preferredRooms", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Preferred Rooms" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Reserved Status</label>
+                  <input type="text" value={booking.bookingDetails.reservedStatus} onChange={(e) => updateBookingDetails("reservedStatus", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Reserved status" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">  Room Status</label>
+                  <input type="text" value={booking.bookingDetails.roomStatus} onChange={(e) => updateBookingDetails("roomStatus", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Room Status " />
+                </div>
+
+                {/* Foreign Guest (checkbox + nationality input) */}
+                <div className="col-span-3">
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">
+                    Foreign Guest
+                  </label>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* checkbox + Yes/No */}
+                    <label className="flex items-center gap-2 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={!!guest.isForeignCustomer}
+                        onChange={(e) => {
+                          const isForeign = e.target.checked;
+                          onGuest("isForeignCustomer", isForeign);
+                          onGuest("nationality", isForeign ? "" : "Indian");
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">
+                        {guest.isForeignCustomer ? "Yes" : "No"}
+                      </span>
+                    </label>
+
+                    {/* nationality input */}
+                    <input
+                      type="text"
+                      value={guest.nationality || ""}
+                      onChange={(e) => onGuest("nationality", e.target.value)}
+                      placeholder="Nationality (e.g. India, USA)"
+                      className="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    />
+                  </div>
+                </div>
+
+
+                {/* VIP*/}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Is VIP <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={guest.isVIP ? "Yes" : "No"}
+                    onChange={(e) => onGuest("isVIP", e.target.value === "Yes")}
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none transition-all shadow-sm"
+                  >
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Id Type</label>
+                  <select value={guest.idType} onChange={(e) => onGuest("idType", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all">
+                    <option value="">Select ID Type</option>
+                    <option>Aadhar Card</option>
+                    <option>Pan Card</option>
+                    <option>Election Card</option>
+                    <option>Licence Card</option>
+                  </select>
+                </div>
+
+                {/* business Info */}
+                {/* Segment Name */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Segment Name</label>
+                  <select
+                    value={booking.businessInfo.segmentName}
+                    onChange={(e) => updateBusiness("segmentName", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  >
+                    <option value="">Select Segment</option>
+                    <option value="CORPORATE">CORPORATE</option>
+                    <option value="RETAIL">RETAIL</option>
+                    <option value="OTA">OTA</option>
+                  </select>
+                </div>
+                {/* Business Source */}
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Business Source</label>
+                  <input type="text" value={booking.businessInfo.bussinessSource} onChange={(e) => updateBusiness("bussinessSource", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Source Name" />
+                </div>
+                {/* Guest Company */}
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Guest Company</label>
+                  <input value={booking.businessInfo.customerComapny} onChange={(e) => updateBusiness("customerComapny", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Company Name" />
+                </div>
+                {/* Visiting Purpose*/}
+
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Purpose of Visit</label>
+                  <select
+                    value={booking.businessInfo.purposeOfVisit}
+                    onChange={(e) => updateBusiness("purposeOfVisit", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  >
+                    <option value="">Select Visiting Purpose</option>
+                    <option value="Business">Business</option>
+                    <option value="Leisure">Leisure</option>
+                    <option value="Conference">Conference</option>
+                  </select>
+                </div>
+
+
+                {/*visitRemark */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Visit Remark</label>
+                  <input value={booking.businessInfo.visitRemark} onChange={(e) => updateBusiness("visitRemark", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Here place" />
+                </div>
+                {/* Special Requests */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Special Requests</label>
+                  <input
+                    value={booking.guestInfo?.specialRequests || ""}
+                    onChange={(e) => updateGuestInfo("specialRequests", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Any special requests"
+                  />
+                </div>
+
+                {/* Complimentary */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Complimentary</label>
+                  <input
+                    value={booking.guestInfo?.complimentary || ""}
+                    onChange={(e) => updateGuestInfo("complimentary", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Complimentary items / notes"
+                  />
+                </div>
+
+                {/* Vehicle Details */}
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold text-gray-700">Vehicle Details</label>
+                  <input
+                    value={booking.guestInfo?.vechileDetails || ""}
+                    onChange={(e) => updateGuestInfo("vechileDetails", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Vehicle no"
+                  />
+                </div>
+
+              </div>
+              <div className="col-span-12 mt-2">
+                {/* Rooms table (corrected) */}
+                <div className="overflow-auto rounded-md border border-slate-200">
+                  <table className="min-w-[2500px] w-full text-sm">
+                    <thead className="bg-slate-100 text-left  text-sm font-semibold text-gray-700">
+                      <tr>
+                        {[
+                          "Room No",
+                          "Room Type",
+                          "Bed Type",
+                          "Room Facility",
+                          "Rate Plan",
+                          "Meal Plan",
+                          "Plan Food",
+                          "Tariff",
+                          "New Rent Tariff",
+                          "Apply Tariff",
+                          "Adult",
+                          "Child",
+                          "Seniors",
+                          "No Of Pax",
+                          "Guest Names",
+                          "Contact",
+                          "Email",
+                          "City",
+                          "Address",
+                          "Pincode",
+                          "State",
+                          "Country",
+                          "Special Instructions",
+                          "Status",
+                          "Action",
+                        ].map((h) => (
+                          <th key={h} className="whitespace-nowrap px-1 py-2 font-semibold text-slate-700">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {rooms.map((r, idx) => (
+                        <tr key={r.id ?? idx} className="odd:bg-white even:bg-slate-50">
+                          {/* Room No */}
+                          <td className="px-1 py-1">
+                            <select
+                              value={r.roomNo || ""}
+                              onChange={(e) => {
+                                const roomNumber = e.target.value;
+                                updateRoom(idx, "roomNo", roomNumber);
+
+                                const roomObj = availableRooms.find(
+                                  (room: any) => String(room.roomNumber) === String(roomNumber)
+                                );
+                                if (roomObj) {
+                                  updateRoom(idx, "roomType", roomObj.roomType);
+                                  updateRoom(idx, "bedType", roomObj.bedType);
+                                }
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                            >
+                              <option value="">Select Room No</option>
+
+                              {availableRooms
+                                .filter((room: any) => (r.roomType ? room.roomType === r.roomType : true))
+                                .map((room: any) => {
+                                  const roomNumStr = String(room.roomNumber);
+                                  const takenByOther = selectedRoomNumbers.has(roomNumStr) && String(r.roomNo) !== roomNumStr;
+                                  return (
+                                    <option key={room.roomNumber} value={room.roomNumber} disabled={takenByOther}>
+                                      {room.roomNumber}
+                                      {takenByOther ? " — selected" : ""}
+                                    </option>
+                                  );
+                                })}
+                            </select>
+                          </td>
+
+                          {/* Room Type */}
+                          <td className="px-2 py-1">
+                            <select
+                              value={r.roomType || ""}
+                              onChange={(e) => {
+                                const newType = e.target.value;
+                                updateRoom(idx, "roomType", newType);
+
+                                if (r.roomNo) {
+                                  const stillValid = availableRooms.some(
+                                    (room: any) => String(room.roomNumber) === String(r.roomNo) && room.roomType === newType
+                                  );
+                                  if (!stillValid) updateRoom(idx, "roomNo", "");
+                                }
+
+                                const bedForType = availableRooms.find((room: any) => room.roomType === newType)?.bedType;
+                                if (bedForType) updateRoom(idx, "bedType", bedForType);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                            >
+                              <option value="">Select Room Type</option>
+                              {Array.from(new Set(availableRooms.map((a: any) => a.roomType))).map((t: any) => (
+                                <option key={t} value={t}>
+                                  {t}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* Bed Type */}
+                          <td className="px-2 py-1">
+                            {(() => {
+                              const bedOptions = Array.from(
+                                new Set(
+                                  availableRooms
+                                    .filter((room: any) => (r.roomType ? room.roomType === r.roomType : true))
+                                    .map((room: any) => room.bedType || "")
+                                    .filter(Boolean)
+                                )
+                              );
+
+                              return (
+                                <select
+                                  value={r.bedType || ""}
+                                  onChange={(e) => updateRoom(idx, "bedType", e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                                >
+                                  <option value="">Select Bed Type</option>
+                                  {bedOptions.map((b: any) => (
+                                    <option key={b} value={b}>
+                                      {b}
+                                    </option>
+                                  ))}
+                                </select>
+                              );
+                            })()}
+                          </td>
+
+
+                          {/* Room Facility */}
+                          <td className="px-2 py-1">
+                            <input
+                              value={(r.roomFacility || []).join(", ")}
+                              onChange={(e) =>
+                                updateRoom(idx, "roomFacility", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Comma separated"
+                            />
+                          </td>
+
+                          {/* Rate Plan */}
+                          <td className="px-2 py-1">
+                            <input value={r.ratePlan} onChange={(e) => updateRoom(idx, "ratePlan", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Rate Plan" />
+                          </td>
+
+                          {/* Meal Plan */}
+                          <td className="px-2 py-1">
+                            <select value={r.mealPlan || ""} onChange={(e) => updateRoom(idx, "mealPlan", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all">
+                              <option value="">Select Meal Plan</option>
+                              <option value="EP">EP</option>
+                              <option value="CP">CP</option>
+                              <option value="MAP">MAP</option>
+                              <option value="AP">AP</option>
+                            </select>
+                          </td>
+
+                          {/* Plan Food */}
+                          <td className="px-2 py-1">
+                            <input value={r.planFood} onChange={(e) => updateRoom(idx, "planFood", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Plan Food" />
+                          </td>
+
+                          {/* Tariff */}
+                          <td className="px-2 py-1">
+                            <select value={r.tariff || ""} onChange={(e) => updateRoom(idx, "tariff", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all">
+                              <option value="">Select Tariff</option>
+                              <option value="Inclusive">Inclusive</option>
+                              <option value="Exclusive">Exclusive</option>
+                            </select>
+                          </td>
+
+                          {/* New Rent Tariff */}
+                          <td className="px-2 py-1">
+                            <input value={r.newRentTariff || ""} onChange={(e) => updateRoom(idx, "newRentTariff", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="New Rent Tariff " />
+                          </td>
+
+                          {/* Apply Tariff */}
+                          <td className="px-2 py-1">
+                            <select value={r.applyTariff || ""} onChange={(e) => updateRoom(idx, "applyTariff", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all">
+                              <option value="">Select Apply Tariff</option>
+                              <option value="Rent">Rent</option>
+                              <option value="Complimentary">Complimentary</option>
+                            </select>
+                          </td>
+
+                          {/* Adult */}
+                          <td className="px-2 py-1">
+                            <input type="number" value={r.adult} onChange={(e) => updateRoom(idx, "adult", Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              min={0}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = target.value.replace(/^0+(?=\d)/, '');
+                              }} />
+                          </td>
+
+                          {/* Child */}
+                          <td className="px-2 py-1">
+                            <input type="number" value={r.child} onChange={(e) => updateRoom(idx, "child", Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              min={0}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = target.value.replace(/^0+(?=\d)/, '');
+                              }} />
+                          </td>
+
+                          {/* Seniors */}
+                          <td className="px-2 py-1">
+                            <input type="number" value={r.seniors || 0} onChange={(e) => updateRoom(idx, "seniors", Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              min={0}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = target.value.replace(/^0+(?=\d)/, '');
+                              }} />
+                          </td>
+
+                          {/* No Of Pax */}
+                          <td className="px-2 py-1">
+                            {Number(r.adult || 0) + Number(r.child || 0) + Number(r.seniors || 0) + Number(r.extra || 0)}
+                          </td>
+
+                          {/* Guest Names */}
+                          <td className="px-2 py-1">
+                            <input
+                              value={Array.isArray(r.guestName) ? r.guestName.join(", ") : (r.guestName || "")}
+                              onChange={(e) =>
+                                updateRoom(idx, "guestName", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Comma separated"
+                            />
+                          </td>
+
+                          {/* Contact */}
+                          <td className="px-2 py-1">
+                            <input value={r.contact} onChange={(e) => updateRoom(idx, "contact", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Mobile Number" />
+                          </td>
+
+                          {/* Email */}
+                          <td className="px-2 py-1">
+                            <input value={r.emailId || ""} onChange={(e) => updateRoom(idx, "emailId", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Email Address " />
+                          </td>
+
+                          {/* City */}
+                          <td className="px-2 py-1">
+                            <input value={r.city || ""} onChange={(e) => updateRoom(idx, "city", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="City Name" />
+                          </td>
+
+                          {/* Address */}
+                          <td className="px-2 py-1">
+                            <input value={r.address || ""} onChange={(e) => updateRoom(idx, "address", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Address " />
+                          </td>
+
+                          {/* Pincode */}
+                          <td className="px-2 py-1">
+                            <input value={r.pincode || ""} onChange={(e) => updateRoom(idx, "pincode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Enter The Pincode" />
+                          </td>
+
+                          {/* State */}
+                          <td className="px-2 py-1">
+                            <input value={r.state || ""} onChange={(e) => updateRoom(idx, "state", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Enter The State Name" />
+                          </td>
+
+                          {/* Country */}
+                          <td className="px-2 py-1">
+                            <input value={r.country || ""} onChange={(e) => updateRoom(idx, "country", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Enter The Country Name" />
+                          </td>
+
+                          {/* Special Instructions */}
+                          <td className="px-2 py-1">
+                            <input value={r.specialInstructions || ""} onChange={(e) => updateRoom(idx, "specialInstructions", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                              placeholder="Enter The Special Instructions " />
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-2 py-1">
+                            <select value={r.status || ""} onChange={(e) => updateRoom(idx, "status", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                            >
+                              <option value="">Select Status</option>
+                              <option value="CheckedIn">CheckedIn</option>
+                              <option value="Reserved">Reserved</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </td>
+
+                          {/* Remove */}
+                          <td className="px-2 py-1">
+                            <button onClick={() => removeRoom(idx)} className="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700">
+                              <DeleteIcon className="h-4 w-4 text-gray-600" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                </div>
+
+
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
+                  <button onClick={addRoom} className="rounded-md border border-green-700 bg-green-300 text-green-800 px-2 py-1 text-xs font-medium hover:bg-green-400">
+                    <IoAdd className="h-4 w-4 text-gray-600" />
+                  </button>
+                  <div className="flex gap-4">
+                    <span>
+                      Total Adults: <b>{totalAdults}</b>
+                    </span>
+                    <span>
+                      Total Children: <b>{totalChildren}</b>
+                    </span>
+                    <span>
+                      Total : <b>{totalAdults + totalChildren + totalSeniors}</b>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-          </div>
+            </div>)}
         </div>
+
       </div>
 
-      {/* Check-in Details (kept compact) */}
-      <div className="mt-4 grid grid-cols-12 gap-3">
-        <div className="col-span-12">
-          <div className="rounded-lg border bg-white border-slate-200">
-            <div className="px-3 py-2 rounded-t-lg bg-slate-100 text-sm font-semibold text-slate-900">Check-in Details</div>
-            <div className="p-3">
+      <div className="col-span-12 rounded-lg border border-slate-200 p-1 bg-white shadow-sm">
+
+        <div className="rounded-lg border bg-white border-slate-200">
+          <div className="flex items-center bg-blue-200 justify-between pb-2">
+
+            <div className="px-3 py-2 rounded-t-lg   text-sm font-semibold text-slate-900">Check in Details</div>
+            <button
+              type="button"
+              onClick={() => setCheckinDetails(!showCheckinDetails)}
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-shadow
+                 bg-white border border-slate-200 hover:shadow-sm focus:outline-none"
+              aria-expanded={showCheckinDetails}
+            >
+              <ChevronDownIcon
+                className={`h-4 w-4 transform transition-transform duration-200 ${showCheckinDetails ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+
+          {showCheckinDetails && (
+            <div className="grid grid-cols-12 gap-3 p-3">
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Check-in Type</label>
+                <select
+                  value={booking.bookingDetails.checkInType || ""}
+                  onChange={(e) => updateBookingDetails("checkInType", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                >
+                  <option value="">Select Check-in Type</option>
+                  <option value="24 Hours CheckIn">24 Hours CheckIn</option>
+                  <option value="Fixed 12PM">Fixed 12PM</option>
+                </select>
+              </div>
+
+              {/* Arrival Date */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium"> Arrival Date</label>
+                <input
+                  type="datetime-local"
+                  value={toDatetimeLocalInputValue(booking.checkin.arrivalDate)}
+                  onChange={(e) => updateCheckin("arrivalDate", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                />
+              </div>
+
+              { }
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Check-in Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={toDatetimeLocalInputValue(booking.checkin.checkinDate)}
+                  onChange={(e) => updateCheckin("checkinDate", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                />
+              </div>
+
+              {/* Check-out */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Check-out  Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={toDatetimeLocalInputValue(booking.checkin.checkoutDate)}
+                  onChange={(e) => updateCheckin("checkoutDate", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                />
+              </div>
+
+              {/* Depature */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Depature Date</label>
+                <input
+                  type="datetime-local"
+                  value={toDatetimeLocalInputValue(booking.checkin.depatureDate)}
+                  onChange={(e) => updateCheckin("depatureDate", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium">No.of Days</label>
+                <input type="number" value={booking.bookingDetails.noOfDays} onChange={(e) => updateBookingDetails("noOfDays", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  min={0}
+                  onInput={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.value = target.value.replace(/^0+(?=\d)/, '');
+                  }}
+                  placeholder="Enter Number Of Days" />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium">Check-out Grace Time</label>
+                <input value={booking.bookingDetails.graceTime} onChange={(e) => updateBookingDetails("graceTime", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Grace Time" />
+              </div>
+
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">Check-in User</label>
+                <input value={booking.bookingDetails.checkInUser} onChange={(e) => updateBookingDetails("checkInUser", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Check In User Name" />
+              </div>
+
+              <div className="col-span-2 flex items-end gap-4">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={booking.bookingDetails.enableRoomSharing} onChange={(e) => updateBookingDetails("enableRoomSharing", e.target.checked)} />
+                  <span className="text-sm">Enable Room Sharing</span>
+                </label>
+              </div>
+            </div>
+
+          )}
+        </div>
+
+      </div>
+
+      <div className="col-span-12 rounded-lg border border-slate-200 p-1 bg-white shadow-sm">
+        <div className="rounded-lg border bg-white border-slate-200">
+          <div className="flex items-center bg-blue-200 justify-between pb-2">
+            <div className="px-3 py-2 rounded-t-lg   text-sm font-semibold text-slate-900">Payment Details</div>
+            <button
+              type="button"
+              onClick={() => setShowPayment(!showPayment)}
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-shadow
+                 bg-white border border-slate-200 hover:shadow-sm focus:outline-none"
+              aria-expanded={showPayment}
+            >
+              <ChevronDownIcon
+                className={`h-4 w-4 transform transition-transform duration-200 ${showPayment ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+
+          {showPayment && (
+            <div className="mt-3 p-4">
               <div className="grid grid-cols-12 gap-3">
+
+                {/* Payment type & by */}
                 <div className="col-span-3">
-                  <label className="block text-sm font-medium">Check-in Type</label>
+                  <label className="block text-sm font-medium mb-1">Payment Type</label>
                   <select
-                    value={booking.bookingDetails.checkInType || ""}
-                    onChange={(e) => updateBookingDetails("checkInType", e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded"
+                    value={booking.paymentDetails?.paymentType || ""}
+                    onChange={(e) => updatePayment("paymentType", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
                   >
-                    <option value="">Select Check-in Type</option>
-                    <option value="24 Hours CheckIn">24 Hours CheckIn</option>
-                    <option value="Fixed 12PM">Fixed 12PM</option>
+                    <option value="">Select Payment Type</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Credit">Credit</option>
                   </select>
                 </div>
 
                 <div className="col-span-3">
-                  <label className="block text-sm font-medium">Check-in Date & Time</label>
-                  <input type="datetime-local" value={booking.checkin.checkinDate} onChange={(e) => updateCheckin("checkinDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                  <label className="block text-sm font-medium mb-1">Payment By</label>
+                  <input
+                    value={booking.paymentDetails?.paymentBy || ""}
+                    onChange={(e) => updatePayment("paymentBy", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Guest / Agent / Company"
+                  />
                 </div>
-                <div className="col-span-3">
-                  <label className="block text-sm font-medium">Check-out  Date & Time</label>
-                  <input type="datetime-local" value={booking.checkin.checkoutDate} onChange={(e) => updateCheckin("checkoutDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+
+                {/* toggles */}
+                <div className="col-span-6 grid grid-cols-3 gap-6">
+                  {/* Allow Credit */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium mb-1">Allow Credit</label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={booking.paymentDetails?.allowCredit === "Yes"}
+                        onChange={(e) => updatePayment("allowCredit", e.target.checked ? "Yes" : "No")}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">Yes</span>
+                    </label>
+                  </div>
+
+                  {/* Allow Charges Posting */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium mb-1">Allow Charges Posting</label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={booking.paymentDetails?.allowChargesPosting === "Yes"}
+                        onChange={(e) => updatePayment("allowChargesPosting", e.target.checked ? "Yes" : "No")}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">Yes</span>
+                    </label>
+                  </div>
+
+                  {/* Enable Paxwise */}
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium mb-1">Enable Paxwise</label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!booking.paymentDetails?.enablePaxwise}
+                        onChange={(e) => updatePayment("enablePaxwise", e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">
+                        {booking.paymentDetails?.enablePaxwise ? "Enabled" : "Disabled"}
+                      </span>
+                    </label>
+                  </div>
                 </div>
-                <div className="col-span-3">
-                  <label className="block text-sm font-medium"> Arrival Date</label>
-                  <input type="datetime-local" value={booking.checkin.arrivalDate} onChange={(e) => updateCheckin("arrivalDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                </div>
-                <div className="col-span-3">
-                  <label className="block text-sm font-medium">Depature Date</label>
-                  <input type="datetime-local" value={booking.checkin.depatureDate} onChange={(e) => updateCheckin("depatureDate", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium">No.of Days</label>
-                  <input type="number" value={booking.bookingDetails.noOfDays} onChange={(e) => updateBookingDetails("noOfDays", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-                </div>
+
+
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium">Check-out Grace Time</label>
-                  <input value={booking.bookingDetails.graceTime} onChange={(e) => updateBookingDetails("graceTime", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                  <label className="block text-sm font-medium mb-1">Paxwise Bill Amount</label>
+                  <div className="relative">
+
+                    <input
+                      type="number"
+                      value={booking.paymentDetails?.paxwiseBillAmount || ""}
+                      onChange={(e) => updatePayment("paxwiseBillAmount", e.target.value)}
+                      min={0}
+                      placeholder="Optional paxwise amount"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                      onInput={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/^0+(?=\d)/, '');
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Money inputs: Paid / Balance / Net Rate */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Paid Amount</label>
+                  <div className="relative">
+
+                    <input
+                      type="number"
+                      value={booking.paymentDetails?.paidAmount ?? 0}
+                      onChange={(e) => updatePayment("paidAmount", Number(e.target.value || 0))}
+                      min={0}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                      onInput={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/^0+(?=\d)/, '');
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div className="col-span-3">
-                  <label className="block text-sm font-medium">Check-in User</label>
-                  <input value={booking.bookingDetails.checkInUser} onChange={(e) => updateBookingDetails("checkInUser", e.target.value)} className="w-full p-2 border border-gray-300 rounded bg-gray-50" />
+                  <label className="block text-sm font-medium mb-1">Balance Amount</label>
+                  <div className="relative">
+
+                    <input
+                      type="number"
+                      value={booking.paymentDetails?.balanceAmount ?? 0}
+                      onChange={(e) => updatePayment("balanceAmount", Number(e.target.value || 0))}
+                      min={0}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                      onInput={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/^0+(?=\d)/, '');
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="col-span-6 flex items-end gap-4">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={booking.paymentDetails.allowChargesPosting === "Yes"} onChange={(e) => updatePayment("allowChargesPosting", e.target.checked ? "Yes" : "No")} />
-                    <span className="text-sm">Allow Charges Posting</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={booking.paymentDetails.enablePaxwise} onChange={(e) => updatePayment("enablePaxwise", e.target.checked)} />
-                    <span className="text-sm">Enable Paxwise</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={booking.bookingDetails.enableRoomSharing} onChange={(e) => updateBookingDetails("enableRoomSharing", e.target.checked)} />
-                    <span className="text-sm">Enable Room Sharing</span>
-                  </label>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Net Rate</label>
+                  <div className="relative">
+
+                    <input
+                      value={booking.paymentDetails?.netRate || ""}
+                      onChange={(e) => updatePayment("netRate", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                      placeholder="Net rate"
+                    />
+                  </div>
+                </div>
+
+                {/* Discounts */}
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium mb-1">Discount Type</label>
+                  <input
+                    value={booking.paymentDetails?.discType || ""}
+                    onChange={(e) => updatePayment("discType", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Flat / % / None"
+                  />
+                </div>
+
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium mb-1">Discount Value</label>
+                  <input
+                    value={booking.paymentDetails?.discValue || ""}
+                    onChange={(e) => updatePayment("discValue", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="e.g. 100 or 10%"
+                  />
+                </div>
+
+
+
+                {/* ----------------gstInfo ---------------- */}
+
+
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium"> GST Number</label>
+                  <input
+                    value={booking.gstInfo?.gstNumber || ""}
+                    onChange={(e) => updateGST("gstNumber", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    onInput={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/^0+(?=\d)/, '');
+                    }}
+                    placeholder="Enter The GST Number"
+                  />
+                </div>
+
+                <div className="col-span-3">
+                  <label className="block text-sm font-medium">GST type</label>
+                  <input
+                    value={booking.gstInfo?.gstType || ""}
+                    onChange={(e) => updateGST("gstType", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                    placeholder="Enter The GST Type"
+                  />
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
 
+
+      {/* ---------------- end payment details ---------------- */}
+
+
       {/* Address Details (simpler inputs) */}
-      <div className="mt-4">
+      <div className="col-span-12 rounded-lg border border-slate-200 p-1 bg-white shadow-sm">
         <div className="rounded-lg border bg-white border-slate-200">
-          <div className="px-3 py-2 rounded-t-lg bg-slate-100 text-sm font-semibold text-slate-900">Address Details</div>
-          <div className="p-3">
-            <div className="grid grid-cols-12 gap-3">
-              {/* <div className="col-span-3">
-                <label className="block text-sm font-medium">GST Number</label>
-                <input value={booking.gstInfo.gstNumber} onChange={(e) => updateGST("gstNumber", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
-              </div> */}
-              {/* <div className="col-span-3">
-                <label className="block text-sm font-medium">GST Type</label>
-                <select value={booking.gstInfo.gstType} onChange={(e) => updateGST("gstType", e.target.value)} className="w-full p-2 border border-gray-300 rounded">
-                  <option>UNREGISTERED</option>
-                  <option>REGISTERED</option>
-                </select>
-              </div> */}
-              <div className="col-span-6">
+
+          <div className="flex items-center bg-blue-200 justify-between pb-2">
+
+            <div className=" rounded-t-lg  p-3  text-sm font-semibold text-slate-900">Address Details</div>
+            <button
+              type="button"
+              onClick={() => setAddressDetails(!showAddressDetails)}
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-shadow
+                 bg-white border border-slate-200 hover:shadow-sm focus:outline-none"
+              aria-expanded={showAddressDetails}
+            >
+              <ChevronDownIcon
+                className={`h-4 w-4 transform transition-transform duration-200 ${showAddressDetails ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+
+            </button>
+          </div>
+
+          {showAddressDetails && (
+            <div className="grid grid-cols-12 gap-3 p-3">
+
+              <div className="col-span-4">
                 <label className="block text-sm font-medium">Address<span className="text-red-500">*</span></label>
-                <input value={guest.address} onChange={(e) => onGuest("address", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                <input value={guest.address} onChange={(e) => onGuest("address", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Full Address " />
               </div>
 
               <div className="col-span-3">
                 <label className="block text-sm font-medium">City</label>
-                <input value={booking.addressInfo.city} onChange={(e) => updateAddress("city", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                <input value={booking.addressInfo.city} onChange={(e) => updateAddress("city", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="City Name" />
               </div>
 
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium">Pin Code</label>
-                <input value={booking.addressInfo.pinCode} onChange={(e) => updateAddress("pinCode", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                <input value={booking.addressInfo.pinCode} onChange={(e) => updateAddress("pinCode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Pin Code Number" />
               </div>
               <div className="col-span-3">
                 <label className="block text-sm font-medium">State</label>
-                <input value={booking.addressInfo.state} onChange={(e) => updateAddress("state", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                <input value={booking.addressInfo.state} onChange={(e) => updateAddress("state", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Enter The State Name" />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-3">
                 <label className="block text-sm font-medium">Country</label>
-                <input value={booking.addressInfo.country} onChange={(e) => updateAddress("country", e.target.value)} className="w-full p-2 border border-gray-300 rounded" />
+                <input value={booking.addressInfo.country} onChange={(e) => updateAddress("country", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Enter The Country Name" />
               </div>
 
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium">Date of Birth</label>
-                <input type="date" value={booking.personalInfo.dob} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, dob: e.target.value })} className="w-full p-2 border border-gray-300 rounded" />
+                <input type="date" value={booking.personalInfo.dob} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, dob: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all" />
               </div>
 
-              <div className="col-span-1">
+              <div className="col-span-2">
                 <label className="block text-sm font-medium">Age</label>
-                <input value={booking.personalInfo.age} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, age: e.target.value })} className="w-full p-2 border border-gray-300 rounded" />
+                <input value={booking.personalInfo.age} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, age: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                  placeholder="Enter the Age " />
+              </div>
+
+              <div className="col-span-3">
+                <label className="block text-sm font-medium">company Anniversary</label>
+                <input type="date" value={booking.personalInfo.companyAnniversary} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, companyAnniversary: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all" />
+              </div>
+
+
+              <div className="col-span-1">
+                <label className="block text-sm font-medium">Print Option</label>
+                <input
+                  type="checkbox"
+                  checked={!!booking.invoiceOptions?.printOption}
+                  onChange={(e) => updateInvoiceOptions("printOption", e.target.checked)}
+                />
               </div>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium">company Anniversary</label>
-                <input type="date" value={booking.personalInfo.companyAnniversary} onChange={(e) => onBooking("personalInfo", { ...booking.personalInfo, companyAnniversary: e.target.value })} className="w-full p-2 border border-gray-300 rounded" />
+                <label className="block text-sm font-medium">Save as PDF</label>
+                <input
+                  type="checkbox"
+                  checked={!!booking.invoiceOptions?.pdfSaveOption}
+                  onChange={(e) => updateInvoiceOptions("pdfSaveOption", e.target.checked)}
+                />
               </div>
-
-
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={!!booking.invoiceOptions.printOption} onChange={(e) => updatinvoiceOptions("printOption", e.target.checked)} />
-                <span className="text-sm">print Option</span>
-              </label>
-
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={!!booking.invoiceOptions.pdfSaveOption} onChange={(e) => updatinvoiceOptions("pdfSaveOption", e.target.checked)} />
-                <span className="text-sm">pdf Save Option</span>
-              </label>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
-      {/* Submitted payload preview */}
-      {submittedPayload && (
-        <div className="mt-4 rounded-md border border-slate-200 bg-white p-3 text-sm">
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-semibold">Last submitted payload</div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="rounded bg-white px-2 py-1 text-xs border"
-                onClick={() => {
-                  setSubmittedPayload(null);
-                }}
-              >
-                Clear preview
-              </button>
-            </div>
-          </div>
-          <pre className="max-h-64 overflow-auto text-xs leading-5 p-2 bg-slate-50 rounded">
-            {JSON.stringify(submittedPayload, null, 2)}
-          </pre>
-        </div>
-      )}
+
 
       {/* Footer actions */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="text-xs text-slate-500">Totals – Adults: {totalAdults}, Children: {totalChildren}</div>
+      <div className="mt-4 flex items-center justify-end">
+
         <div className="flex gap-2">
-          <button onClick={handleSubmit} disabled={submitting} className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50">
-            {submitting ? "Processing..." : "Create Check-in"}
+          <button onClick={handleSubmit} className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50">
+            Create Check-in
           </button>
 
         </div>
@@ -1891,3 +2529,4 @@ startxref
     </div>
   );
 }
+

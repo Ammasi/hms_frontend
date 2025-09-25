@@ -1,3 +1,5 @@
+// 24-09-2025 format data time function add in 12 AM or PM , No. row add in table 
+
 'use client';
 
 import { useAuth } from '@/app/context/AuthContext';
@@ -22,6 +24,17 @@ export default function BookingReportClient() {
   const [loading, setLoading] = useState<boolean>(false);
   const [err, setErr] = useState<string>('');
 
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleString("en-IN", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
   const handleFetch = async () => {
     if (!user?.clientId || !user?.propertyId) {
       setErr("Missing clientId/propertyId from user context.");
@@ -62,7 +75,7 @@ export default function BookingReportClient() {
   if (!user) return <div className="p-6">Loading user…</div>;
 
   return (
-    <div className="bg-amber-50 min-h-full h-full p-6">
+    <div className="min-h-screen bg-slate-50 p-4">
       <h1 className="text-2xl font-semibold mb-4">Booking Report</h1>
 
       <div className="bg-white rounded-xl shadow p-4 mb-4">
@@ -102,10 +115,10 @@ export default function BookingReportClient() {
         <div className="mt-4 flex gap-2">
           <button
             onClick={handleFetch}
-            className="px-4 py-2 rounded-lg bg-black text-white hover:opacity-90"
+            className="px-4 py-2 rounded-lg bg-black  text-white hover:opacity-90"
             disabled={loading}
           >
-            {loading ? 'Fetching…' : 'Execute'}
+           Execute
           </button>
 
           <button
@@ -131,10 +144,11 @@ export default function BookingReportClient() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
+      <div className="bg-white rounded-xl shadow ">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-100 text-gray-700">
             <tr>
+              <th className="px-3 py-2 text-left">No.</th>
               <th className="px-3 py-2 text-left">Customer</th>
               <th className="px-3 py-2 text-left">Room No</th>
               <th className="px-3 py-2 text-left">Room Type</th>
@@ -158,6 +172,8 @@ export default function BookingReportClient() {
             ) : (
               data.map((r, idx) => (
                 <tr key={idx} className="border-t">
+
+                  <td className="px-3 py-2">{idx + 1}</td>
                   <td className="px-3 py-2">{r.customerName}</td>
                   <td className="px-3 py-2">{r.roomNo}</td>
                   <td className="px-3 py-2">{r.roomType}</td>
@@ -165,8 +181,8 @@ export default function BookingReportClient() {
                   <td className="px-3 py-2">{r.paidAmount}</td>
                   <td className="px-3 py-2">{r.totalAmount}</td>
                   <td className="px-3 py-2">{r.paymentMode}</td>
-                  <td className="px-3 py-2">{r.checkInDate}</td>
-                  <td className="px-3 py-2">{r.expectedCheckOutDate || r.expectedCheckOut}</td>
+                  <td className="px-3 py-2">{formatDateTime(r.checkInDate)}</td>
+                  <td className="px-3 py-2">{formatDateTime(r.expectedCheckOut)}</td>
                   <td className="px-3 py-2">{r.mobileNumber}</td>
                   <td className="px-3 py-2">{r.customerEmail}</td>
                 </tr>
@@ -175,12 +191,6 @@ export default function BookingReportClient() {
           </tbody>
         </table>
       </div>
-
-      {data.length > 0 && (
-        <div className="mt-3 text-sm text-gray-600">
-          Showing <b>{data.length}</b> record{data.length > 1 ? 's' : ''}.
-        </div>
-      )}
     </div>
   );
 }

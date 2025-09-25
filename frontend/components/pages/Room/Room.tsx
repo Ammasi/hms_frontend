@@ -237,7 +237,7 @@ export default function RoomDetailsPage() {
               <tr>
                 <th className="px-2 py-2 border-b w-[90px] text-center whitespace-nowrap">Images</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Floor Room</th>
-                <th className="px-2 py-2 border-b text-center whitespace-nowrap">Active Status</th>
+                <th className="px-2 py-2 border-b text-center whitespace-nowrap"> Status</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Room Type</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Default Type</th>
                 <th className="px-2 py-2 border-b text-center whitespace-nowrap">Smoking</th>
@@ -285,24 +285,8 @@ export default function RoomDetailsPage() {
                     {room.floorName} {room.roomNumber}
                   </td>
 
-                  <td className="px-2 py-2 border-b text-center">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${room.isActive
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-600"
-                        }`}
-                    >
-                      {room.isActive ? "Active" : "Inactive"}
-                    </span>
-                    <div className="text-[10px] mt-0.5">
-                      {room.roomStatus === "available" ? (
-                        <span className="text-green-600 font-medium">Available</span>
-                      ) : (
-                        <span className="text-red-600 font-medium">Occupied</span>
-                      )}
-                    </div>
-                  </td>
 
+                  <td className="px-2 py-2 border-b text-center">{room.roomStatus || "-"}</td>
                   <td className="px-2 py-2 border-b text-center">{room.roomType || "-"}</td>
 
                   <td className="px-2 py-2 border-b text-center">{room.isDefaultRoomType ? "Yes" : "No"}</td>

@@ -1,10 +1,19 @@
+// 16-9-2025 If status is "vacant" or "available"  show Check-in button. If status is "occupied" or "reserved"   show Check-out button.
+// 20-9-2025 function useEffect change 
+// 23-9-2025  room number, customer name and customer room number matching item  get in filter show in name amount ,  Search function add If search particular room number show , checkout function
+
 "use client";
 
 import React, { JSX, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://192.168.1.4:8000";
-const DEFAULT_COMMON_ID = "906e4354-1117-4e25-b423-8dd5930b15cb";
+import {
+  fetchPropertyById,
+  fetchRoomsForPropertyApi,
+  CheckOut,
+  getCustomerInfos,
+} from "../../../lib/api";
+import { useRouter } from "next/navigation";
+import { PropertyData } from "../../interface/property";
+import { useAuth } from "@/app/context/AuthContext";
 
 type Room = {
   id?: string;
@@ -19,7 +28,16 @@ type Room = {
   guestName?: string;
   bookingAmount?: string | number;
   meta?: any;
+  bedType?: string;
 };
+
+// typed payload - use string for checkoutDate (ISO)
+interface CheckoutPayload {
+  clientId: string;
+  propertyId: string;
+  checkoutDate: string; // ISO string
+  roomNumber: string;
+}
 
 /* ---------- helpers ---------- */
 function statusPalette(status?: string) {
@@ -27,7 +45,7 @@ function statusPalette(status?: string) {
   if (s.includes("vacant") || s.includes("available"))
     return { bg: "bg-yellow-400", dot: "bg-green-400", label: "Vacant" };
   if (s.includes("occupied") || s.includes("booked") || s.includes("reserved"))
-    return { bg: "bg-red-400", dot: "bg-red-400", label: "Occupied" };
+    return { bg: "bg-red-500", dot: "bg-red-500", label: "Occupied" };
   if (s.includes("dirty")) return { bg: "bg-sky-400", dot: "bg-sky-400", label: "Dirty" };
   if (s.includes("block") || s.includes("blocked"))
     return { bg: "bg-violet-500", dot: "bg-violet-500", label: "Blocked" };
@@ -36,24 +54,20 @@ function statusPalette(status?: string) {
   return { bg: "bg-green-400", dot: "bg-green-400", label: (status || "Vacant").toUpperCase() };
 }
 
-function timeFromISO(iso?: string) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function isSameLocalDay(iso?: string, ref = new Date()) {
-  if (!iso) return false;
-  const d = new Date(iso);
-  return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
-}
-
 /* ---------- RoomCard ---------- */
-function RoomCard({ room }: { room: Room }) {
+function RoomCard({
+  room,
+  customersData,
+  onCheckoutSuccess,
+}: {
+  room: Room;
+  customersData: any[];
+  onCheckoutSuccess?: () => void;
+}) {
   const pal = statusPalette(room.roomStatus);
+  const router = useRouter();
 
-  const guest =
+  const originalGuest =
     room.guestName ||
     room.meta?.guestName ||
     room.meta?.guest?.name ||
@@ -61,13 +75,114 @@ function RoomCard({ room }: { room: Room }) {
     room.meta?.primaryGuest ||
     undefined;
 
-  const amount =
+  const originalAmount =
     room.bookingAmount || room.meta?.bookingAmount || room.roomRentPerDay || room.meta?.amount || undefined;
-  const occupied = Boolean(guest || (room.roomStatus || "").toLowerCase().includes("occupied"));
+
+  const matchKey = String(room.roomNumber ?? "").trim().toLowerCase();
+
+  const matched = useMemo(() => {
+    if (!Array.isArray(customersData) || customersData.length === 0) return undefined;
+    return customersData.find((c: any) =>
+      Array.isArray(c?.stayDetails) &&
+      c.stayDetails.some((sd: any) => String(sd?.roomNo ?? "").trim().toLowerCase() === matchKey)
+    );
+  }, [customersData, matchKey]);
+
+  const matchedStay = useMemo(() => {
+    if (!matched) return undefined;
+    return (matched.stayDetails || []).find(
+      (sd: any) => String(sd?.roomNo ?? "").trim().toLowerCase() === matchKey
+    );
+  }, [matched, matchKey]);
+
+  const matchedGuest = useMemo(() => {
+    const normalize = (val: any): string | undefined => {
+      if (!val && val !== 0) return undefined;
+      if (typeof val === "string" && val.trim()) return val.trim();
+      if (Array.isArray(val) && val.length) {
+        const first = val[0];
+        if (typeof first === "string" && first.trim()) return first.trim();
+        if (first?.name) return String(first.name).trim();
+        if (Array.isArray(first) && first.length && typeof first[0] === "string") return first[0].trim();
+      }
+      return undefined;
+    };
+
+    if (matchedStay) {
+      const g0 = normalize(matchedStay.guestName);
+      if (g0) return g0;
+
+      if (Array.isArray(matchedStay.guests) && matchedStay.guests.length) {
+        for (const guestEntry of matchedStay.guests) {
+          if (typeof guestEntry === "string") {
+            const s = guestEntry.trim();
+            if (s) return s;
+          } else if (guestEntry) {
+            if (guestEntry.name && typeof guestEntry.name === "string" && guestEntry.name.trim()) return guestEntry.name.trim();
+            const g1 = normalize(guestEntry.guestName);
+            if (g1) return g1;
+            if (Array.isArray(guestEntry.guestName) && guestEntry.guestName.length) {
+              const first = guestEntry.guestName[0];
+              if (first?.name) return String(first.name).trim();
+              if (typeof first === "string" && first.trim()) return first.trim();
+            }
+          }
+        }
+      }
+    }
+
+    if (matched) {
+      if (matched.personalInfo?.name) return String(matched.personalInfo.name).trim();
+      const fn = matched.personalInfo?.firstName ?? "";
+      const ln = matched.personalInfo?.lastName ?? "";
+      const full = `${fn} ${ln}`.trim();
+      if (full) return full;
+      if (matched.guestInfo?.name) return String(matched.guestInfo.name).trim();
+
+      const alt = normalize(matched.guestInfo?.guestName ?? matched.bookingDetails?.guestName ?? matched.guestName);
+      if (alt) return alt;
+    }
+
+    return originalGuest;
+  }, [matchedStay, matched, originalGuest]);
+
+  const matchedAmount = useMemo(() => {
+    if (matchedStay && typeof matchedStay.paidAmount !== "undefined") return matchedStay.paidAmount;
+    if (matched && matched.paymentDetails && typeof matched.paymentDetails.paidAmount !== "undefined")
+      return matched.paymentDetails.paidAmount;
+    return originalAmount;
+  }, [matchedStay, matched, originalAmount]);
+
+  const occupied = Boolean(
+    matchedGuest ||
+    ((room.roomStatus || "").toLowerCase().includes("occupied") ||
+      (room.roomStatus || "").toLowerCase().includes("reserved"))
+  );
+
+  const matchedCustomerId = useMemo(() => {
+    if (!matched) return undefined;
+    const hd = matched.hotelDetails ?? {};
+    if (hd.customerId) return String(hd.customerId);
+    if (hd.customerID) return String(hd.customerID);
+    if (hd.CustomerId) return String(hd.CustomerId);
+    if (matched.customerId) return String(matched.customerId);
+    if (hd.customerId === 0) return "0";
+    return undefined;
+  }, [matched]);
+
+  const checkoutId = useMemo(() => {
+    if (matched?.bookingDetails?.bookingId) return String(matched.bookingDetails.bookingId);
+    if (matchedStay?.bookingId) return String(matchedStay.bookingId);
+    if (matchedStay?.stayId) return String(matchedStay.stayId);
+    if (matched?.hotelDetails?.customerId) return String(matched.hotelDetails.customerId);
+    if (room.id) return String(room.id);
+    return undefined;
+  }, [matched, matchedStay, room.id]);
 
   const [open, setOpen] = useState(false);
   const popupRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     function handleDocClick(e: MouseEvent) {
@@ -94,6 +209,40 @@ function RoomCard({ room }: { room: Room }) {
     };
   }, [open]);
 
+  async function handleCheckOut(roomNo?: string, id?: string) {
+    try {
+      if (!user) {
+        alert("Not authenticated");
+        return;
+      }
+
+      const clientId = String(user.clientId);
+      const propertyId = String(user.propertyId);
+
+      const rawId = id ?? checkoutId ?? matchedCustomerId;
+      const idToUse = rawId != null ? String(rawId) : undefined;
+      if (!idToUse) {
+        alert("Missing booking/stay/customer id for checkout (URL id)");
+        return;
+      }
+
+      const payload: CheckoutPayload = {
+        clientId,
+        propertyId,
+        checkoutDate: new Date().toISOString(), // send ISO string
+        roomNumber: roomNo ?? "",
+      };
+
+      const res = await CheckOut(idToUse, payload);
+      // if backend returns success flag, you can check res.success here
+      alert("Checkout successful!");
+      onCheckoutSuccess?.();
+    } catch (err: any) {
+      console.error("Checkout failed:", err);
+      alert("Checkout failed");
+    }
+  }
+
   function handleKeyToggle(e: React.KeyboardEvent) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -104,7 +253,7 @@ function RoomCard({ room }: { room: Room }) {
   return (
     <div
       ref={containerRef}
-      className={`h-20 w-50 relative ${pal.bg} flex items-center gap-3 p-2 rounded-lg shadow-sm transition-all duration-150 cursor-pointer`}
+      className={`h-20 w-52 relative ${pal.bg} flex items-center gap-3 p-2 rounded-lg shadow-sm transition-all duration-150 cursor-pointer`}
       tabIndex={0}
       role="button"
       aria-expanded={open}
@@ -112,9 +261,10 @@ function RoomCard({ room }: { room: Room }) {
       onClick={() => setOpen((s) => !s)}
       onKeyDown={handleKeyToggle}
     >
+      {/* avatar / number */}
       <div className="flex-shrink-0 w-14 flex items-center justify-center">
         <div
-          className="relative w-15 h-15 rounded-full flex items-center justify-center"
+          className="relative w-14 h-14 rounded-full flex items-center justify-center"
           style={{
             background:
               "radial-gradient(circle at 30% 25%, #ffffff 0%, #cbd5e1 20%, #94a3b8 60%, #475569 100%)",
@@ -129,24 +279,29 @@ function RoomCard({ room }: { room: Room }) {
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(0,0,0,0.15)",
             }}
           />
-          <span className="relative z-10 text-black font-extrabold text-2xl drop-shadow-sm">{room.roomNumber}</span>
+          <span className="relative z-10 text-black font-extrabold text-xl drop-shadow-sm">{room.roomNumber}</span>
         </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="text-lg font-bold text-slate-900 truncate">{room.roomType}</div>
+      {/* body */}
+      <div className="flex-1 flex flex-col items-end text-right">
+        <div className="text-xl font-bold text-white truncate">
+          {room.roomType}
+        </div>
 
         {occupied ? (
           <>
-            <div className="mt-0.5  px-2 py-0.5 rounded-md text-xl font-medium text-slate-700">
-              <span className="block truncate">{guest ?? "Name"}</span>
+            <div className="px-2 rounded-md text-xl font-medium text-slate-700">
+              <span className="block text-white truncate">{matchedGuest ?? "Name"}</span>
             </div>
-            {amount && <div className="mt-1 text-xl text-slate-800 font-medium truncate">{amount}</div>}
+            {matchedAmount != null && (
+              <div className="text-white font-medium truncate">{matchedAmount}</div>
+            )}
           </>
         ) : (
           <div className="mt-1">
             <span
-              className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full text-white ${pal.bg} bg-opacity-90`}
+              className={`inline-flex items-center text-xl font-semibold px-2 py-0.5 rounded-full text-white ${pal.bg} bg-opacity-90`}
             >
               {room.roomStatus ?? pal.label}
             </span>
@@ -154,10 +309,11 @@ function RoomCard({ room }: { room: Room }) {
         )}
       </div>
 
+      {/* popup */}
       {open && (
         <div
           ref={popupRef}
-          className="absolute  ml-3 top-1/2 -translate-y-1/2 z-50"
+          className="absolute ml-3 top-1/2 -translate-y-1/2 z-50"
           style={{ width: 220 }}
           role="dialog"
           aria-label={`Details for room ${room.roomNumber}`}
@@ -172,16 +328,67 @@ function RoomCard({ room }: { room: Room }) {
               <div className="mb-0.5 text-xs text-slate-700">
                 <span className="font-medium">Status:</span> {room.roomStatus ?? "—"}
               </div>
-              {occupied && guest && (
+
+              {matchedGuest && (
                 <div className="mb-0.5 text-xs text-slate-700">
-                  <span className="font-medium">Guest:</span> {guest}
+                  <span className="font-medium">Guest:</span> {matchedGuest}
                 </div>
               )}
-              {occupied && amount && (
+
+              {matchedAmount != null && (
                 <div className="text-xs text-slate-700">
-                  <span className="font-medium">Amount:</span> {amount}
+                  <span className="font-medium">Amount:</span> {matchedAmount}
                 </div>
               )}
+
+              <div className="mt-3 flex justify-end gap-2">
+                {(room.roomStatus?.toLowerCase().includes("vacant") ||
+                  room.roomStatus?.toLowerCase().includes("available")) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const payload = {
+                          roomNo: room.roomNumber,
+                          roomType: room.roomType,
+                          bedType: (room as any).bedType || "",
+                        };
+                        sessionStorage.setItem("selectedRoom", JSON.stringify(payload));
+                        router.push("/checkin");
+                      }}
+                      className="px-2 py-1 text-xs bg-sky-600 text-white rounded hover:bg-sky-700"
+                    >
+                      Check-in
+                    </button>
+                  )}
+
+                {(room.roomStatus?.toLowerCase().includes("occupied") ||
+                  room.roomStatus?.toLowerCase().includes("reserved")) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const roomNoStr = room.roomNumber != null ? String(room.roomNumber) : undefined;
+                        const customerIdStr = matchedCustomerId != null ? String(matchedCustomerId) : undefined;
+                        handleCheckOut(roomNoStr, customerIdStr);
+                      }}
+                      className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Check-out
+                    </button>
+                  )}
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-100 text-slate-700 rounded hover:bg-gray-200"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -192,80 +399,200 @@ function RoomCard({ room }: { room: Room }) {
 
 /* ---------- Page component (rooms scroll inside left column) ---------- */
 export default function Page(): JSX.Element {
-  const searchParams = useSearchParams();
-  const commonId = searchParams?.get("commonId") ?? DEFAULT_COMMON_ID;
+  const { user } = useAuth();
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [roomsError, setRoomsError] = useState<string | null>(null);
+  const [, setPropertyDetails] = useState<PropertyData | null>(null);
 
-  const [checkouts, setCheckouts] = useState<Array<{ roomNo: string; time: string }>>([]);
-  const [loadingCheckouts, setLoadingCheckouts] = useState(true);
+  // customers data (fetched on timer)
+  const [customersData, setCustomersData] = useState<any[]>([]);
 
+  // --- Search / filter state ---
+  const [query, setQuery] = useState<string>(""); // controlled input
+  const [selectedFloor, setSelectedFloor] = useState<string | null>(null); // null = all floors
+
+  // load customers once and then poll every N ms
   useEffect(() => {
-    let mounted = true;
-    setLoadingRooms(true);
-    setRoomsError(null);
-    (async () => {
+    if (!user || !user.propertyId) {
+      setCustomersData([]);
+      return;
+    }
+    const propertyId = user.propertyId;
+    let intervalId: number | undefined;
+
+    async function loadCustomers() {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/room/property/${commonId}`);
-        if (!res.ok) throw new Error(`Failed to load rooms (${res.status})`);
-        const data = await res.json();
-        if (!mounted) return;
-        setRooms(Array.isArray(data) ? data : []);
+        const res: unknown = await getCustomerInfos();
+        let list: any[] = [];
+        if (Array.isArray(res)) list = res;
+        else if (res && typeof res === "object" && Array.isArray((res as any).data)) list = (res as any).data;
+
+        const filtered = list.filter(
+          (item: any) =>
+            item?.hotelDetails?.propertyId === propertyId &&
+            (item?.meta?.isActive === true || item?.isActive === true)
+        );
+
+        setCustomersData(filtered);
       } catch (err: any) {
-        if (!mounted) return;
-        setRoomsError(err?.message ?? "Error loading rooms");
-      } finally {
-        if (mounted) setLoadingRooms(false);
+        console.error("getCustomerInfos failed:", err);
+        setCustomersData([]);
       }
-    })();
+    }
+
+    loadCustomers();
+    intervalId = window.setInterval(loadCustomers, 60000);
+
     return () => {
-      mounted = false;
+      if (intervalId) window.clearInterval(intervalId);
     };
-  }, [commonId]);
+  }, [user?.propertyId]);
+
+  // fetch rooms (and a refresh function to be called after checkout)
+  const fetchRooms = async () => {
+    try {
+      if (!user?.propertyId) return;
+      setLoadingRooms(true);
+      setRoomsError(null);
+
+      const res = await fetchPropertyById(user.propertyId);
+      setPropertyDetails(res);
+      if (!res?.commonId) {
+        setRooms([]);
+        return;
+      }
+
+      const data = await fetchRoomsForPropertyApi(res.commonId);
+      const roomsArray: any[] = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      setRooms(roomsArray);
+    } catch (err: any) {
+      console.error("fetchRooms error:", err);
+      setRoomsError(err?.message ?? "Error loading rooms");
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
-    setLoadingCheckouts(true);
+    if (!user?.propertyId) return;
+
     (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/customer-info/`);
-        if (!res.ok) throw new Error("Failed to load customer-info");
-        const data = await res.json();
-        if (!mounted) return;
-        const today = new Date();
-        const list: Array<{ roomNo: string; time: string }> = [];
-        data.forEach((item: any) => {
-          const checkoutIso = item.checkin?.checkoutDate ?? item.bookingDetails?.checkoutDate;
-          if (checkoutIso && isSameLocalDay(checkoutIso, today)) {
-            const sd = item.stayDetails?.[0];
-            const roomNo = sd?.roomNo ?? "—";
-            const time = timeFromISO(checkoutIso) || "";
-            list.push({ roomNo, time });
-          }
-        });
-        if (list.length === 0) {
-          list.push({ roomNo: "19", time: "15:50" });
-          list.push({ roomNo: "17", time: "15:50" });
-          list.push({ roomNo: "8", time: "17:47" });
-        }
-        setCheckouts(list);
-      } catch {
-        setCheckouts([
-          { roomNo: "19", time: "15:50" },
-          { roomNo: "17", time: "15:50" },
-          { roomNo: "8", time: "17:47" },
-        ]);
-      } finally {
-        if (mounted) setLoadingCheckouts(false);
-      }
+      if (!mounted) return;
+      await fetchRooms();
     })();
+
     return () => {
       mounted = false;
     };
-  }, [commonId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.propertyId]);
 
+  // refreshRooms callback (pass to RoomCard so it can request a reload after checkout)
+  const refreshRooms = () => {
+    fetchRooms();
+  };
+
+  // compute set of roomNumbers that match the current query by scanning customersData
+  const matchingRoomNumbersByGuest = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || !Array.isArray(customersData) || customersData.length === 0) return new Set<string>();
+
+    const set = new Set<string>();
+
+    const normalize = (v: any): string | undefined => {
+      if (!v && v !== 0) return undefined;
+      if (typeof v === "string" && v.trim()) return v.trim();
+      if (Array.isArray(v) && v.length) {
+        const first = v[0];
+        if (typeof first === "string" && first.trim()) return first.trim();
+        if (first?.name) return String(first.name).trim();
+      }
+      return undefined;
+    };
+
+    for (const c of customersData) {
+      // check direct personal names
+      const personalName = c?.personalInfo?.name ?? `${c?.personalInfo?.firstName ?? ""} ${c?.personalInfo?.lastName ?? ""}`.trim();
+      if (personalName && String(personalName).toLowerCase().includes(q)) {
+        // add all stay roomNos for this customer
+        if (Array.isArray(c?.stayDetails)) {
+          for (const sd of c.stayDetails) {
+            const rn = String(sd?.roomNo ?? "").trim();
+            if (rn) set.add(rn.toLowerCase());
+          }
+        }
+        continue;
+      }
+
+      // inspect stayDetails
+      if (Array.isArray(c?.stayDetails)) {
+        for (const sd of c.stayDetails) {
+          // check stay-level guestName, guests list, bookingDetails.guestName
+          const candidates = [
+            normalize(sd?.guestName),
+            normalize(sd?.guestName?.[0]),
+            normalize(sd?.guests),
+            normalize(c?.bookingDetails?.guestName),
+          ];
+
+          // also check guests array of objects
+          if (Array.isArray(sd?.guests)) {
+            for (const g of sd.guests) {
+              if (typeof g === "string") {
+                if (g.toLowerCase().includes(q)) {
+                  const rn = String(sd?.roomNo ?? "").trim();
+                  if (rn) set.add(rn.toLowerCase());
+                  break;
+                }
+              } else if (g && (g.name || g.guestName)) {
+                const gname = (g.name ?? g.guestName ?? "").toString().trim().toLowerCase();
+                if (gname && gname.includes(q)) {
+                  const rn = String(sd?.roomNo ?? "").trim();
+                  if (rn) set.add(rn.toLowerCase());
+                  break;
+                }
+              }
+            }
+          }
+
+          // check candidate strings
+          for (const cand of candidates) {
+            if (cand && cand.toLowerCase().includes(q)) {
+              const rn = String(sd?.roomNo ?? "").trim();
+              if (rn) set.add(rn.toLowerCase());
+              break;
+            }
+          }
+        }
+      }
+
+      // fallback: check top-level guestName fields on customer
+      const topCandidates = [
+        normalize(c?.guestInfo?.name),
+        normalize(c?.guestName),
+        normalize(c?.guestInfo?.guestName),
+        normalize(c?.meta?.primaryGuest),
+      ];
+      for (const t of topCandidates) {
+        if (t && t.toLowerCase().includes(q)) {
+          if (Array.isArray(c?.stayDetails)) {
+            for (const sd of c.stayDetails) {
+              const rn = String(sd?.roomNo ?? "").trim();
+              if (rn) set.add(rn.toLowerCase());
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    return set;
+  }, [customersData, query]);
+
+  // Apply text + floor filters to get the list to render (now includes guest-name matches)
   const grouped = useMemo(() => {
     return rooms.reduce<Record<string, Room[]>>((acc, r) => {
       const key = r.floorName ?? "No Floor";
@@ -275,6 +602,7 @@ export default function Page(): JSX.Element {
     }, {});
   }, [rooms]);
 
+  // Floor keys sorted
   const floorKeys = useMemo(() => {
     return Object.keys(grouped).sort((a, b) => {
       const la = a.toLowerCase();
@@ -285,6 +613,59 @@ export default function Page(): JSX.Element {
     });
   }, [grouped]);
 
+  const filteredGrouped = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const floorFilter = selectedFloor;
+
+    if (!q && !floorFilter) return grouped;
+
+    const out: Record<string, Room[]> = {};
+    for (const [floor, list] of Object.entries(grouped)) {
+      if (floorFilter && floor !== floorFilter) continue;
+
+      const filteredList = list.filter((r) => {
+        if (!q) return true;
+        const rn = String(r.roomNumber ?? "").toLowerCase();
+        const rt = String(r.roomType ?? "").toLowerCase();
+
+        // 1) match by room number
+        if (rn.includes(q)) return true;
+        // 2) match by room type
+        if (rt.includes(q)) return true;
+        // 3) match by guest name (computed set)
+        if (matchingRoomNumbersByGuest.has(rn)) return true;
+
+        return false;
+      });
+
+      if (filteredList.length > 0) out[floor] = filteredList;
+    }
+
+    return out;
+  }, [grouped, query, selectedFloor, matchingRoomNumbersByGuest]);
+
+  const refreshCustomers = async () => {
+    if (!user?.propertyId) return;
+    try {
+      const res: unknown = await getCustomerInfos();
+      let list: any[] = [];
+      if (Array.isArray(res)) list = res;
+      else if (res && typeof res === "object" && Array.isArray((res as any).data)) list = (res as any).data;
+
+      const filtered = list.filter(
+        (item: any) =>
+          item?.hotelDetails?.propertyId === user.propertyId &&
+          (item?.meta?.isActive === true || item?.isActive === true)
+      );
+
+      setCustomersData(filtered);
+    } catch (err: any) {
+      console.error("refreshCustomers failed:", err);
+      setCustomersData([]);
+    }
+  };
+
+  // informatics (unchanged)
   const informatics = useMemo(() => {
     const info = {
       vacant: 0,
@@ -297,11 +678,30 @@ export default function Page(): JSX.Element {
       pax: 0,
       chkIn: 0,
       chkOut: 0,
+    } as {
+      vacant: number;
+      occupied: number;
+      dirty: number;
+      blocked: number;
+      maintenance: number;
+      cleaning: number;
+      total: number;
+      pax: number;
+      chkIn: number;
+      chkOut: number;
     };
+    // Group rooms by status and count them
+    const statusCounts = rooms.reduce((acc: Record<string, number>, room) => {
+      const status = room.roomStatus?.toLowerCase() || "unknown";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    console.log("Room Status Counts:", statusCounts);
     rooms.forEach((r) => {
       const s = (r.roomStatus || "").toLowerCase();
       if (s.includes("vacant") || s.includes("available")) info.vacant++;
-      else if (s.includes("occupied") || s.includes("booked") || s.includes("reserved")) {
+      else if (s.includes("occupied") || s.includes("booked") || s.includes("reserved") || s.includes("checkin")) {
         info.occupied++;
         if (typeof r.maxOccupancy === "number") info.pax += r.maxOccupancy;
         info.chkIn++;
@@ -314,61 +714,65 @@ export default function Page(): JSX.Element {
     return info;
   }, [rooms]);
 
+  // Reservation days (unchanged)
   const reservationDays = [
-    { date: "Sat,14-Jun", count: 2 },
+    { date: "Sat,14-Jun", count: 0 },
     { date: "Sun,15-Jun", count: 0 },
     { date: "Mon,16-Jun", count: 0 },
     { date: "Tue,17-Jun", count: 0 },
     { date: "Wed,18-Jun", count: 0 },
     { date: "Thu,19-Jun", count: 0 },
   ];
-
   return (
-
     <>
-      <div className="main min-h-[calc(100vh-64px)] bg-white flex flex-col  ">
-        {/* Top Section (fills available space above fixed bottom) */}
-        <div className="flex  flex-[9] overflow-hidden">
-          {/* LEFT: 80% width, internal scroll area */}
-          <div className="left w-[80%] h-ful  flex flex-col">
-            {/* Make inner container flex-1 + overflow-auto so only this area scrolls */}
+      <div className="main min-h-[calc(100vh-64px)] bg-white flex flex-col">
+        <div className="flex flex-[9] overflow-hidden">
+          <div className="left w-[80%] h-full flex flex-col">
             <div className="flex-1 overflow-auto p-4">
-              {/* Your large content — use min-h-full or min-h-screen depending on needs */}
-              <div className="min-h-[100%]   rounded-lg p-2">
+              <div className="min-h-[100%] rounded-lg p-2">
                 <div className="col-span-10">
-                  <div className="max-h-[calc(110vh-220px)] overflow-auto pr-4  ">
-                    {loadingRooms && (
-                      <div className="p-8 bg-white rounded shadow text-center">Loading rooms...</div>
-                    )}
-                    {roomsError && (
-                      <div className="p-4 bg-red-50 text-red-700 rounded">{roomsError}</div>
-                    )}
+                  <div className="max-h-[calc(110vh-220px)] overflow-auto pr-4">
+                    {loadingRooms && <div className="p-8 bg-white rounded shadow text-center">Loading rooms...</div>}
+                    {roomsError && <div className="p-4 bg-red-50 text-red-700 rounded">{roomsError}</div>}
 
                     <div className="space-y-2">
-                      {floorKeys.map((floor) => {
-                        const list = grouped[floor] ?? [];
-                        return (
-                          <div key={floor} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200 relative">
-                            <div className="flex items-center gap-3">
-                              <div className="w-1 h-6 bg-sky-500 rounded-l-md" />
-                              <div className="bg-sky-50 px-2 py-1 rounded text-sky-700 font-medium text-xs border border-sky-200 shadow-sm">
-                                {floor.toUpperCase()}
+                      {Object.keys(filteredGrouped).length === 0 ? (
+                        <div className="p-6 bg-white rounded shadow text-center text-sm text-gray-600">
+                          No rooms matched your search.
+                        </div>
+                      ) : (
+                        Object.keys(filteredGrouped).map((floor) => {
+                          const list = filteredGrouped[floor] ?? [];
+                          return (
+                            <div key={floor} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200 relative">
+                              <div className="flex items-center gap-3">
+                                <div className="w-1 h-6 bg-sky-500 rounded-l-md" />
+                                <div className="bg-sky-50 px-2 py-1 rounded text-sky-700 font-medium text-xs border border-sky-200 shadow-sm">
+                                  {floor.toUpperCase()}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-3 items-center mt-2">
+                                {list.map((room, idx) => {
+                                  const key = room.id ?? `${room.roomNumber ?? room.roomName ?? idx}-${idx}`;
+                                  return (
+                                    <div key={key}>
+                                      <RoomCard
+                                        room={room}
+                                        customersData={customersData}
+                                        onCheckoutSuccess={() => {
+                                          refreshRooms();
+                                          refreshCustomers();
+                                        }}
+                                      />
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
-
-                            <div className="flex flex-wrap gap-3 items-center mt-2">
-                              {list.map((room, idx) => {
-                                const key = room.id ?? `${room.roomNumber ?? room.roomName ?? idx}-${idx}`;
-                                return (
-                                  <div key={key}>
-                                    <RoomCard room={room} />
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 </div>
@@ -376,48 +780,54 @@ export default function Page(): JSX.Element {
             </div>
           </div>
 
-          {/* RIGHT: 20% width, sticky so it visually stays put while left scrolls */}
           <aside className="right w-[20%] h-full">
-            {/* Use sticky so the sidebar remains in view inside the available vertical space */}
-            <div className="sticky top-4 space-y-4">
+            <div className="sticky top-2 space-y-2">
               <div className="rounded p-2">
-                <input placeholder="search" className="px-3 py-2 rounded-full border text-sm w-full" />
-                <div className="mt-3 flex justify-end">
-                  <button className="px-3 py-1 bg-gradient-to-r from-sky-500 to-cyan-400 text-white rounded-full text-xs">Floor Wise</button>
+                <label htmlFor="roomSearch" className="sr-only">Search rooms</label>
+                <input
+                  id="roomSearch"
+                  placeholder="Search..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 placeholder-gray-400 transition-all"
+                />
+
+                {/* floor quick-filters */}
+                <div className="mt-3">
+                  <select
+                    id="floorSelect"
+                    value={selectedFloor ?? ""}
+                    onChange={(e) => setSelectedFloor(e.target.value || null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none text-gray-900 text-sm"
+                  >
+                    <option value="">Floor Wise</option>
+                    {floorKeys.map((fk) => (
+                      <option key={fk} value={fk}>
+                        {fk}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div className="bg-white rounded shadow p-4 border border-gray-200">
+              <div className="bg-white rounded shadow p-2 border border-gray-200">
                 <h3 className="text-sm font-semibold mb-2">Rooms In Grace Time</h3>
                 <div className="h-28 border rounded p-2 text-xs text-gray-500 overflow-auto">No items</div>
               </div>
 
               <div className="bg-white rounded shadow p-4 border border-gray-200">
                 <h3 className="text-sm font-semibold mb-2">Today's Expected Checkout</h3>
-                <div className="text-xs text-gray-500 mb-2">{loadingCheckouts ? "Loading..." : ""}</div>
-                <ul className="mt-3 space-y-2 text-sm">
-                  {checkouts.map((c, i) => (
-                    <li key={i} className="flex justify-between">
-                      <span>{c.roomNo}</span>
-                      <span className="text-gray-500">{c.time}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
           </aside>
         </div>
 
-
         <footer className="bottom-0 flex w-full p-2 gap-2 rounded-xl">
-          {/* Left (70%) */}
           <div className="w-[70%] bg-white p-2 rounded-xl shadow">
-            {/* Title */}
             <div className="flex items-center bg-gray-300 justify-center mb-2 rounded-md">
               <span className="text-sm font-semibold text-sky-700 px-3 py-1">Informatics</span>
             </div>
 
-            {/* Table */}
             <div className="text-xs">
               <div className="grid grid-cols-11 gap-2 font-semibold border-b border-gray-200 pb-1 mb-2">
                 <div>Type</div>
@@ -436,11 +846,11 @@ export default function Page(): JSX.Element {
               <div className="grid grid-cols-11 gap-2 text-sm">
                 <div className="font-medium">Total</div>
                 <div className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded-full bg-green-400"></span>
+                  <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
                   {informatics.vacant}
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded-full bg-red-400"></span>
+                  <span className="w-3 h-3 rounded-full bg-red-500"></span>
                   {informatics.occupied}
                 </div>
                 <div className="flex items-center gap-1">
@@ -479,33 +889,22 @@ export default function Page(): JSX.Element {
             </div>
           </div>
 
-          {/* Right (30%) */}
           <div className="w-[30%] bg-white p-2 rounded-xl shadow">
-            {/* Title */}
             <div className="flex items-center bg-gray-300 justify-center mb-2 rounded-md">
               <span className="text-sm font-semibold text-sky-700 px-3 py-1">Reservation</span>
             </div>
 
-            {/* One Row (No Scrollbar) */}
             <div className="flex items-center justify-between text-sm gap-2">
               {reservationDays.map((d) => (
-                <div
-                  key={d.date}
-                  className="flex-1 px-2 py-1 rounded text-center border border-gray-200"
-                >
+                <div key={d.date} className="flex-1 px-2 py-1 rounded text-center border border-gray-200">
                   <div className="text-xs truncate">{d.date.split(",")[0]}</div>
                   <div className="font-semibold">{d.count}</div>
                 </div>
               ))}
             </div>
           </div>
-
         </footer>
-
       </div>
-
-
     </>
-
   );
 }

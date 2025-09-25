@@ -95,7 +95,7 @@ export type BookingPayload = {
   };
   // keep checkin dates as strings in the UI state (convert to Date when sending)
   checkin: { checkinDate: string; checkoutDate: string; arrivalDate: string; depatureDate: string };
-  stayDetails: StayDetails[];   // updated
+  stayDetails: StayDetails[];    
   guestInfo: {
     numberOfGuests: { adult: number; child: number; seniors: number };
     noOfPax: number;
@@ -135,6 +135,7 @@ export type BookingPayload = {
 
 /** RoomRow: UI editing shape (keeps same fields + some optional additions) */
 export type RoomRow = {
+  id: number;
   specialInstructions: string;
   country: string;
   state: string;
@@ -149,8 +150,6 @@ export type RoomRow = {
   mealPlan: string;
   guestName: string[];
   contact: string;
-  male: number;
-  female: number;
   adult: number;
   child: number;
   extra: number;
@@ -177,14 +176,14 @@ export const initialGuest: BasicGuest = {
   title: "",
   email: "",
   gender: "",
-  mobileNo: "",
-  nationality: "",
+  mobileNo: "", 
   idType: "",
   idNumber: "",
   address: "",
   id: "",
   isVIP: false,
   isForeignCustomer: false,
+  nationality: "",
   image: "",
   idProof: "",
   isActive: false,
@@ -230,7 +229,7 @@ export const initialBooking: BookingPayload = {
   stayDetails: [], 
   guestInfo: {
     numberOfGuests: { adult: 1, child: 0, seniors: 0 },
-    noOfPax: 1,
+    noOfPax: 0,
     childPax: 0,
     extraPax: 0,
     specialRequests: "",
@@ -254,7 +253,7 @@ export const initialBooking: BookingPayload = {
   gstInfo: { gstNumber: "", gstType: "" },
   personalInfo: { dob: "", age: "", companyAnniversary: "" },
   businessInfo: { segmentName: "", bussinessSource: "", customerComapny: "", purposeOfVisit: "", visitRemark: "" },
-  invoiceOptions: { printOption: true, pdfSaveOption: true },
+  invoiceOptions: { printOption: false, pdfSaveOption: false },
   extra: [{ serviceName: "", hsncode: "", amount: "" }],
   meta: { rating: "", isCancelled: false, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 };
@@ -262,14 +261,13 @@ export const initialBooking: BookingPayload = {
  
 export const initialRooms: RoomRow[] = [
   {
+    id:0,
     roomType: "",
     roomNo: "",
     ratePlan: "",
-    mealPlan: "EP",
+    mealPlan: "",
     guestName: [""],
     contact: "",
-    male: 0,
-    female: 0,
     adult: 0,
     child: 0,
     seniors: 0,

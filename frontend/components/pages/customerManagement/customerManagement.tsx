@@ -3,7 +3,7 @@ import { MdDelete } from "react-icons/md";
 import { FaEdit } from "react-icons/fa";
 
 import { useEffect, useState } from 'react';
-import { deleteCustomer, fetchCustomerById, fetchCustomer } from '../../../lib/api';
+import { deleteCustomer, fetchCustomerById, fetchCustomers } from '../../../lib/api';
 import CustomerAdd from "../../forms/customerAdd/Form";
 
 type CustomerData = {
@@ -46,7 +46,7 @@ export default function CustomerManagement() {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetchCustomer();
+            const res = await fetchCustomers();
             setData(res.data);
         } catch (err) {
             console.error('Error fetching customers:', err);

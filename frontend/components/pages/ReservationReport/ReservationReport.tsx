@@ -1,5 +1,6 @@
-'use client';
+// 23-9-2025 fetchReservationReport function update 
 
+'use client';
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
 import { IReservationList } from '../../interface/reservationReport';
@@ -62,38 +63,56 @@ export default function ReservationReportClient() {
 
     const handleFetchReservation = async () => {
         if (!user?.clientId || !user?.propertyId) {
-            setErr("Missing clientId/propertyId from user context.");
+            setErr('Missing clientId/propertyId from user context.');
             return;
         }
 
         setLoading(true);
-        setErr("");
+        setErr('');
 
         try {
-            const data = await fetchReservationReport({
+            const params: any = {
                 clientId: user.clientId,
                 propertyId: user.propertyId,
-                arrivalFrom: arrivalFrom ? toBackendDate(arrivalFrom)! : undefined,
-                arrivalTo: arrivalTo ? toBackendDate(arrivalTo)! : undefined,
-                bookedFrom: bookedFrom ? toBackendDate(bookedFrom)! : undefined,
-                bookedTo: bookedTo ? toBackendDate(bookedTo)! : undefined,
-                cancelFrom: cancelFrom ? toBackendDate(cancelFrom)! : undefined,
-                cancelTo: cancelTo ? toBackendDate(cancelTo)! : undefined,
-                showList: showList.trim() || undefined,
-                arrivalMode: arrivalMode.trim() || undefined,
-                timewise: timewise.trim() || undefined,
-            });
+            };
 
-            setData(data.map(normalizeReservationRow));
+            if (arrivalFrom) params.arrivalFrom = toBackendDate(arrivalFrom);
+            if (arrivalTo) params.arrivalTo = toBackendDate(arrivalTo);
+            if (bookedFrom) params.bookedFrom = toBackendDate(bookedFrom);
+            if (bookedTo) params.bookedTo = toBackendDate(bookedTo);
+            if (cancelFrom) params.cancelFrom = toBackendDate(cancelFrom);
+            if (cancelTo) params.cancelTo = toBackendDate(cancelTo);
+
+            // only include string filters when trimmed value exists
+            if (showList && showList.trim() !== '') params.showList = showList.trim();
+            if (arrivalMode && arrivalMode.trim() !== '') params.arrivalMode = arrivalMode.trim();
+
+            // timewise is limited to a set of allowed values according to docs:
+            // next6Hours, next12Hours, next24Hours, next48Hours
+            if (timewise && timewise.trim() !== '') {
+                params.timewise = timewise.trim();
+            }
+
+            // call API helper
+            const raw = await fetchReservationReport(params);
+
+            // normalize rows if you have a mapper
+            const normalized = Array.isArray(raw) ? raw.map(normalizeReservationRow) : [];
+            console.log("reservation report ", normalized);
+            setData(normalized);
         } catch (e: any) {
-            setErr(e.message);
+            // try to pick the most informative message
+            const message =
+                e?.response?.data?.message ||
+                e?.response?.data?.detail ||
+                e?.message ||
+                'Failed to fetch reservation report.';
+            setErr(message);
             setData([]);
         } finally {
             setLoading(false);
         }
     };
-
-
     useEffect(() => {
         if (user?.clientId && user?.propertyId) {
             handleFetchReservation();
@@ -133,7 +152,7 @@ export default function ReservationReportClient() {
         timewise;
 
     return (
-        <div className="bg-amber-50 min-h-full h-full p-6">
+        <div className="min-h-screen bg-slate-50 p-4">
             <h1 className="text-2xl font-semibold mb-4">Reservation Report</h1>
 
             {/* Filters */}

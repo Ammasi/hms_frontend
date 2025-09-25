@@ -1,5 +1,6 @@
-'use client';
+// 23-9-2025 fetchStayReport function update 
 
+'use client';
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
 import { StayReportItem } from '../../interface/stayReport';
@@ -11,7 +12,7 @@ export default function StayReport() {
 
   const [fromDate, setFromDate] = useState<string>(todayISO);
   const [toDate, setToDate] = useState<string>(todayISO);
-  const [roomType, setRoomType] = useState<string>('');
+  const [roomType, setRoomType] = useState<string>('all');
   const [customerName, setCustomerName] = useState<string>('');
 
   const [data, setData] = useState<StayReportItem[]>([]);
@@ -28,7 +29,7 @@ export default function StayReport() {
     setErr("");
 
     try {
-      const data = await fetchStayReport({
+      const result = await fetchStayReport({
         clientId: user.clientId,
         propertyId: user.propertyId,
         fromDate: fromDate !== todayISO ? fromDate : undefined,
@@ -37,15 +38,16 @@ export default function StayReport() {
         customerName: customerName.trim() || undefined,
       });
 
-      setData(data);
+      setData(result);
     } catch (e: any) {
-      setErr(e.message);
+      const message =
+        e.response?.data?.message || e.message || "Failed to fetch stay report.";
+      setErr(message);
       setData([]);
     } finally {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (user?.clientId && user?.propertyId) {
@@ -54,9 +56,8 @@ export default function StayReport() {
   }, [user]);
 
   if (!user) return <div className="p-6">Loading user…</div>;
-
   return (
-    <div className="bg-amber-50 min-h-full h-full p-6">
+    <div className="min-h-screen bg-slate-50 p-4">
       <h1 className="text-2xl font-semibold mb-4">Stay Report</h1>
 
       {/* Filters */}
